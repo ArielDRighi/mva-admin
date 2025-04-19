@@ -1,43 +1,26 @@
-import { getToken } from "next-auth/jwt";
+// middleware.ts
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
-export async function middleware(request: NextRequest) {
-  const token = await getToken({
-    req: request,
-    secret: process.env.NEXTAUTH_SECRET,
-  });
+export function middleware(request: NextRequest) {
+  const token = request.cookies.get("token")?.value;
 
-  const url = request.nextUrl.pathname;
+  const isAuth = !!token;
+  const isLoginPage = request.nextUrl.pathname.startsWith("/login");
 
-  if (!token) {
+  // Si NO está autenticado y no está en la página de login → redirigir a login
+  if (!isAuth && !isLoginPage) {
     return NextResponse.redirect(new URL("/login", request.url));
   }
 
-  // 👇 Rutas privadas por rol
-  const user = token.user as { role: string };
-
-  if (url.startsWith("/admin") && user.role !== "ADMIN") {
-    return NextResponse.redirect(new URL("/no-autorizado", request.url));
-  }
-
-  if (
-    url.startsWith("/supervisor") &&
-    !["SUPERVISOR", "ADMIN"].includes(user.role)
-  ) {
-    return NextResponse.redirect(new URL("/no-autorizado", request.url));
-  }
-
-  if (
-    url.startsWith("/operario") &&
-    !["OPERARIO", "SUPERVISOR", "ADMIN"].includes(user.role)
-  ) {
-    return NextResponse.redirect(new URL("/no-autorizado", request.url));
+  // Si está autenticado y entra a /login → mandarlo al dashboard
+  if (isAuth && isLoginPage) {
+    return NextResponse.redirect(new URL("/dashboard", request.url));
   }
 
   return NextResponse.next();
 }
 
 export const config = {
-  matcher: ["/admin/:path*", "/supervisor/:path*", "/operario/:path*"],
+  matcher: ["/dashboard/:path*", "/login"],
 };
