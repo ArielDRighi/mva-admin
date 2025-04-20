@@ -27,6 +27,7 @@ const formSchema = z.object({
 const LoginComponent = () => {
   const router = useRouter();
   const [formError, setFormError] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -38,17 +39,18 @@ const LoginComponent = () => {
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     setFormError("");
+    setIsLoading(true);
 
     try {
       const data = await loginUser(values.username, values.password);
-
       setCookie("token", data.access_token);
       setCookie("user", JSON.stringify(data.user));
-
       router.push("/dashboard");
     } catch (err) {
       setFormError("Usuario o contraseña incorrectos");
       console.log(err);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -59,8 +61,15 @@ const LoginComponent = () => {
           onSubmit={form.handleSubmit(onSubmit)}
           className="space-y-4 form_main"
         >
-          <Image src="/images/MVA_LogoPNG.png" alt="Logo" width={120} height={120} className="z-10"/>
-          <h1 className="heading">Inicia sesión</h1>
+          <Image
+            src="/images/MVA_LogoPNG.png"
+            alt="Logo"
+            width={120}
+            height={120}
+            className="z-10"
+          />
+          <h1 className="heading">Iniciar sesión</h1>
+
           <div className="inputContainer">
             <FormField
               control={form.control}
@@ -125,10 +134,24 @@ const LoginComponent = () => {
           </div>
 
           {formError && <p className="text-sm text-red-500">{formError}</p>}
-
-          <Button type="submit" id="button">
-            Iniciar sesión
-          </Button>
+          {isLoading ? (
+            <>
+              <div className="three-body z-10">
+                <div className="three-body__dot"></div>
+                <div className="three-body__dot"></div>
+                <div className="three-body__dot"></div>
+              </div>
+            </>
+          ) : (
+            <Button
+              type="submit"
+              id="button"
+              className="cursor-pointer flex items-center justify-center gap-2"
+              disabled={isLoading}
+            >
+              Iniciar sesión
+            </Button>
+          )}
         </form>
       </div>
     </Form>
