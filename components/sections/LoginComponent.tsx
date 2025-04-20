@@ -17,6 +17,7 @@ import { useRouter } from "next/navigation";
 import { loginUser } from "@/app/actions/login";
 import { setCookie } from "cookies-next";
 import { useState } from "react";
+import Image from "next/image";
 
 const formSchema = z.object({
   username: z.string().min(3, { message: "El usuario es obligatorio" }),
@@ -58,7 +59,8 @@ const LoginComponent = () => {
           onSubmit={form.handleSubmit(onSubmit)}
           className="space-y-4 form_main"
         >
-          <p className="heading">Login</p>
+          <Image src="/images/MVA_LogoPNG.png" alt="Logo" width={120} height={120} className="z-10"/>
+          <h1 className="heading">Inicia sesión</h1>
           <div className="inputContainer">
             <FormField
               control={form.control}

@@ -125,11 +125,11 @@
 /* Contenedor externo con gradiente de borde */
 .form_wrapper {
   background: linear-gradient(
-    to right,
-    #a855f7,
-    #ec4899,
-    #ef4444
-  ); /* Gradiente tipo Tailwind */
+    to left,
+    #00708b,
+    /* azul oscuro */ #00a4a6,
+    /* verde cyan */ #c2ebeb /* celeste claro */
+  );
   padding: 4px; /* Espacio para que se vea el borde */
   border-radius: 20px;
   display: flex;
@@ -157,12 +157,12 @@
 .form_main::before {
   position: absolute;
   content: "";
-  width: 300px;
-  height: 300px;
+  width: 600px;
+  height: 600px;
   background-color: #c2ebeb;
   transform: rotate(45deg);
-  left: -130px;
-  bottom: 30px;
+  left: -450px;
+  top: -40px;
   z-index: 1;
   border-radius: 30px;
   box-shadow: 5px 5px 10px rgba(0, 0, 0, 0.082);
