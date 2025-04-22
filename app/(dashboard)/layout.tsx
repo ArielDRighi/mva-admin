@@ -1,3 +1,8 @@
+// app/dashboard/layout.tsx
+import { AppSidebar } from "@/components/layout/AppSidebar";
+import Header from "@/components/layout/Header";
+import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
+
 export default function DashboardLayout({
   children,
 }: {
@@ -5,7 +10,15 @@ export default function DashboardLayout({
 }) {
   return (
     <html lang="es">
-      <body>{children}</body>
+      <body>
+        <SidebarProvider>
+          <AppSidebar />
+          <SidebarInset>
+            <Header />
+            {children}
+          </SidebarInset>
+        </SidebarProvider>
+      </body>
     </html>
   );
 }

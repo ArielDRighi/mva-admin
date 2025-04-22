@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from "react";
 import { getCookie } from "cookies-next";
 
-type User = {
+export type User = {
   id: number;
   nombre: string;
   email: string;
