@@ -1,0 +1,1 @@
+export const LogoMVA = "/images/MVA_LogoPNG.png";
