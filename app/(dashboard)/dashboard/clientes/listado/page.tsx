@@ -1,9 +1,8 @@
-import React from 'react'
+import ListadoClientesPage from "@/components/pages/ListadoClientesPage";
+import React from "react";
 
 const ListadoClientes = () => {
-  return (
-    <div>ListadoClientes</div>
-  )
-}
+  return <ListadoClientesPage />;
+};
 
-export default ListadoClientes
+export default ListadoClientes;

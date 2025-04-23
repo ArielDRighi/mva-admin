@@ -11,57 +11,63 @@ const dataSideBar = {
   navMain: [
     {
       title: "Vehículos",
-      url: "/vehiculos",
+      url: "dashboard/vehiculos",
       icon: Car,
       items: [
-        { title: "Listado", url: "/vehiculos/listado" },
-        { title: "Mantenimiento", url: "/vehiculos/mantenimiento" },
+        { title: "Listado", url: "dashboard/vehiculos/listado" },
+        { title: "Mantenimiento", url: "dashboard/vehiculos/mantenimiento" },
       ],
     },
     {
       title: "Empleados",
-      url: "/empleados",
+      url: "dashboard/empleados",
       icon: Users,
-      items: [{ title: "Listado", url: "/empleados/listado" }],
+      items: [{ title: "Listado", url: "dashboard/empleados/listado" }],
     },
     {
       title: "Baños",
-      url: "/banos",
+      url: "dashboard/banos",
       icon: Toilet,
       items: [
-        { title: "Listado", url: "/banos/listado" },
-        { title: "Mantenimiento", url: "/banos/mantenimiento" },
+        { title: "Listado", url: "dashboard/baños/listado" },
+        { title: "Mantenimiento", url: "dashboard/baños/mantenimiento" },
       ],
     },
     {
       title: "Clientes",
-      url: "/clientes",
+      url: "dashboard/clientes",
       icon: UserCheck,
       items: [
-        { title: "Listado", url: "/clientes/listado" },
-        { title: "Contratos", url: "/clientes/contratos" },
-        { title: "Servicios Activos", url: "/clientes/servicios-activos" },
+        { title: "Listado", url: "dashboard/clientes/listado" },
+        { title: "Contratos", url: "dashboard/clientes/contratos" },
+        {
+          title: "Servicios Activos",
+          url: "dashboard/clientes/servicios-activos",
+        },
       ],
     },
     {
       title: "Servicios",
-      url: "/servicios",
+      url: "dashboard/servicios",
       icon: Hammer,
       items: [
-        { title: "Crear Servicio", url: "/servicios/crear" },
-        { title: "Servicios Activos", url: "/servicios/activos" },
-        { title: "Historial", url: "/servicios/historial" },
+        { title: "Crear Servicio", url: "dashboard/servicios/crear" },
+        { title: "Servicios Activos", url: "dashboard/servicios/activos" },
+        { title: "Historial", url: "dashboard/servicios/historial" },
       ],
     },
     {
       title: "Recursos en Mantenimiento",
-      url: "/recursos-en-mantenimiento",
+      url: "dashboard/recursos-en-mantenimiento",
       icon: Wrench,
       items: [
-        { title: "Listado", url: "/recursos-en-mantenimiento/listado" },
+        {
+          title: "Listado",
+          url: "dashboard/recursos-en-mantenimiento/listado",
+        },
         {
           title: "Enviar a Mantenimiento",
-          url: "/recursos-en-mantenimiento/enviar",
+          url: "dashboard/recursos-en-mantenimiento/enviar",
         },
       ],
     },
