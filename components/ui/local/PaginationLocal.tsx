@@ -1,6 +1,7 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 
 interface PaginationLocalProps {
   total: number;
@@ -66,8 +67,9 @@ export const PaginationLocal = ({
         size="sm"
         onClick={() => onChangePage(currentPage - 1)}
         disabled={currentPage === 1}
+        className="cursor-pointer"
       >
-        Anterior
+        <ChevronLeft />
       </Button>
 
       {/* Botones de las páginas calculadas */}
@@ -78,6 +80,7 @@ export const PaginationLocal = ({
             variant={page === currentPage ? "default" : "outline"}
             size="sm"
             onClick={() => onChangePage(page)}
+            className="cursor-pointer"
           >
             {page}
           </Button>
@@ -94,8 +97,9 @@ export const PaginationLocal = ({
         size="sm"
         onClick={() => onChangePage(currentPage + 1)}
         disabled={currentPage === total}
+        className="cursor-pointer"
       >
-        Siguiente
+        <ChevronRight />
       </Button>
     </div>
   );

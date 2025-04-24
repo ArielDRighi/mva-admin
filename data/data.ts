@@ -11,63 +11,63 @@ const dataSideBar = {
   navMain: [
     {
       title: "Vehículos",
-      url: "dashboard/vehiculos",
+      url: "/dashboard/vehiculos",
       icon: Car,
       items: [
-        { title: "Listado", url: "dashboard/vehiculos/listado" },
-        { title: "Mantenimiento", url: "dashboard/vehiculos/mantenimiento" },
+        { title: "Listado", url: "/dashboard/vehiculos/listado" },
+        { title: "Mantenimiento", url: "/dashboard/vehiculos/mantenimiento" },
       ],
     },
     {
       title: "Empleados",
-      url: "dashboard/empleados",
+      url: "/dashboard/empleados",
       icon: Users,
-      items: [{ title: "Listado", url: "dashboard/empleados/listado" }],
+      items: [{ title: "Listado", url: "/dashboard/empleados/listado" }],
     },
     {
       title: "Baños",
-      url: "dashboard/banos",
+      url: "/dashboard/banos",
       icon: Toilet,
       items: [
-        { title: "Listado", url: "dashboard/baños/listado" },
-        { title: "Mantenimiento", url: "dashboard/baños/mantenimiento" },
+        { title: "Listado", url: "/dashboard/baños/listado" },
+        { title: "Mantenimiento", url: "/dashboard/baños/mantenimiento" },
       ],
     },
     {
       title: "Clientes",
-      url: "dashboard/clientes",
+      url: "/dashboard/clientes",
       icon: UserCheck,
       items: [
-        { title: "Listado", url: "dashboard/clientes/listado" },
-        { title: "Contratos", url: "dashboard/clientes/contratos" },
+        { title: "Listado", url: "/dashboard/clientes/listado" },
+        { title: "Contratos", url: "/dashboard/clientes/contratos" },
         {
           title: "Servicios Activos",
-          url: "dashboard/clientes/servicios-activos",
+          url: "/dashboard/clientes/servicios-activos",
         },
       ],
     },
     {
       title: "Servicios",
-      url: "dashboard/servicios",
+      url: "/dashboard/servicios",
       icon: Hammer,
       items: [
-        { title: "Crear Servicio", url: "dashboard/servicios/crear" },
-        { title: "Servicios Activos", url: "dashboard/servicios/activos" },
-        { title: "Historial", url: "dashboard/servicios/historial" },
+        { title: "Crear Servicio", url: "/dashboard/servicios/crear" },
+        { title: "Servicios Activos", url: "/dashboard/servicios/activos" },
+        { title: "Historial", url: "/dashboard/servicios/historial" },
       ],
     },
     {
       title: "Recursos en Mantenimiento",
-      url: "dashboard/recursos-en-mantenimiento",
+      url: "/dashboard/recursos-en-mantenimiento",
       icon: Wrench,
       items: [
         {
           title: "Listado",
-          url: "dashboard/recursos-en-mantenimiento/listado",
+          url: "/dashboard/recursos-en-mantenimiento/listado",
         },
         {
           title: "Enviar a Mantenimiento",
-          url: "dashboard/recursos-en-mantenimiento/enviar",
+          url: "/dashboard/recursos-en-mantenimiento/enviar",
         },
       ],
     },
