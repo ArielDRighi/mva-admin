@@ -22,3 +22,11 @@ export type Cliente = {
   fecha_registro: string;
   estado: "ACTIVO" | "INACTIVO" | string;
 };
+
+export type ClientesResponse = {
+  items: Cliente[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+};

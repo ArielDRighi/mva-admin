@@ -68,6 +68,7 @@ export const PaginationLocal = ({
         onClick={() => onChangePage(currentPage - 1)}
         disabled={currentPage === 1}
         className="cursor-pointer"
+        type="button"
       >
         <ChevronLeft />
       </Button>
@@ -81,6 +82,7 @@ export const PaginationLocal = ({
             size="sm"
             onClick={() => onChangePage(page)}
             className="cursor-pointer"
+            type="button"
           >
             {page}
           </Button>
@@ -98,6 +100,7 @@ export const PaginationLocal = ({
         onClick={() => onChangePage(currentPage + 1)}
         disabled={currentPage === total}
         className="cursor-pointer"
+        type="button"
       >
         <ChevronRight />
       </Button>

@@ -1,6 +1,3 @@
-// components/ui/local/ListadoTabla.tsx
-"use client";
-
 import { useMemo, useState, ReactNode } from "react";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
@@ -27,6 +24,13 @@ interface ListadoTablaProps<T> {
   renderRow: (item: T) => ReactNode;
   itemsPerPage?: number;
   searchableKeys?: (keyof T)[];
+
+  // Nuevas props para paginación remota
+  remotePagination?: boolean;
+  totalItems?: number;
+  currentPage?: number;
+  onPageChange?: (page: number) => void;
+  onSearchChange?: (search: string) => void;
 }
 
 export function ListadoTabla<T>({
@@ -36,25 +40,56 @@ export function ListadoTabla<T>({
   renderRow,
   itemsPerPage = 15,
   searchableKeys = [],
+  remotePagination = false,
+  totalItems,
+  currentPage: externalPage,
+  onPageChange,
+  onSearchChange,
 }: ListadoTablaProps<T>) {
   const [searchTerm, setSearchTerm] = useState("");
-  const [currentPage, setCurrentPage] = useState(1);
+  const [internalPage, setInternalPage] = useState(1);
+
+  const currentPage = remotePagination ? externalPage ?? 1 : internalPage;
 
   const filteredData = useMemo(() => {
+    if (remotePagination) return data;
+
     if (searchableKeys.length === 0 || searchTerm.trim() === "") return data;
+
     return data.filter((item) =>
       searchableKeys.some((key) => {
         const value = String(item[key] ?? "").toLowerCase();
         return value.includes(searchTerm.toLowerCase());
       })
     );
-  }, [searchTerm, data, searchableKeys]);
+  }, [searchTerm, data, searchableKeys, remotePagination]);
 
-  const totalPages = Math.ceil(filteredData.length / itemsPerPage);
+  const totalPages = remotePagination
+    ? Math.ceil((totalItems ?? 0) / itemsPerPage)
+    : Math.ceil(filteredData.length / itemsPerPage);
+
   const paginatedData = useMemo(() => {
+    if (remotePagination) return filteredData;
+
     const start = (currentPage - 1) * itemsPerPage;
     return filteredData.slice(start, start + itemsPerPage);
-  }, [filteredData, currentPage, itemsPerPage]);
+  }, [filteredData, currentPage, itemsPerPage, remotePagination]);
+
+  const handlePageChange = (page: number) => {
+    if (remotePagination && onPageChange) {
+      onPageChange(page);
+    } else {
+      setInternalPage(page);
+    }
+  };
+
+  // Maneja el evento cuando el usuario presiona 'Enter'
+  const handleSearchSubmit = (e: React.FormEvent) => {
+    e.preventDefault(); // Evita el comportamiento de submit predeterminado
+    if (onSearchChange) {
+      onSearchChange(searchTerm); // Llama a la función de búsqueda
+    }
+  };
 
   return (
     <Card className="w-full shadow-md border">
@@ -62,16 +97,15 @@ export function ListadoTabla<T>({
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <h2 className="text-xl font-semibold">{title}</h2>
           {searchableKeys.length > 0 && (
-            <Input
-              type="text"
-              placeholder="Buscar..."
-              value={searchTerm}
-              onChange={(e) => {
-                setCurrentPage(1);
-                setSearchTerm(e.target.value);
-              }}
-              className="max-w-sm"
-            />
+            <form onSubmit={handleSearchSubmit}>
+              <Input
+                type="text"
+                placeholder="Buscar..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="max-w-sm"
+              />
+            </form>
           )}
         </div>
 
@@ -109,7 +143,7 @@ export function ListadoTabla<T>({
           <PaginationLocal
             total={totalPages}
             currentPage={currentPage}
-            onChangePage={setCurrentPage}
+            onChangePage={handlePageChange}
           />
         </div>
       </CardContent>
