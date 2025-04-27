@@ -1,5 +1,5 @@
 import { LogoMVA } from "@/assets/ImgDatabase";
-import { Car, Users, Toilet, UserCheck, Hammer, Wrench } from "lucide-react"; // Quité CloudSun, agregué Wrench
+import { Car, Users, Toilet, UserCheck, Hammer, Wrench, User } from "lucide-react"; // Quité CloudSun, agregué Wrench
 
 const dataSideBar = {
   team: {
@@ -9,6 +9,14 @@ const dataSideBar = {
   },
 
   navMain: [
+    {
+      title: "Usuarios",
+      url: "/dashboard/usuarios",
+      icon: User,
+      items: [
+        { title: "Listado", url: "/dashboard/usuarios/listado" },
+      ],
+    },    
     {
       title: "Vehículos",
       url: "/dashboard/vehiculos",
@@ -22,7 +30,13 @@ const dataSideBar = {
       title: "Empleados",
       url: "/dashboard/empleados",
       icon: Users,
-      items: [{ title: "Listado", url: "/dashboard/empleados/listado" }],
+      items: [
+        { title: "Listado", url: "/dashboard/empleados/listado" },
+        {
+          title: "Licencias de empleado",
+          url: "/dashboard/empleados/licencias-de-empleado",
+        },
+      ],
     },
     {
       title: "Baños",
@@ -37,37 +51,25 @@ const dataSideBar = {
       title: "Clientes",
       url: "/dashboard/clientes",
       icon: UserCheck,
-      items: [
-        { title: "Listado", url: "/dashboard/clientes/listado" },
-        { title: "Contratos", url: "/dashboard/clientes/contratos" },
-        {
-          title: "Servicios Activos",
-          url: "/dashboard/clientes/servicios-activos",
-        },
-      ],
+      items: [{ title: "Listado", url: "/dashboard/clientes/listado" }],
     },
     {
       title: "Servicios",
       url: "/dashboard/servicios",
       icon: Hammer,
       items: [
+        { title: "Listado", url: "/dashboard/servicios/listado" },
         { title: "Crear Servicio", url: "/dashboard/servicios/crear" },
-        { title: "Servicios Activos", url: "/dashboard/servicios/activos" },
-        { title: "Historial", url: "/dashboard/servicios/historial" },
       ],
     },
     {
-      title: "Recursos en Mantenimiento",
-      url: "/dashboard/recursos-en-mantenimiento",
+      title: "Condiciones contractuales",
+      url: "/dashboard/condiciones-contractuales",
       icon: Wrench,
       items: [
         {
           title: "Listado",
-          url: "/dashboard/recursos-en-mantenimiento/listado",
-        },
-        {
-          title: "Enviar a Mantenimiento",
-          url: "/dashboard/recursos-en-mantenimiento/enviar",
+          url: "/dashboard/condiciones-contractuales/listado",
         },
       ],
     },

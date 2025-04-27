@@ -133,7 +133,7 @@ const LoginComponent = () => {
             />
           </div>
 
-          {formError && <p className="text-sm text-red-500">{formError}</p>}
+          {formError && <p className="text-sm text-red-500 z-10">{formError}</p>}
           {isLoading ? (
             <>
               <div className="three-body z-10">

@@ -12,7 +12,7 @@ export type NavMainItem = {
 };
 
 export type Cliente = {
-  clienteId: number;
+  clienteId: string;
   nombre: string;
   cuit: string;
   direccion: string;

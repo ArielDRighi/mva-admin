@@ -24,13 +24,15 @@ interface ListadoTablaProps<T> {
   renderRow: (item: T) => ReactNode;
   itemsPerPage?: number;
   searchableKeys?: (keyof T)[];
-
-  // Nuevas props para paginación remota
   remotePagination?: boolean;
   totalItems?: number;
   currentPage?: number;
   onPageChange?: (page: number) => void;
   onSearchChange?: (search: string) => void;
+
+  // Nuevas props para edición y eliminación
+  onEdit?: (item: T) => void;
+  onDelete?: (item: T) => void;
 }
 
 export function ListadoTabla<T>({
@@ -45,6 +47,8 @@ export function ListadoTabla<T>({
   currentPage: externalPage,
   onPageChange,
   onSearchChange,
+  onEdit,
+  onDelete,
 }: ListadoTablaProps<T>) {
   const [searchTerm, setSearchTerm] = useState("");
   const [internalPage, setInternalPage] = useState(1);
@@ -53,7 +57,6 @@ export function ListadoTabla<T>({
 
   const filteredData = useMemo(() => {
     if (remotePagination) return data;
-
     if (searchableKeys.length === 0 || searchTerm.trim() === "") return data;
 
     return data.filter((item) =>
@@ -70,7 +73,6 @@ export function ListadoTabla<T>({
 
   const paginatedData = useMemo(() => {
     if (remotePagination) return filteredData;
-
     const start = (currentPage - 1) * itemsPerPage;
     return filteredData.slice(start, start + itemsPerPage);
   }, [filteredData, currentPage, itemsPerPage, remotePagination]);
@@ -83,11 +85,10 @@ export function ListadoTabla<T>({
     }
   };
 
-  // Maneja el evento cuando el usuario presiona 'Enter'
   const handleSearchSubmit = (e: React.FormEvent) => {
-    e.preventDefault(); // Evita el comportamiento de submit predeterminado
+    e.preventDefault();
     if (onSearchChange) {
-      onSearchChange(searchTerm); // Llama a la función de búsqueda
+      onSearchChange(searchTerm);
     }
   };
 
@@ -118,17 +119,44 @@ export function ListadoTabla<T>({
                     {col.title}
                   </TableHead>
                 ))}
+                {(onEdit || onDelete) && <TableHead>Acciones</TableHead>}
               </TableRow>
             </TableHeader>
             <TableBody>
               {paginatedData.length > 0 ? (
                 paginatedData.map((item, index) => (
-                  <TableRow key={index}>{renderRow(item)}</TableRow>
+                  <TableRow key={index}>
+                    {renderRow(item)}
+                    {(onEdit || onDelete) && (
+                      <TableCell className="flex gap-2">
+                        {onEdit && (
+                          <button
+                            onClick={() => onEdit(item)}
+                            className="text-blue-600 hover:underline"
+                          >
+                            Editar
+                          </button>
+                        )}
+                        {onDelete && (
+                          <button
+                            onClick={() => {
+                              if (confirm("¿Estás seguro que deseas eliminar este ítem?")) {
+                                onDelete(item);
+                              }
+                            }}
+                            className="text-red-600 hover:underline"
+                          >
+                            Eliminar
+                          </button>
+                        )}
+                      </TableCell>
+                    )}
+                  </TableRow>
                 ))
               ) : (
                 <TableRow>
                   <TableCell
-                    colSpan={columns.length}
+                    colSpan={columns.length + 1}
                     className="text-center py-6 text-muted-foreground"
                   >
                     No se encontraron resultados.

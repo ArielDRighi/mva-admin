@@ -15,7 +15,6 @@ export async function loginUser(username: string, password: string) {
 
   const data = await res.json();
 
-  // Guardamos token y user en cookies
   setCookie("token", data.access_token);
   setCookie("user", JSON.stringify(data.user));
 

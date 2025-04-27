@@ -3,9 +3,5 @@ export default function DashboardEmployeeLayout({
 }: {
   children: React.ReactNode;
 }) {
-  return (
-    <html lang="es">
-      <body>{children}</body>
-    </html>
-  );
+  return <main>{children}</main>;
 }
