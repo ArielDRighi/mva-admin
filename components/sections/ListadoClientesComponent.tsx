@@ -7,20 +7,12 @@ import { Cliente } from "@/types/types";
 import { TableCell } from "../ui/table";
 import { useEffect, useState } from "react";
 import { getClients } from "@/app/actions/clientes";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-} from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { toast } from "sonner"; // Usamos sonner para los toasts
-import { deleteClient, editClient } from "@/app/actions/clientes"; // Si no lo tenías, lo agregamos
-import { Input } from "../ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger } from "../ui/select";
-import { Label } from "../ui/label";
+import { toast } from "sonner";
+import { deleteClient, editClient } from "@/app/actions/clientes";
+import { FormDialog } from "../ui/local/FormDialog";
+import { FormField } from "../ui/local/FormField";
+import Loader from "../ui/local/Loader";
 
 export default function ListadoClientesComponent({
   data,
@@ -138,11 +130,15 @@ export default function ListadoClientesComponent({
   }, [searchParams, itemsPerPage]);
 
   if (loading) {
-    return <div>Loading...</div>;
+    return (
+      <div className="w-full h-screen flex justify-center items-center">
+        <Loader />
+      </div>
+    );
   }
 
   if (!clients || clients.length === 0) {
-    return <div>No hay clientes disponibles.</div>;
+    return <div className="w-full h-screen flex justify-center items-center">No hay clientes disponibles.</div>;
   }
 
   return (
@@ -209,152 +205,88 @@ export default function ListadoClientesComponent({
       />
 
       {/* Diálogo de edición */}
-      <Dialog
+      <FormDialog
         open={!!selectedClient}
         onOpenChange={(open) => !open && setSelectedClient(null)}
+        title="Editar Cliente"
+        description="Editá los datos del cliente y guardá los cambios."
+        onSubmit={handleEditSubmit}
+        submitButtonText="Guardar Cambios"
       >
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Editar Cliente</DialogTitle>
-            <DialogDescription>
-              Editá los datos del cliente y guardá los cambios.
-            </DialogDescription>
-          </DialogHeader>
+        <FormField
+          label="Nombre"
+          name="nombre"
+          value={formData?.nombre || ""}
+          onChange={handleChange}
+          required
+        />
 
-          {selectedClient ? (
-            <form className="space-y-4 mt-4" onSubmit={handleEditSubmit}>
-              <div>
-                <Label htmlFor="nombre" className="block font-medium">
-                  Nombre:
-                </Label>
-                <Input
-                  id="nombre"
-                  name="nombre"
-                  value={formData?.nombre || ""}
-                  onChange={handleChange}
-                  required
-                />
-              </div>
+        <FormField
+          label="CUIT"
+          name="cuit"
+          value={formData?.cuit || ""}
+          onChange={handleChange}
+          required
+        />
 
-              <div>
-                <Label htmlFor="cuit" className="block font-medium">
-                  CUIT:
-                </Label>
-                <Input
-                  id="cuit"
-                  name="cuit"
-                  value={formData?.cuit || ""}
-                  onChange={handleChange}
-                  required
-                />
-              </div>
+        <FormField
+          label="Dirección"
+          name="direccion"
+          value={formData?.direccion || ""}
+          onChange={handleChange}
+          required
+        />
 
-              <div>
-                <Label htmlFor="direccion" className="block font-medium">
-                  Dirección:
-                </Label>
-                <Input
-                  id="direccion"
-                  name="direccion"
-                  value={formData?.direccion || ""}
-                  onChange={handleChange}
-                  required
-                />
-              </div>
+        <FormField
+          label="Teléfono"
+          name="telefono"
+          value={formData?.telefono || ""}
+          onChange={handleChange}
+          required
+        />
 
-              <div>
-                <Label htmlFor="telefono" className="block font-medium">
-                  Teléfono:
-                </Label>
-                <Input
-                  id="telefono"
-                  name="telefono"
-                  value={formData?.telefono || ""}
-                  onChange={handleChange}
-                  required
-                />
-              </div>
+        <FormField
+          label="Email"
+          name="email"
+          type="email"
+          value={formData?.email || ""}
+          onChange={handleChange}
+          required
+        />
 
-              <div>
-                <Label htmlFor="email" className="block font-medium">
-                  Email:
-                </Label>
-                <Input
-                  id="email"
-                  name="email"
-                  type="email"
-                  value={formData?.email || ""}
-                  onChange={handleChange}
-                  required
-                />
-              </div>
+        <FormField
+          label="Contacto Principal"
+          name="contacto_principal"
+          value={formData?.contacto_principal || ""}
+          onChange={handleChange}
+          required
+        />
 
-              <div>
-                <Label
-                  htmlFor="contacto_principal"
-                  className="block font-medium"
-                >
-                  Contacto Principal:
-                </Label>
-                <Input
-                  id="contacto_principal"
-                  name="contacto_principal"
-                  value={formData?.contacto_principal || ""}
-                  onChange={handleChange}
-                  required
-                />
-              </div>
+        <FormField
+          label="Fecha de Registro"
+          name="fecha_registro"
+          type="date"
+          value={
+            formData?.fecha_registro ? formData.fecha_registro.slice(0, 10) : ""
+          }
+          onChange={handleChange}
+          required
+        />
 
-              <div>
-                <Label htmlFor="fecha_registro" className="block font-medium">
-                  Fecha de Registro:
-                </Label>
-                <Input
-                  id="fecha_registro"
-                  name="fecha_registro"
-                  type="date"
-                  value={
-                    formData?.fecha_registro
-                      ? formData.fecha_registro.slice(0, 10)
-                      : ""
-                  }
-                  onChange={handleChange}
-                  required
-                />
-              </div>
-
-              <div>
-                <Label htmlFor="estado" className="block font-medium">
-                  Estado:
-                </Label>
-                <Select
-                  value={formData?.estado || ""}
-                  onValueChange={(value) =>
-                    handleChange({ name: "estado", value })
-                  }
-                  required
-                >
-                  <SelectTrigger>
-                    <span>{formData?.estado || "Seleccionar Estado"}</span>
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="ACTIVO">ACTIVO</SelectItem>
-                    <SelectItem value="INACTIVO">INACTIVO</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <DialogFooter>
-                <Button type="submit" className="w-full">
-                  Guardar Cambios
-                </Button>
-              </DialogFooter>
-            </form>
-          ) : (
-            <div>No hay datos disponibles.</div>
-          )}
-        </DialogContent>
-      </Dialog>
+        <FormField
+          label="Estado"
+          name="estado"
+          fieldType="select"
+          value={formData?.estado || ""}
+          onChange={handleChange}
+          options={[
+            { value: "ACTIVO", label: "ACTIVO" },
+            { value: "INACTIVO", label: "INACTIVO" },
+          ]}
+          placeholder="Seleccionar Estado"
+          required
+        />
+      </FormDialog>
     </>
   );
 }

@@ -18,6 +18,7 @@ import { loginUser } from "@/app/actions/login";
 import { setCookie } from "cookies-next";
 import { useState } from "react";
 import Image from "next/image";
+import Loader from "../ui/local/Loader";
 
 const formSchema = z.object({
   username: z.string().min(3, { message: "El usuario es obligatorio" }),
@@ -135,13 +136,7 @@ const LoginComponent = () => {
 
           {formError && <p className="text-sm text-red-500 z-10">{formError}</p>}
           {isLoading ? (
-            <>
-              <div className="three-body z-10">
-                <div className="three-body__dot"></div>
-                <div className="three-body__dot"></div>
-                <div className="three-body__dot"></div>
-              </div>
-            </>
+            <Loader />
           ) : (
             <Button
               type="submit"

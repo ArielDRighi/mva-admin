@@ -67,7 +67,7 @@ export const PaginationLocal = ({
         size="sm"
         onClick={() => onChangePage(currentPage - 1)}
         disabled={currentPage === 1}
-        className="cursor-pointer"
+        className="cursor-pointer hidden xs:block"
         type="button"
       >
         <ChevronLeft />
@@ -99,7 +99,7 @@ export const PaginationLocal = ({
         size="sm"
         onClick={() => onChangePage(currentPage + 1)}
         disabled={currentPage === total}
-        className="cursor-pointer"
+        className="cursor-pointer hidden xs:block"
         type="button"
       >
         <ChevronRight />
