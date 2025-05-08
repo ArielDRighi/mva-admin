@@ -12,14 +12,14 @@ export type NavMainItem = {
 };
 
 export type Cliente = {
-  clienteId: string;
+  clienteId?: string;
   nombre: string;
   cuit: string;
   direccion: string;
   telefono: string;
   email: string;
   contacto_principal: string;
-  fecha_registro: string;
+  fecha_registro?: string;
   estado: "ACTIVO" | "INACTIVO" | string;
 };
 
@@ -30,3 +30,14 @@ export type ClientesResponse = {
   limit: number;
   totalPages: number;
 };
+
+export type ClienteFormulario = Pick<
+  Cliente,
+  | "nombre"
+  | "cuit"
+  | "direccion"
+  | "telefono"
+  | "email"
+  | "contacto_principal"
+  | "estado"
+>;

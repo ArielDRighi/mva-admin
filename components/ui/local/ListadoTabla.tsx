@@ -29,10 +29,9 @@ interface ListadoTablaProps<T> {
   currentPage?: number;
   onPageChange?: (page: number) => void;
   onSearchChange?: (search: string) => void;
-
-  // Nuevas props para edición y eliminación
   onEdit?: (item: T) => void;
   onDelete?: (item: T) => void;
+  addButton?: ReactNode;
 }
 
 export function ListadoTabla<T>({
@@ -49,6 +48,7 @@ export function ListadoTabla<T>({
   onSearchChange,
   onEdit,
   onDelete,
+  addButton,
 }: ListadoTablaProps<T>) {
   const [searchTerm, setSearchTerm] = useState("");
   const [internalPage, setInternalPage] = useState(1);
@@ -93,10 +93,13 @@ export function ListadoTabla<T>({
   };
 
   return (
-    <Card className="w-full shadow-md border">
+    <Card className="w-full shadow-md border @container">
       <CardContent className="p-6 space-y-4">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-          <h2 className="text-xl font-semibold">{title}</h2>
+          <div className="flex items-center gap-4 flex-col @min-[400px]:flex-row">
+            <h2 className="text-xl font-semibold">{title}</h2>
+            {addButton}
+          </div>
           {searchableKeys.length > 0 && (
             <form onSubmit={handleSearchSubmit}>
               <Input
@@ -140,7 +143,11 @@ export function ListadoTabla<T>({
                         {onDelete && (
                           <button
                             onClick={() => {
-                              if (confirm("¿Estás seguro que deseas eliminar este ítem?")) {
+                              if (
+                                confirm(
+                                  "¿Estás seguro que deseas eliminar este ítem?"
+                                )
+                              ) {
                                 onDelete(item);
                               }
                             }}

@@ -1,4 +1,3 @@
-// components/FormField.tsx
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -16,13 +15,15 @@ interface FormFieldProps {
   name: string;
   type?: string;
   fieldType?: FieldType;
-  value: string;
-  onChange: (
-    event: React.ChangeEvent<HTMLInputElement> | { name: string; value: string }
-  ) => void;
+  value?: string;
+  onChange?: (value: string) => void;
   options?: { label: string; value: string }[];
   placeholder?: string;
   required?: boolean;
+  error?: string;
+  // Agregamos esto para aceptar cualquier otro atributo de un input
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  [key: string]: any;
 }
 
 export const FormField: React.FC<FormFieldProps> = ({
@@ -30,11 +31,13 @@ export const FormField: React.FC<FormFieldProps> = ({
   name,
   type = "text",
   fieldType = "input",
-  value,
+  value = "",
   onChange,
   options = [],
   placeholder,
   required = false,
+  error,
+  ...rest // <- capturamos los demás props
 }) => {
   return (
     <div className="flex flex-col gap-1">
@@ -47,21 +50,20 @@ export const FormField: React.FC<FormFieldProps> = ({
           id={name}
           name={name}
           type={type}
-          value={value}
-          onChange={onChange}
+          value={
+            type === "date" && value
+              ? new Date(value).toISOString().split("T")[0] // Aseguramos que el valor siempre sea yyyy-mm-dd
+              : value
+          }
+          onChange={(e) => onChange?.(e.target.value)}
           placeholder={placeholder}
           required={required}
+          {...rest}
         />
       )}
 
       {fieldType === "select" && (
-        <Select
-          value={value}
-          onValueChange={(selectedValue) =>
-            onChange({ name, value: selectedValue })
-          }
-          required={required}
-        >
+        <Select value={value} onValueChange={onChange} required={required}>
           <SelectTrigger>
             <span>{value || placeholder || `Seleccionar ${label}`}</span>
           </SelectTrigger>
@@ -74,6 +76,8 @@ export const FormField: React.FC<FormFieldProps> = ({
           </SelectContent>
         </Select>
       )}
+
+      {error && <p className="text-sm text-red-500">{error}</p>}
     </div>
   );
 };

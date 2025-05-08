@@ -1,9 +1,8 @@
-import React from 'react'
+import ClientesPage from "@/components/pages/ClientesPage";
+import React from "react";
 
 const Clientes = () => {
-  return (
-    <div>Clientes</div>
-  )
-}
+  return <ClientesPage />;
+};
 
-export default Clientes
+export default Clientes;

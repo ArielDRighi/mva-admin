@@ -36,30 +36,28 @@ export async function editClient(id: string, data: Cliente) {
 
   if (!token) throw new Error("Token no encontrado");
 
-  const formData = new FormData();
-  formData.append("nombre", data.nombre);
-  formData.append("email", data.email);
-  formData.append("cuit", data.cuit);
-  formData.append("direccion", data.direccion);
-  formData.append("telefono", data.telefono);
-  formData.append("contacto_principal", data.contacto_principal);
-  formData.append(
-    "fecha_registro",
-    new Date(data.fecha_registro).toISOString()
-  );
-  formData.append("estado", data.estado);
-
   const res = await fetch(
     `${process.env.NEXT_PUBLIC_API_URL}/api/clients/${id}`,
     {
       method: "PUT",
       headers: {
         Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
       },
-      body: formData,
+      body: JSON.stringify({
+        nombre: data.nombre,
+        email: data.email,
+        cuit: data.cuit,
+        direccion: data.direccion,
+        telefono: data.telefono,
+        contacto_principal: data.contacto_principal,
+        estado: data.estado,
+      }),
       cache: "no-store",
     }
   );
+
+  console.log("res: ", res.ok);
 
   if (!res.ok) {
     const errorData = await res.json().catch(() => ({}));
@@ -92,4 +90,38 @@ export async function deleteClient(id: string) {
   }
 
   return res.status;
+}
+
+export async function createClient(data: Cliente) {
+  const cookieStore = await cookies();
+  const token = cookieStore.get("token")?.value;
+
+  if (!token) throw new Error("Token no encontrado");
+
+  const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/clients`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      nombre: data.nombre,
+      email: data.email,
+      cuit: data.cuit,
+      direccion: data.direccion,
+      telefono: data.telefono,
+      contacto_principal: data.contacto_principal,
+      estado: data.estado,
+    }),
+    cache: "no-store",
+  });
+
+  console.log("res: ", res.ok);
+
+  if (!res.ok) {
+    const errorData = await res.json().catch(() => ({}));
+    throw new Error(errorData.message || "Error al crear el cliente");
+  }
+
+  return res.json();
 }

@@ -33,7 +33,7 @@ export function FormDialog({
 }: FormDialogProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
+      <DialogContent className="[&>button]:cursor-pointer max-h-[500px] overflow-y-scroll">
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
           {description && <DialogDescription>{description}</DialogDescription>}
@@ -43,7 +43,7 @@ export function FormDialog({
           {children}
 
           <DialogFooter>
-            <Button type="submit" className="w-full">
+            <Button type="submit" className="w-full cursor-pointer">
               {submitButtonText}
             </Button>
           </DialogFooter>
