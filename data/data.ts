@@ -1,5 +1,5 @@
 import { LogoMVA } from "@/assets/ImgDatabase";
-import { Car, Users, Toilet, UserCheck, Hammer, Wrench } from "lucide-react"; // Quité CloudSun, agregué Wrench
+import { Car, Users, Toilet, UserCheck, Hammer, Wrench, User } from "lucide-react"; // Quité CloudSun, agregué Wrench
 
 const dataSideBar = {
   team: {
@@ -10,58 +10,66 @@ const dataSideBar = {
 
   navMain: [
     {
+      title: "Usuarios",
+      url: "/dashboard/usuarios",
+      icon: User,
+      items: [
+        { title: "Listado", url: "/dashboard/usuarios/listado" },
+      ],
+    },    
+    {
       title: "Vehículos",
-      url: "/vehiculos",
+      url: "/dashboard/vehiculos",
       icon: Car,
       items: [
-        { title: "Listado", url: "/vehiculos/listado" },
-        { title: "Mantenimiento", url: "/vehiculos/mantenimiento" },
+        { title: "Listado", url: "/dashboard/vehiculos/listado" },
+        { title: "Mantenimiento", url: "/dashboard/vehiculos/mantenimiento" },
       ],
     },
     {
       title: "Empleados",
-      url: "/empleados",
+      url: "/dashboard/empleados",
       icon: Users,
-      items: [{ title: "Listado", url: "/empleados/listado" }],
+      items: [
+        { title: "Listado", url: "/dashboard/empleados/listado" },
+        {
+          title: "Licencias de empleado",
+          url: "/dashboard/empleados/licencias-de-empleado",
+        },
+      ],
     },
     {
       title: "Baños",
-      url: "/banos",
+      url: "/dashboard/banos",
       icon: Toilet,
       items: [
-        { title: "Listado", url: "/banos/listado" },
-        { title: "Mantenimiento", url: "/banos/mantenimiento" },
+        { title: "Listado", url: "/dashboard/baños/listado" },
+        { title: "Mantenimiento", url: "/dashboard/baños/mantenimiento" },
       ],
     },
     {
       title: "Clientes",
-      url: "/clientes",
+      url: "/dashboard/clientes",
       icon: UserCheck,
-      items: [
-        { title: "Listado", url: "/clientes/listado" },
-        { title: "Contratos", url: "/clientes/contratos" },
-        { title: "Servicios Activos", url: "/clientes/servicios-activos" },
-      ],
+      items: [{ title: "Listado", url: "/dashboard/clientes/listado" }],
     },
     {
       title: "Servicios",
-      url: "/servicios",
+      url: "/dashboard/servicios",
       icon: Hammer,
       items: [
-        { title: "Crear Servicio", url: "/servicios/crear" },
-        { title: "Servicios Activos", url: "/servicios/activos" },
-        { title: "Historial", url: "/servicios/historial" },
+        { title: "Listado", url: "/dashboard/servicios/listado" },
+        { title: "Crear Servicio", url: "/dashboard/servicios/crear" },
       ],
     },
     {
-      title: "Recursos en Mantenimiento",
-      url: "/recursos-en-mantenimiento",
+      title: "Condiciones contractuales",
+      url: "/dashboard/condiciones-contractuales",
       icon: Wrench,
       items: [
-        { title: "Listado", url: "/recursos-en-mantenimiento/listado" },
         {
-          title: "Enviar a Mantenimiento",
-          url: "/recursos-en-mantenimiento/enviar",
+          title: "Listado",
+          url: "/dashboard/condiciones-contractuales/listado",
         },
       ],
     },

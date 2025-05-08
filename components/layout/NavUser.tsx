@@ -49,8 +49,7 @@ export function NavUser() {
   const handleLogout = () => {
     deleteCookie("user");
     deleteCookie("token");
-    // Si usás NextAuth, también deberías hacer signOut()
-    router.push("/login"); // o "/"
+    router.push("/login");
   };
 
   return (
