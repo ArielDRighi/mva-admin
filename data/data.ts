@@ -1,5 +1,13 @@
 import { LogoMVA } from "@/assets/ImgDatabase";
-import { Car, Users, Toilet, UserCheck, Hammer, Wrench, User } from "lucide-react"; // Quité CloudSun, agregué Wrench
+import {
+  Car,
+  Users,
+  Toilet,
+  UserCheck,
+  Hammer,
+  Wrench,
+  User,
+} from "lucide-react"; // Quité CloudSun, agregué Wrench
 
 const dataSideBar = {
   team: {
@@ -13,10 +21,8 @@ const dataSideBar = {
       title: "Usuarios",
       url: "/dashboard/usuarios",
       icon: User,
-      items: [
-        { title: "Listado", url: "/dashboard/usuarios/listado" },
-      ],
-    },    
+      items: [{ title: "Listado", url: "/dashboard/usuarios/listado" }],
+    },
     {
       title: "Vehículos",
       url: "/dashboard/vehiculos",
@@ -39,12 +45,12 @@ const dataSideBar = {
       ],
     },
     {
-      title: "Baños",
-      url: "/dashboard/banos",
+      title: "Sanitarios",
+      url: "/dashboard/sanitarios",
       icon: Toilet,
       items: [
-        { title: "Listado", url: "/dashboard/baños/listado" },
-        { title: "Mantenimiento", url: "/dashboard/baños/mantenimiento" },
+        { title: "Listado", url: "/dashboard/sanitarios/listado" },
+        { title: "Mantenimiento", url: "/dashboard/sanitarios/mantenimiento" },
       ],
     },
     {

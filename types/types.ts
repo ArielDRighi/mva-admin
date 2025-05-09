@@ -41,3 +41,27 @@ export type ClienteFormulario = Pick<
   | "contacto_principal"
   | "estado"
 >;
+
+export type Sanitario = {
+  baño_id?: string;
+  codigo_interno: string;
+  modelo: string;
+  fecha_adquisicion: string;
+  estado: "DISPONIBLE" | "ASIGNADO" | "EN_MANTENIMIENTO" | "FUERA_DE_SERVICIO" | "BAJA" | string;
+};
+
+export type SanitariosResponse = {
+  items: Sanitario[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+};
+
+export type SanitarioFormulario = Pick<
+  Sanitario,
+  | "codigo_interno"
+  | "modelo"
+  | "fecha_adquisicion"
+  | "estado"
+>;
