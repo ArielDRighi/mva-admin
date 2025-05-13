@@ -1,9 +1,8 @@
-import React from 'react'
+import VehiculosPage from "@/components/pages/vehiculos/VehiculosPage";
+import React from "react";
 
 const Vehiculos = () => {
-  return (
-    <div>Vehiculos</div>
-  )
-}
+  return <VehiculosPage />;
+};
 
-export default Vehiculos
+export default Vehiculos;

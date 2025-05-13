@@ -11,6 +11,62 @@ export type NavMainItem = {
   }[];
 };
 
+export type Vehiculo = {
+  id: number;
+  placa: string;
+  marca: string;
+  modelo: string;
+  anio: number;
+  capacidadCarga: number;
+  estado:
+    | "DISPONIBLE"
+    | "ASIGNADO"
+    | "MANTENIMIENTO"
+    | "INACTIVO"
+    | "BAJA"
+    | string;
+};
+
+export type UpdateVehiculo = {
+  placa?: string;
+  marca?: string;
+  modelo?: string;
+  anio?: number;
+  capacidadCarga?: number;
+  estado?:
+    | "DISPONIBLE"
+    | "ASIGNADO"
+    | "MANTENIMIENTO"
+    | "INACTIVO"
+    | "BAJA"
+    | string;
+};
+
+export type VehiculoStatus = {
+  estado:
+    | "DISPONIBLE"
+    | "ASIGNADO"
+    | "MANTENIMIENTO"
+    | "INACTIVO"
+    | "BAJA"
+    | string;
+};
+
+export type CreateVehiculo = {
+  placa: string;
+  marca: string;
+  modelo: string;
+  anio: number;
+  capacidadCarga: number;
+  estado?:
+    | "DISPONIBLE"
+    | "ASIGNADO"
+    | "MANTENIMIENTO"
+    | "INACTIVO"
+    | "BAJA"
+    | string;
+};
+
 export type CreateEmployee = {
   nombre: string;
   apellido: string;
