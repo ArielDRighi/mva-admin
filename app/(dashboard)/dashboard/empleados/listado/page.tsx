@@ -1,9 +1,7 @@
-import React from 'react'
-
+import React from "react";
+import ListadoEmpleadosPage from "@/components/pages/empleados/ListadoEmpleadosPage";
 const ListadoEmpleados = () => {
-  return (
-    <div>ListadoEmpleados</div>
-  )
-}
+  return <ListadoEmpleadosPage />;
+};
 
-export default ListadoEmpleados
+export default ListadoEmpleados;

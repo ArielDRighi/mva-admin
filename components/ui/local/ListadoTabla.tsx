@@ -36,7 +36,7 @@ interface ListadoTablaProps<T> {
 
 export function ListadoTabla<T>({
   title = "Listado",
-  data,
+  data = [],
   columns,
   renderRow,
   itemsPerPage = 15,

@@ -11,6 +11,90 @@ export type NavMainItem = {
   }[];
 };
 
+export type CreateEmployee = {
+  nombre: string;
+  apellido: string;
+  documento: string;
+  telefono: string;
+  email: string;
+  direccion?: string;
+  fecha_nacimiento?: string;
+  fecha_contratacion: string;
+  cargo: string;
+  estado?:
+    | "DISPONIBLE"
+    | "ASIGNADO"
+    | "VACACIONES"
+    | "LICENCIA"
+    | "INACTIVO"
+    | "BAJA"
+    | string;
+};
+
+export type UpdateEmployee = {
+  nombre?: string;
+  apellido?: string;
+  documento?: string;
+  telefono?: string;
+  email?: string;
+  direccion?: string;
+  fecha_nacimiento?: string;
+  fecha_contratacion?: string;
+  cargo?: string;
+  estado?:
+    | "DISPONIBLE"
+    | "ASIGNADO"
+    | "VACACIONES"
+    | "LICENCIA"
+    | "INACTIVO"
+    | "BAJA"
+    | string;
+};
+
+export type EmpleadoFormulario = {
+  nombre: string;
+  apellido: string;
+  documento: string;
+  fecha_nacimiento: string;
+  direccion: string;
+  telefono: string;
+  email: string;
+  cargo: string;
+  estado: StatusEmployee;
+};
+
+export type StatusEmployee = {
+  estado:
+    | "DISPONIBLE"
+    | "ASIGNADO"
+    | "VACACIONES"
+    | "LICENCIA"
+    | "INACTIVO"
+    | "BAJA"
+    | string;
+};
+
+export type Empleado = {
+  id: number;
+  nombre: string;
+  apellido: string;
+  documento: string;
+  telefono: string;
+  email: string;
+  direccion?: string;
+  fecha_nacimiento?: string | Date;
+  fecha_contratacion: string | Date;
+  cargo: string;
+  estado:
+    | "DISPONIBLE"
+    | "ASIGNADO"
+    | "VACACIONES"
+    | "LICENCIA"
+    | "INACTIVO"
+    | "BAJA"
+    | string;
+};
+
 export type Cliente = {
   clienteId?: string;
   nombre: string;
