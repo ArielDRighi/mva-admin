@@ -1,7 +1,7 @@
 export const dynamic = "force-dynamic";
 import React from "react";
-import ListadoClientesComponent from "../sections/ListadoClientesComponent";
 import { getClients } from "@/app/actions/clientes";
+import ListadoClientesComponent from "@/components/sections/ListadoClientesComponent";
 
 export default async function ListadoClientesPage() {
   const clients = await getClients();

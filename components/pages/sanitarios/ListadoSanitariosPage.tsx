@@ -1,6 +1,6 @@
 import React from "react";
-import ListadoSanitariosComponent from "../sections/ListadoSanitariosComponent";
 import { getSanitarios } from "@/app/actions/sanitarios";
+import ListadoSanitariosComponent from "@/components/sections/ListadoSanitariosComponent";
 
 export default async function ListadoSanitariosPage() {
   const sanitarios = await getSanitarios();

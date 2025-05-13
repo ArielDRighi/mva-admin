@@ -1,6 +1,6 @@
 import React from "react";
-import { InfoCard } from "../ui/local/InfoCard";
 import { ClientsImg } from "@/assets/ImgDatabase";
+import { InfoCard } from "@/components/ui/local/InfoCard";
 
 const SanitariosPage = () => {
   return (

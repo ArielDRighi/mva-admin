@@ -1,5 +1,4 @@
-
-import SanitariosPage from "@/components/pages/SanitariosPage";
+import SanitariosPage from "@/components/pages/sanitarios/SanitariosPage";
 import React from "react";
 
 const Sanitarios = () => {

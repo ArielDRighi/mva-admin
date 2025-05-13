@@ -1,9 +1,8 @@
-import React from 'react'
+import MantenimientoSanitariosPage from "@/components/pages/sanitarios/MantenimientoSanitariosPage";
+import React from "react";
 
 const MantenimientoSanitarios = () => {
-  return (
-    <div>MantenimientoSanitarios</div>
-  )
-}
+  return <MantenimientoSanitariosPage />;
+};
 
-export default MantenimientoSanitarios
+export default MantenimientoSanitarios;

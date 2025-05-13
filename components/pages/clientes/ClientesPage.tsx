@@ -1,6 +1,6 @@
 import { ClientsImg } from "@/assets/ImgDatabase";
+import { InfoCard } from "@/components/ui/local/InfoCard";
 import React from "react";
-import { InfoCard } from "../ui/local/InfoCard";
 
 const ClientesPage = () => {
   return (

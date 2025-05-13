@@ -1,4 +1,4 @@
-import ListadoClientesPage from "@/components/pages/ListadoClientesPage";
+import ListadoClientesPage from "@/components/pages/clientes/ListadoClientesPage";
 import React from "react";
 
 const ListadoClientes = () => {
