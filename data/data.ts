@@ -40,7 +40,7 @@ const dataSideBar = {
         { title: "Listado", url: "/dashboard/empleados/listado" },
         {
           title: "Licencias de empleado",
-          url: "/dashboard/empleados/licencias-de-empleado",
+          url: "/dashboard/empleados/licencias",
         },
       ],
     },
