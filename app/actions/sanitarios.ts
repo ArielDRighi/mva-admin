@@ -283,3 +283,31 @@ export async function patchSanitarioEnMantenimiento(id: number) {
 
   return res.status;
 }
+
+export async function getSanitariosByClient(
+  clientId: number
+): Promise<Sanitario[]> {
+  const cookieStore = await cookies();
+  const token = cookieStore.get("token")?.value;
+
+  if (!token) throw new Error("Token no encontrado");
+
+  const res = await fetch(
+    `${process.env.NEXT_PUBLIC_API_URL}/api/chemical_toilets/by-client/${clientId}`,
+    {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+      cache: "no-store",
+    }
+  );
+
+  if (!res.ok) {
+    const errorData = await res.json().catch(() => ({}));
+    throw new Error(
+      errorData.message || `Error al obtener sanitarios del cliente ${clientId}`
+    );
+  }
+
+  return await res.json();
+}
