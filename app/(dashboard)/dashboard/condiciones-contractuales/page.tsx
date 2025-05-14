@@ -1,9 +1,8 @@
-import React from 'react'
+import ContractualConditionsPage from "@/components/pages/condiciones-contractuales/ContractualConditionsPage";
+import React from "react";
 
-const RecursosEnMantenimiento = () => {
-  return (
-    <div>RecursosEnMantenimiento</div>
-  )
-}
+const ContractualConditions = () => {
+  return <ContractualConditionsPage />;
+};
 
-export default RecursosEnMantenimiento
+export default ContractualConditions;
