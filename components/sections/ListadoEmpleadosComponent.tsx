@@ -3,12 +3,7 @@
 import { useRouter, useSearchParams } from "next/navigation";
 import { ListadoTabla } from "@/components/ui/local/ListadoTabla";
 import { Badge } from "@/components/ui/badge";
-import {
-  CreateEmployee,
-  Empleado,
-  EmpleadoFormulario,
-  StatusEmployee,
-} from "@/types/types";
+import { CreateEmployee, Empleado, EmpleadoFormulario } from "@/types/types";
 import { TableCell } from "../ui/table";
 import { useCallback, useEffect, useState } from "react";
 import {
@@ -52,10 +47,8 @@ export default function ListadoEmpleadosComponent({
     null
   );
   const [isCreating, setIsCreating] = useState(false);
-  // Añadir este estado para controlar la carga inicial
-  const [isFirstLoad, setIsFirstLoad] = useState(true);
 
-  console.log("employees:", employees);
+  const [isFirstLoad, setIsFirstLoad] = useState(true);
 
   const createEmployeeSchema = z.object({
     nombre: z.string().min(1, "El nombre es obligatorio"),
@@ -192,11 +185,9 @@ export default function ListadoEmpleadosComponent({
           description: "Los cambios se han guardado correctamente.",
         });
       } else {
-        // Add required missing properties for CreateEmployee type
         const createData: CreateEmployee = {
           ...data,
           fecha_contratacion: new Date().toISOString().split("T")[0],
-          cargo: data.cargo,
         };
         await createEmployee(createData);
         toast.success("Empleado creado", {
@@ -217,7 +208,6 @@ export default function ListadoEmpleadosComponent({
     }
   };
 
-  // Modificar fetchEmployees para manejar correctamente diferentes estructuras de respuesta
   const fetchEmployees = useCallback(async () => {
     const currentPage = Number(searchParams.get("page")) || 1;
     const search = searchParams.get("search") || "";
@@ -230,9 +220,7 @@ export default function ListadoEmpleadosComponent({
         search
       );
 
-      // Manejar diferentes estructuras de respuesta
       if (fetchedEmployees.data && Array.isArray(fetchedEmployees.data)) {
-        // Si la estructura es {data: [...], totalItems: x, currentPage: y}
         setEmployees(fetchedEmployees.data);
         setTotal(fetchedEmployees.totalItems || 0);
         setPage(fetchedEmployees.currentPage || 1);
@@ -240,35 +228,27 @@ export default function ListadoEmpleadosComponent({
         fetchedEmployees.items &&
         Array.isArray(fetchedEmployees.items)
       ) {
-        // Si la estructura es {items: [...], total: x, page: y}
         setEmployees(fetchedEmployees.items);
         setTotal(fetchedEmployees.total || 0);
         setPage(fetchedEmployees.page || 1);
       } else if (Array.isArray(fetchedEmployees)) {
-        // Si directamente es un array de empleados
         setEmployees(fetchedEmployees);
         setTotal(fetchedEmployees.length);
         setPage(currentPage);
       } else {
         console.error("Formato de respuesta no reconocido:", fetchedEmployees);
-        // No borrar datos existentes si la respuesta es inválida
       }
     } catch (error) {
       console.error("Error al cargar los empleados:", error);
-      // No borrar datos existentes en caso de error
     } finally {
       setLoading(false);
     }
   }, [searchParams, itemsPerPage]);
 
-  // Modificar el useEffect para evitar la recarga inicial innecesaria
   useEffect(() => {
     if (isFirstLoad) {
-      // En la primera carga, ya tenemos los datos del servidor,
-      // solo marcamos que ya pasó la primera carga
       setIsFirstLoad(false);
     } else {
-      // En cargas posteriores (cuando cambian los parámetros), sí hacemos fetch
       fetchEmployees();
     }
   }, [fetchEmployees, isFirstLoad]);
@@ -285,7 +265,7 @@ export default function ListadoEmpleadosComponent({
     <>
       <ListadoTabla
         title="Listado de Empleados"
-        data={Array.isArray(employees) ? employees : []} // Asegurar que siempre sea un array
+        data={Array.isArray(employees) ? employees : []}
         itemsPerPage={itemsPerPage}
         searchableKeys={["nombre", "apellido", "documento", "email"]}
         remotePagination
@@ -382,7 +362,6 @@ export default function ListadoEmpleadosComponent({
         }
       />
 
-      {/* Resto del componente permanece igual... */}
       <FormDialog
         open={isCreating || selectedEmployee !== null}
         onOpenChange={(open) => {
@@ -394,7 +373,6 @@ export default function ListadoEmpleadosComponent({
         title={selectedEmployee ? "Editar Empleado" : "Crear Empleado"}
         onSubmit={handleSubmit(onSubmit)}
       >
-        {/* Resto del formulario permanece igual... */}
         <>
           {(
             [
@@ -425,7 +403,6 @@ export default function ListadoEmpleadosComponent({
             />
           ))}
 
-          {/* Campo para el estado */}
           <Controller
             name="estado"
             control={control}

@@ -11,6 +11,41 @@ export type NavMainItem = {
   }[];
 };
 
+export type VehicleMaintenance = {
+  id: number;
+  vehiculoId: number;
+  fechaMantenimiento: string | Date;
+  tipoMantenimiento: string;
+  descripcion?: string;
+  costo: number;
+  proximoMantenimiento?: string | Date;
+  completado: boolean;
+  fechaCompletado?: string | Date;
+  vehicle?: {
+    id: number;
+    placa: string;
+    marca: string;
+    modelo: string;
+  };
+};
+
+export type UpdateVehicleMaintenance = {
+  fechaMantenimiento?: string | Date;
+  tipoMantenimiento?: string;
+  descripcion?: string;
+  costo?: number;
+  proximoMantenimiento?: string | Date;
+};
+
+export type CreateVehicleMaintenance = {
+  vehiculoId: number;
+  fechaMantenimiento: string | Date;
+  tipoMantenimiento: string;
+  descripcion?: string;
+  costo: number;
+  proximoMantenimiento?: string | Date;
+};
+
 export type Vehiculo = {
   id: number;
   placa: string;

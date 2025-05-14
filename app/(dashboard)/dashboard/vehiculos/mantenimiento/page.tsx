@@ -1,9 +1,8 @@
-import React from 'react'
+import React from "react";
+import MantenimientoVehiculosPage from "@/components/pages/vehiculos/MantenimientoVehiculosPage";
 
 const MantenimientoVehiculos = () => {
-  return (
-    <div>MantenimientoVehiculos</div>
-  )
-}
+  return <MantenimientoVehiculosPage />;
+};
 
-export default MantenimientoVehiculos
+export default MantenimientoVehiculos;
