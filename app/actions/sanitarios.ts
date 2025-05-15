@@ -124,6 +124,28 @@ export async function createSanitario(data: Sanitario) {
   return res.status;
 }
 
+export async function getToiletsList() {
+  const cookieStore = await cookies();
+  const token = cookieStore.get("token")?.value;
+
+  if (!token) throw new Error("Token no encontrado");
+
+  const res = await fetch(
+    `${process.env.NEXT_PUBLIC_API_URL}/api/chemical_toilets?limit=100`,
+    {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+      cache: "no-store",
+    }
+  );
+
+  if (!res.ok) throw new Error("Error al obtener la lista de sanitarios");
+
+  const data = await res.json();
+  return data.items;
+}
+
 /* Mantenimiento de Sanitarios */
 export async function getSanitariosEnMantenimiento(
   page: number = 1,
@@ -257,7 +279,7 @@ export async function editSanitarioEnMantenimiento(
   return res.status;
 }
 
-export async function patchSanitarioEnMantenimiento(id: number) {
+export async function completarMantenimientoSanitario(id: number) {
   const cookieStore = await cookies();
   const token = cookieStore.get("token")?.value;
 
@@ -277,7 +299,7 @@ export async function patchSanitarioEnMantenimiento(id: number) {
   if (!res.ok) {
     const errorData = await res.json().catch(() => ({}));
     throw new Error(
-      errorData.message || "Error al editar el sanitario en mantenimiento"
+      errorData.message || "Error al completar el mantenimiento del sanitario"
     );
   }
 

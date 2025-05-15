@@ -312,3 +312,11 @@ export type MantenimientoSanitarioFormulario = Pick<
   | "tecnico_responsable"
   | "costo"
 >;
+
+export type ChemicalToilet = {
+  baño_id: number;
+  codigo_interno: string;
+  modelo: string;
+  fecha_adquisicion: string;
+  estado: string;
+};
