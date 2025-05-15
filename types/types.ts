@@ -293,7 +293,7 @@ export type MantenimientoSanitarioForm = {
   costo: number;
   completado?: boolean;
   fechaCompletado?: string | null;
-  toilet?: Sanitario[];
+  toilet?: Sanitario;
 };
 
 export type MantenimientosSanitariosResponse = {

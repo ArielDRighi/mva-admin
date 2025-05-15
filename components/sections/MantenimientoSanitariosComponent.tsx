@@ -7,11 +7,7 @@ import {
   getSanitariosEnMantenimiento,
   getToiletsList,
 } from "@/app/actions/sanitarios";
-import {
-  MantenimientoSanitario,
-  MantenimientoSanitarioForm,
-  ChemicalToilet,
-} from "@/types/types";
+import { MantenimientoSanitarioForm, ChemicalToilet } from "@/types/types";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter, useSearchParams } from "next/navigation";
 import React, { useCallback, useEffect, useState } from "react";
@@ -46,9 +42,13 @@ const MantenimientoSanitariosComponent = ({
   const [page, setPage] = useState<number>(currentPage);
   const [loading, setLoading] = useState<boolean>(false);
   const [selectedMantenimientoSanitario, setSelectedMantenimientoSanitario] =
-    useState<MantenimientoSanitario | null>(null);
+    useState<MantenimientoSanitarioForm | null>(null);
   const [isCreating, setIsCreating] = useState(false);
   const [toiletsList, setToiletsList] = useState<ChemicalToilet[]>([]);
+  const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
+  const [mantenimientoToComplete, setMantenimientoToComplete] = useState<
+    number | null
+  >(null);
   const createSanitarioSchema = z.object({
     baño_id: z.number({
       required_error: "El baño es obligatorio",
@@ -174,7 +174,7 @@ const MantenimientoSanitariosComponent = ({
         selectedMantenimientoSanitario.baño_id
       ) {
         await editSanitarioEnMantenimiento(
-          selectedMantenimientoSanitario.baño_id,
+          selectedMantenimientoSanitario.mantenimiento_id!,
           data
         );
         toast.success("Sanitario actualizado", {
@@ -245,6 +245,8 @@ const MantenimientoSanitariosComponent = ({
     );
   }
 
+  console.log(mantenimientoSanitarios);
+
   return (
     <>
       <ListadoTabla
@@ -263,52 +265,81 @@ const MantenimientoSanitariosComponent = ({
         onSearchChange={handleSearchChange}
         columns={[
           { title: "Mantenimiento ID", key: "mantenimiento_id" },
+          { title: "Código interno", key: "codigo_interno" },
+          { title: "Estado", key: "estado" },
           { title: "Fecha de mantenimiento", key: "fecha_mantenimiento" },
           { title: "Tipo de mantenimiento", key: "tipo_mantenimiento" },
           { title: "Descripción", key: "descripcion" },
           { title: "Tecnico responsable", key: "tecnico_responsable" },
           { title: "Costo", key: "costo" },
-          { title: "Sanitarios", key: "toilet" },
           { title: "Completado", key: "completado" },
           { title: "Fecha completado", key: "fechaCompletado" },
         ]}
-        renderRow={(mantenimientoSanitarios) => (
+        renderRow={(mantenimientoSanitario) => (
           <>
             <TableCell className="font-medium">
-              {mantenimientoSanitarios.mantenimiento_id}
+              {mantenimientoSanitario.mantenimiento_id}
+            </TableCell>{" "}
+            <TableCell>
+              {mantenimientoSanitario.toilet?.codigo_interno || "No disponible"}
             </TableCell>
             <TableCell>
-              {mantenimientoSanitarios.fecha_mantenimiento &&
+              <Badge variant="outline">
+                {mantenimientoSanitario.toilet?.estado || "No disponible"}
+              </Badge>
+            </TableCell>
+            <TableCell>
+              {mantenimientoSanitario.fecha_mantenimiento &&
                 new Date(
-                  mantenimientoSanitarios.fecha_mantenimiento
+                  mantenimientoSanitario.fecha_mantenimiento
                 ).toLocaleDateString("es-AR")}
             </TableCell>
             <TableCell>
               <Badge
                 variant={
-                  mantenimientoSanitarios.tipo_mantenimiento === "Preventivo"
+                  mantenimientoSanitario.tipo_mantenimiento === "Preventivo"
                     ? "default"
                     : "outline"
                 }
               >
-                {mantenimientoSanitarios.tipo_mantenimiento}
+                {mantenimientoSanitario.tipo_mantenimiento}
               </Badge>
             </TableCell>
-            <TableCell>{mantenimientoSanitarios.descripcion}</TableCell>
-            <TableCell>{mantenimientoSanitarios.tecnico_responsable}</TableCell>
-            <TableCell>{mantenimientoSanitarios.costo}</TableCell>
-            <TableCell>{mantenimientoSanitarios.completado}</TableCell>
+            <TableCell>{mantenimientoSanitario.descripcion}</TableCell>
+            <TableCell>{mantenimientoSanitario.tecnico_responsable}</TableCell>
+            <TableCell>{mantenimientoSanitario.costo}</TableCell>{" "}
             <TableCell>
-              {mantenimientoSanitarios.fechaCompletado &&
+              <Badge
+                variant={
+                  mantenimientoSanitario.completado
+                    ? "default"
+                    : mantenimientoSanitario.fecha_mantenimiento &&
+                      new Date(mantenimientoSanitario.fecha_mantenimiento) <
+                        new Date()
+                    ? "destructive"
+                    : "secondary"
+                }
+              >
+                {mantenimientoSanitario.completado
+                  ? "Completado"
+                  : mantenimientoSanitario.fecha_mantenimiento &&
+                    new Date(mantenimientoSanitario.fecha_mantenimiento) <
+                      new Date()
+                  ? "En proceso"
+                  : "Pendiente"}
+              </Badge>
+            </TableCell>
+            <TableCell>
+              {mantenimientoSanitario.fechaCompletado &&
                 new Date(
-                  mantenimientoSanitarios.fechaCompletado
+                  mantenimientoSanitario.fechaCompletado
                 ).toLocaleDateString("es-AR")}
             </TableCell>
             <TableCell className="flex gap-2">
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => handleEditClick(mantenimientoSanitarios)}
+                onClick={() => handleEditClick(mantenimientoSanitario)}
                 className="cursor-pointer"
               >
                 Editar
@@ -317,21 +348,28 @@ const MantenimientoSanitariosComponent = ({
                 variant="destructive"
                 size="sm"
                 onClick={() =>
-                  mantenimientoSanitarios.mantenimiento_id &&
-                  handleDeleteClick(mantenimientoSanitarios.mantenimiento_id)
+                  mantenimientoSanitario.mantenimiento_id &&
+                  handleDeleteClick(mantenimientoSanitario.mantenimiento_id)
                 }
                 className="cursor-pointer"
               >
                 Eliminar
-              </Button>
+              </Button>{" "}
               <Button
                 variant="default"
                 size="sm"
-                onClick={() =>
-                  mantenimientoSanitarios.mantenimiento_id &&
-                  handleCompleteClick(mantenimientoSanitarios.mantenimiento_id)
-                }
-                className="cursor-pointer"
+                onClick={() => {
+                  if (mantenimientoSanitario.mantenimiento_id) {
+                    setMantenimientoToComplete(
+                      mantenimientoSanitario.mantenimiento_id
+                    );
+                    setConfirmDialogOpen(true);
+                  }
+                }}
+                disabled={mantenimientoSanitario.completado}
+                className={`cursor-pointer ${
+                  mantenimientoSanitario.completado ? "opacity-50" : ""
+                }`}
               >
                 Completar
               </Button>
@@ -340,7 +378,7 @@ const MantenimientoSanitariosComponent = ({
         )}
         addButton={
           <Button onClick={handleCreateClick} className="cursor-pointer">
-            Agregar Sanitario
+            Agregar Mantenimiento para Sanitario
           </Button>
         }
       />{" "}
@@ -458,6 +496,33 @@ const MantenimientoSanitariosComponent = ({
             )}
           />
         </>
+      </FormDialog>
+      <FormDialog
+        open={confirmDialogOpen}
+        submitButtonText="Confirmar"
+        onOpenChange={(open) => {
+          if (!open) {
+            setConfirmDialogOpen(false);
+            setMantenimientoToComplete(null);
+          }
+        }}
+        title="Confirmar completado del mantenimiento"
+        onSubmit={(e) => {
+          e.preventDefault();
+          if (mantenimientoToComplete) {
+            handleCompleteClick(mantenimientoToComplete);
+            setConfirmDialogOpen(false);
+            setMantenimientoToComplete(null);
+          }
+        }}
+      >
+        <div className="space-y-4 py-4">
+          <p className="text-destructive font-semibold">¡Atención!</p>
+          <p>
+            Esta acción marcará el mantenimiento como completado y no será
+            reversible. ¿Estás seguro de que deseas continuar?
+          </p>
+        </div>
       </FormDialog>
     </>
   );
