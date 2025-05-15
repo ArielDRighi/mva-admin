@@ -22,13 +22,13 @@ export type ContractualCondition = {
 
 export type CreateContractualCondition = {
   clientId: number;
-  tipo_de_contrato: "Temporal" | "Permanente";
+  tipo_de_contrato: "Temporal" | "Permanente" | string;
   fecha_inicio: string;
   fecha_fin: string;
   condiciones_especificas?: string;
   tarifa: number;
-  periodicidad: "Diaria" | "Semanal" | "Mensual" | "Anual";
-  estado?: "Activo" | "Inactivo" | "Terminado";
+  periodicidad: "Diaria" | "Semanal" | "Mensual" | "Anual" | string;
+  estado?: "Activo" | "Inactivo" | "Terminado" | string;
 };
 
 export type UpdateContractualCondition = {
@@ -126,9 +126,7 @@ export async function getContractualConditionsByClient(clientId: number) {
 /**
  * Crea una nueva condición contractual
  */
-export async function createContractualCondition(
-  data: CreateContractualCondition
-) {
+export async function createContractualCondition(data: any) {
   const cookieStore = await cookies();
   const token = cookieStore.get("token")?.value;
 

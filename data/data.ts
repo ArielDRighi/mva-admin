@@ -79,6 +79,10 @@ const dataSideBar = {
           title: "Listado",
           url: "/dashboard/condiciones-contractuales/listado",
         },
+        {
+          title: "Crear Condición",
+          url: "/dashboard/condiciones-contractuales/crear",
+        },
       ],
     },
   ],

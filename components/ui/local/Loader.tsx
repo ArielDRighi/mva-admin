@@ -1,8 +1,8 @@
 import React from "react";
 
-const Loader = () => {
+const Loader = ({ className }: { className?: string }) => {
   return (
-    <div className="three-body z-10">
+    <div className={`three-body z-10 ${className}`}>
       <div className="three-body__dot"></div>
       <div className="three-body__dot"></div>
       <div className="three-body__dot"></div>

@@ -187,7 +187,7 @@ export type Empleado = {
 };
 
 export type Cliente = {
-  clienteId?: string;
+  clienteId?: number;
   nombre: string;
   cuit: string;
   direccion: string;
