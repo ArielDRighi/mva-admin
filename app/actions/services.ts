@@ -12,68 +12,22 @@ import { cookies } from "next/headers";
 /**
  * Obtiene una lista paginada de servicios con posibilidad de filtrado
  */
-export async function getServices(
-  page: number = 1,
-  limit: number = 15,
-  search: string = "",
-  filters: Record<string, any> = {}
-) {
+export async function getServices() {
   const cookieStore = await cookies();
   const token = cookieStore.get("token")?.value;
 
   if (!token) throw new Error("Token no encontrado");
 
-  let queryParams = new URLSearchParams({
-    page: page.toString(),
-    limit: limit.toString(),
+  const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/services`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+    cache: "no-store",
   });
 
-  if (search) queryParams.append("search", search);
+  if (!res.ok) throw new Error("Error al obtener los servicios");
 
-  // Agregar filtros adicionales si existen
-  Object.entries(filters).forEach(([key, value]) => {
-    if (value !== undefined && value !== null && value !== "") {
-      queryParams.append(key, value.toString());
-    }
-  });
-
-  try {
-    const res = await fetch(
-      `${
-        process.env.NEXT_PUBLIC_API_URL
-      }/api/services?${queryParams.toString()}`,
-      {
-        method: "GET",
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-        cache: "no-store",
-      }
-    );
-
-    console.log(
-      "URL de solicitud:",
-      `${
-        process.env.NEXT_PUBLIC_API_URL
-      }/api/services?${queryParams.toString()}`
-    );
-    console.log("Estado de respuesta:", res.status, res.statusText);
-
-    if (!res.ok) {
-      const errorText = await res.text();
-      console.error("Error response:", errorText);
-      throw new Error(
-        `Error al obtener servicios: ${res.status} ${res.statusText}`
-      );
-    }
-
-    const data = await res.json();
-    console.log("Datos recibidos:", data);
-    return data;
-  } catch (error) {
-    console.error("Error en getServices:", error);
-    throw error;
-  }
+  return await res.json();
 }
 
 /**

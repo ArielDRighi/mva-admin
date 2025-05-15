@@ -64,7 +64,6 @@ const dataSideBar = {
       url: "/dashboard/servicios",
       icon: Hammer,
       items: [
-        { title: "Listado", url: "/dashboard/servicios/listado" },
         { title: "Crear Servicio", url: "/dashboard/servicios/crear" },
         { title: "Historial", url: "/dashboard/servicios/historial" },
         { title: "Servicios Activos", url: "/dashboard/servicios/activos" },

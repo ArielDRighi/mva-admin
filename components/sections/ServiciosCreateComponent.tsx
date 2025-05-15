@@ -11,13 +11,41 @@ import { toast } from "sonner";
 import { z } from "zod";
 import { useRouter } from "next/navigation";
 import { Cliente } from "@/types/types";
+import { getAllContractualConditions } from "@/app/actions/contractualConditions";
 
 const ServiciosCreateComponent = () => {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [clients, setClients] = useState<Cliente[]>([]);
+  const [condiciones, setConditions] = useState<{
+    items: Array<{
+      condicionContractualId: number;
+      tipo_de_contrato: string;
+      fecha_inicio: string;
+      fecha_fin: string;
+      condiciones_especificas: string;
+      periodicidad: string;
+      tarifa: string;
+      estado: string;
+    }>;
+    limit: number;
+    page: number;
+    total: number;
+    totalPages: number;
+  }>();
+  console.log("Condiciones:", condiciones);
+
+  useEffect(() => {
+    const fetchConditions = async () => {
+      const conditions = await getAllContractualConditions();
+      setConditions(conditions);
+    };
+
+    fetchConditions();
+  }, []);
 
   // Define schema for automatic service creation
+  // ...existing code...
   const createServiceSchema = z.object({
     clienteId: z.number({
       required_error: "El cliente es obligatorio",
@@ -41,8 +69,15 @@ const ServiciosCreateComponent = () => {
     cantidadVehiculos: z.number().min(1, "Se requiere al menos un vehículo"),
     cantidadEmpleados: z.number().min(1, "Se requiere al menos un empleado"),
     cantidadBanos: z.number().min(0, "No puede ser negativo"), // Changed from cantidad_sanitarios
+    condicionContractualId: z.number({
+      required_error: "La condición contractual es obligatoria",
+      invalid_type_error:
+        "El ID de la condición contractual debe ser un número",
+    }),
   });
+  // ...existing code...
 
+  // ...existing code...
   const form = useForm<z.infer<typeof createServiceSchema>>({
     resolver: zodResolver(createServiceSchema),
     defaultValues: {
@@ -57,8 +92,10 @@ const ServiciosCreateComponent = () => {
       cantidadVehiculos: 0,
       cantidadEmpleados: 0,
       cantidadBanos: 0,
+      condicionContractualId: 0,
     },
   });
+  // ...existing code...
 
   const { control, handleSubmit, reset } = form;
 
@@ -114,6 +151,7 @@ const ServiciosCreateComponent = () => {
         return;
       }
 
+      // ...existing code...
       const apiData = {
         clienteId: data.clienteId,
         fechaProgramada: new Date(data.fechaProgramada).toISOString(),
@@ -124,7 +162,9 @@ const ServiciosCreateComponent = () => {
         cantidadEmpleados: Math.max(1, data.cantidadEmpleados),
         cantidadBanos: data.cantidadBanos,
         asignacionAutomatica: true,
+        condicionContractualId: data.condicionContractualId,
       };
+      // ...existing code...
 
       console.log("Transformed API data:", apiData);
       const created = await createServiceAutomatic(apiData);
@@ -178,15 +218,21 @@ const ServiciosCreateComponent = () => {
           />
 
           <Controller
-            name="fechaProgramada"
+            name="condicionContractualId"
             control={control}
             render={({ field, fieldState }) => (
               <FormField
-                label="Fecha de servicio"
-                name="fecha_servicio"
-                type="date"
-                value={field.value}
-                onChange={field.onChange}
+                label="Condición Contractual"
+                name="condicionContractualId"
+                fieldType="select"
+                value={field.value ? String(field.value) : ""}
+                onChange={(value) => field.onChange(Number(value))}
+                options={
+                  condiciones?.items.map((condition) => ({
+                    label: `${condition.tipo_de_contrato} - ${condition.tarifa} (${condition.periodicidad})`,
+                    value: String(condition.condicionContractualId),
+                  })) || []
+                }
                 error={fieldState.error?.message}
               />
             )}
