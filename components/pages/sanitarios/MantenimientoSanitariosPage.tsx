@@ -9,7 +9,7 @@ export default async function MantenimientoSanitariosPage() {
     <main className="flex flex-1 flex-col gap-4 p-4 pt-0">
       <div className="grid auto-rows-min gap-4 grid-cols-1">
         <MantenimientoSanitariosComponent
-          data={sanitarios.items}
+          data={sanitarios.data}
           totalItems={sanitarios.total}
           currentPage={sanitarios.currentPage}
           itemsPerPage={sanitarios.itemsPerPage}

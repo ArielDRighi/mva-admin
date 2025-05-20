@@ -131,7 +131,7 @@ export async function getToiletsList() {
   if (!token) throw new Error("Token no encontrado");
 
   const res = await fetch(
-    `${process.env.NEXT_PUBLIC_API_URL}/api/chemical_toilets?limit=100`,
+    `${process.env.NEXT_PUBLIC_API_URL}/api/chemical_toilets`,
     {
       headers: {
         Authorization: `Bearer ${token}`,

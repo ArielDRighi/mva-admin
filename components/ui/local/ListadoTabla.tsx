@@ -95,8 +95,8 @@ export function ListadoTabla<T>({
   return (
     <Card className="w-full shadow-md border @container">
       <CardContent className="p-6 space-y-4">
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-          <div className="flex items-center gap-4 flex-col @min-[400px]:flex-row">
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+          <div className="flex items-center gap-4 flex-col lg:flex-row">
             <h2 className="text-xl font-semibold">{title}</h2>
             {addButton}
           </div>

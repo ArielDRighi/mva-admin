@@ -211,7 +211,7 @@ const MantenimientoSanitariosComponent = ({
         itemsPerPage,
         search
       );
-      setMantenimientoSanitarios(fetchedSanitariosMantenimiento.items);
+      setMantenimientoSanitarios(fetchedSanitariosMantenimiento.data);
       setTotal(fetchedSanitariosMantenimiento.total);
       setPage(fetchedSanitariosMantenimiento.page);
     } catch (error) {
@@ -220,10 +220,6 @@ const MantenimientoSanitariosComponent = ({
       setLoading(false);
     }
   }, [searchParams, itemsPerPage]);
-  useEffect(() => {
-    fetchSanitariosMantenimiento();
-    fetchToiletsList();
-  }, [fetchSanitariosMantenimiento]);
 
   const fetchToiletsList = async () => {
     try {
@@ -237,6 +233,11 @@ const MantenimientoSanitariosComponent = ({
     }
   };
 
+  useEffect(() => {
+    fetchSanitariosMantenimiento();
+    fetchToiletsList();
+  }, [fetchSanitariosMantenimiento]);
+
   if (loading) {
     return (
       <div className="w-full h-screen flex justify-center items-center">
@@ -244,8 +245,6 @@ const MantenimientoSanitariosComponent = ({
       </div>
     );
   }
-
-  console.log(mantenimientoSanitarios);
 
   return (
     <>
