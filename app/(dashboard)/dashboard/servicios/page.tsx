@@ -1,9 +1,8 @@
-import React from 'react'
+import ServiciosPage from "@/components/pages/services/servicesPage";
+import React from "react";
 
 const Servicios = () => {
-  return (
-    <div>Servicios</div>
-  )
-}
+  return <ServiciosPage />;
+};
 
-export default Servicios
+export default Servicios;

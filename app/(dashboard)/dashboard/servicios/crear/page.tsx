@@ -1,9 +1,8 @@
-import React from 'react'
+import ServiciosCreatePage from "@/components/pages/services/serviciosCreatePage";
+import React from "react";
 
 const CrearServicios = () => {
-  return (
-    <div>CrearServicios</div>
-  )
-}
+  return <ServiciosCreatePage />;
+};
 
-export default CrearServicios
+export default CrearServicios;

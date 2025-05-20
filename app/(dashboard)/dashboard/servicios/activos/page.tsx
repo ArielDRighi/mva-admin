@@ -1,9 +1,8 @@
-import React from 'react'
+import ServiciosActivosPage from "@/components/pages/services/serviciosActivosPage";
+import React from "react";
 
 const ActivosServicios = () => {
-  return (
-    <div>ActivosServicios</div>
-  )
-}
+  return <ServiciosActivosPage />;
+};
 
-export default ActivosServicios
+export default ActivosServicios;

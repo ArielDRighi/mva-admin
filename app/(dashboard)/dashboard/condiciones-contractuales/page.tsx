@@ -1,9 +1,8 @@
-import React from 'react'
+import CondicionesContractualesPage from "@/components/pages/condicionesContractuales/CondicionesContractualesPage";
+import React from "react";
 
-const RecursosEnMantenimiento = () => {
-  return (
-    <div>RecursosEnMantenimiento</div>
-  )
-}
+const CondicionesContractuales = () => {
+  return <CondicionesContractualesPage />;
+};
 
-export default RecursosEnMantenimiento
+export default CondicionesContractuales;
