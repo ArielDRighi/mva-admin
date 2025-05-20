@@ -29,6 +29,32 @@ export type VehicleMaintenance = {
   };
 };
 
+export type CreateEmployeeLeaveDto = {
+  employeeId: number;
+  fechaInicio: Date;
+  fechaFin: Date;
+  tipoLicencia: LeaveType;
+  notas?: string;
+  aprobado?: boolean;
+};
+
+export class UpdateEmployeeLeaveDto {
+  employeeId?: number;
+  fechaInicio?: Date;
+  fechaFin?: Date;
+  tipoLicencia?: LeaveType;
+  notas?: string;
+  aprobado?: boolean;
+}
+
+export enum LeaveType {
+  VACACIONES = "VACACIONES",
+  LICENCIA_MEDICA = "LICENCIA_MEDICA",
+  LICENCIA_PERSONAL = "LICENCIA_PERSONAL",
+  CAPACITACION = "CAPACITACION",
+  OTRO = "OTRO",
+}
+
 export type UpdateVehicleMaintenance = {
   fechaMantenimiento?: string | Date;
   tipoMantenimiento?: string;
@@ -267,7 +293,7 @@ export type MantenimientoSanitarioForm = {
   costo: number;
   completado?: boolean;
   fechaCompletado?: string | null;
-  toilet?: Sanitario[];
+  toilet?: Sanitario;
 };
 
 export type MantenimientosSanitariosResponse = {
@@ -286,3 +312,11 @@ export type MantenimientoSanitarioFormulario = Pick<
   | "tecnico_responsable"
   | "costo"
 >;
+
+export type ChemicalToilet = {
+  baño_id: number;
+  codigo_interno: string;
+  modelo: string;
+  fecha_adquisicion: string;
+  estado: string;
+};

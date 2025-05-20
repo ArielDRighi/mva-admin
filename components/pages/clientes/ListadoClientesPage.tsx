@@ -5,7 +5,6 @@ import ListadoClientesComponent from "@/components/sections/ListadoClientesCompo
 
 export default async function ListadoClientesPage() {
   const clients = await getClients();
-  console.log(clients);
 
   return (
     <main className="flex flex-1 flex-col gap-4 p-4 pt-0">
