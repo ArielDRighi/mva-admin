@@ -202,3 +202,43 @@ export async function getTotalEmployees() {
 
   return await res.json();
 }
+
+export async function getMineAssignedServicesPending(employeeId: number) {
+  const cookieStore = await cookies();
+  const token = cookieStore.get("token")?.value;
+
+  if (!token) throw new Error("Token no encontrado");
+  const res = await fetch(
+    `${process.env.NEXT_PUBLIC_API_URL}/api/services/assigned/pendings/${employeeId}`,
+    {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+      cache: "no-store",
+    }
+  );
+
+  if (!res.ok) throw new Error("Error al obtener los servicios asignados");
+
+  return await res.json();
+}
+
+export async function getLastServicesByUserId(employeeId: number) {
+  const cookieStore = await cookies();
+  const token = cookieStore.get("token")?.value;
+
+  if (!token) throw new Error("Token no encontrado");
+  const res = await fetch(
+    `${process.env.NEXT_PUBLIC_API_URL}/api/services/employee/${employeeId}/last`,
+    {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+      cache: "no-store",
+    }
+  );
+
+  if (!res.ok) throw new Error("Error al obtener los servicios asignados");
+
+  return await res.json();
+}

@@ -288,7 +288,7 @@ export default function ListadoServiciosActivosComponent({
             </CardDescription>
           </div>
           <Button
-            onClick={() => router.push("/dashboard/servicios/crear")}
+            onClick={() => router.push("/admin/dashboard/servicios/crear")}
             className="cursor-pointer bg-indigo-600 hover:bg-indigo-700"
           >
             <Plus className="mr-2 h-4 w-4" />

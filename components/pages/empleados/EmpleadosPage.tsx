@@ -10,7 +10,7 @@ const EmpleadosPage = () => {
           Empleados
         </h2>
         <InfoCard
-          href="/dashboard/empleados/listado"
+          href="/admin/dashboard/empleados/listado"
           imgSrc={EmpleadosImg}
           imgAlt="Icono de empleados"
           title="Gestión de Empleados"

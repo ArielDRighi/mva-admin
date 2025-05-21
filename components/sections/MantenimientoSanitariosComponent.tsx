@@ -612,15 +612,22 @@ const MantenimientoSanitariosComponent = ({
               name="descripcion"
               control={control}
               render={({ field, fieldState }) => (
-                <FormField
-                  label="Descripción"
-                  name="descripcion"
-                  fieldType="textarea"
-                  value={field.value}
-                  onChange={field.onChange}
-                  error={fieldState.error?.message}
-                  placeholder="Detalle el mantenimiento a realizar"
-                />
+                <div className="space-y-2">
+                  <label htmlFor="descripcion" className="text-sm font-medium">
+                    Descripción
+                  </label>
+                  <textarea
+                    id="descripcion"
+                    className="w-full min-h-[100px] p-2 border rounded-md"
+                    {...field}
+                    placeholder="Detalle el mantenimiento a realizar"
+                  />
+                  {fieldState.error && (
+                    <p className="text-sm text-red-500">
+                      {fieldState.error.message}
+                    </p>
+                  )}
+                </div>
               )}
             />
           </div>
