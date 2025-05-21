@@ -21,7 +21,7 @@ import Image from "next/image";
 import Loader from "../ui/local/Loader";
 
 const formSchema = z.object({
-  username: z.string().min(3, { message: "El usuario es obligatorio" }),
+  email: z.string().min(3, { message: "El mail es obligatorio" }),
   password: z.string().min(6, { message: "Mínimo 6 caracteres" }),
 });
 
@@ -33,7 +33,7 @@ const LoginComponent = () => {
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      username: "",
+      email: "",
       password: "",
     },
   });
@@ -43,7 +43,7 @@ const LoginComponent = () => {
     setIsLoading(true);
 
     try {
-      const data = await loginUser(values.username, values.password);
+      const data = await loginUser(values.email, values.password);
       setCookie("token", data.access_token);
       setCookie("user", JSON.stringify(data.user));
       router.push("/dashboard");
@@ -74,10 +74,10 @@ const LoginComponent = () => {
           <div className="inputContainer">
             <FormField
               control={form.control}
-              name="username"
+              name="email"
               render={({ field }) => (
                 <FormItem className="relative">
-                  <FormLabel>Usuario</FormLabel>
+                  <FormLabel>Email</FormLabel>
                   <svg
                     className="inputIcon"
                     xmlns="http://www.w3.org/2000/svg"
@@ -90,9 +90,9 @@ const LoginComponent = () => {
                   </svg>
                   <FormControl>
                     <Input
-                      placeholder="lopez456"
+                      placeholder="empleado@mva.com"
                       {...field}
-                      id="username"
+                      id="email"
                       className="inputField"
                     />
                   </FormControl>
@@ -134,7 +134,9 @@ const LoginComponent = () => {
             />
           </div>
 
-          {formError && <p className="text-sm text-red-500 z-10">{formError}</p>}
+          {formError && (
+            <p className="text-sm text-red-500 z-10">{formError}</p>
+          )}
           {isLoading ? (
             <Loader />
           ) : (

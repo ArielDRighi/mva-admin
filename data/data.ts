@@ -1,18 +1,11 @@
 import { LogoMVA } from "@/assets/ImgDatabase";
-import {
-  Car,
-  Users,
-  Toilet,
-  UserCheck,
-  Hammer,
-  Wrench,
-} from "lucide-react"; // Quité CloudSun, agregué Wrench
+import { Car, Users, Toilet, UserCheck, Hammer, Wrench } from "lucide-react"; // Quité CloudSun, agregué Wrench
 
 const dataSideBar = {
   team: {
     name: "MVA SRL",
     logo: LogoMVA,
-    plan: "Empresa",
+    plan: "Sistema de Gestión",
   },
 
   navMain: [

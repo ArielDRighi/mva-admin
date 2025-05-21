@@ -12,6 +12,28 @@ import { z } from "zod";
 import { useRouter } from "next/navigation";
 import { Cliente } from "@/types/types";
 import { getAllContractualConditions } from "@/app/actions/contractualConditions";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  Building,
+  Calendar,
+  MapPin,
+  FileText,
+  Truck,
+  UserRound,
+  ClipboardList,
+  Phone,
+  User2,
+  FileSpreadsheet,
+  ArrowLeft,
+  Save,
+} from "lucide-react";
+import Loader from "@/components/ui/local/Loader";
 
 const ServiciosCreateComponent = () => {
   const router = useRouter();
@@ -33,7 +55,6 @@ const ServiciosCreateComponent = () => {
     total: number;
     totalPages: number;
   }>();
-  console.log("Condiciones:", condiciones);
 
   useEffect(() => {
     const fetchConditions = async () => {
@@ -45,7 +66,6 @@ const ServiciosCreateComponent = () => {
   }, []);
 
   // Define schema for automatic service creation
-  // ...existing code...
   const createServiceSchema = z.object({
     clienteId: z.number({
       required_error: "El cliente es obligatorio",
@@ -58,26 +78,24 @@ const ServiciosCreateComponent = () => {
         (value) => !isNaN(Date.parse(value)),
         "Formato de fecha inválido"
       ),
-    tipoServicio: z.string().min(1, "El tipo de servicio es obligatorio"), // Changed from tipo_servicio
+    tipoServicio: z.string().min(1, "El tipo de servicio es obligatorio"),
     descripcion: z.string().optional(),
-    ubicacion: z.string().min(1, "La ubicación es obligatoria"), // Changed from direccion_servicio
-    contactoNombre: z.string().min(1, "El nombre de contacto es obligatorio"), // Changed from contacto_nombre
+    ubicacion: z.string().min(1, "La ubicación es obligatoria"),
+    contactoNombre: z.string().min(1, "El nombre de contacto es obligatorio"),
     contactoTelefono: z
       .string()
       .regex(/^\d{3}-\d{4}-\d{4}$/, "Formato de teléfono incorrecto"),
     estado: z.string().default("PROGRAMADO"),
     cantidadVehiculos: z.number().min(1, "Se requiere al menos un vehículo"),
     cantidadEmpleados: z.number().min(1, "Se requiere al menos un empleado"),
-    cantidadBanos: z.number().min(0, "No puede ser negativo"), // Changed from cantidad_sanitarios
+    cantidadBanos: z.number().min(0, "No puede ser negativo"),
     condicionContractualId: z.number({
       required_error: "La condición contractual es obligatoria",
       invalid_type_error:
         "El ID de la condición contractual debe ser un número",
     }),
   });
-  // ...existing code...
 
-  // ...existing code...
   const form = useForm<z.infer<typeof createServiceSchema>>({
     resolver: zodResolver(createServiceSchema),
     defaultValues: {
@@ -95,7 +113,6 @@ const ServiciosCreateComponent = () => {
       condicionContractualId: 0,
     },
   });
-  // ...existing code...
 
   const { control, handleSubmit, reset } = form;
 
@@ -105,9 +122,7 @@ const ServiciosCreateComponent = () => {
       const result = await getClients();
 
       if (result && result.items) {
-        // Update this line - data is in the "items" property
         setClients(result.items);
-        console.log("Clients loaded:", result.items);
       } else {
         console.error("No client data returned from API");
         toast.error("Error", {
@@ -123,11 +138,6 @@ const ServiciosCreateComponent = () => {
       setLoading(false);
     }
   }, []);
-
-  // Effect for logging clients state changes
-  useEffect(() => {
-    console.log("Clients state updated:", clients);
-  }, [clients]);
 
   // Load initial data
   useEffect(() => {
@@ -151,7 +161,6 @@ const ServiciosCreateComponent = () => {
         return;
       }
 
-      // ...existing code...
       const apiData = {
         clienteId: data.clienteId,
         fechaProgramada: new Date(data.fechaProgramada).toISOString(),
@@ -164,19 +173,16 @@ const ServiciosCreateComponent = () => {
         asignacionAutomatica: true,
         condicionContractualId: data.condicionContractualId,
       };
-      // ...existing code...
 
-      console.log("Transformed API data:", apiData);
       const created = await createServiceAutomatic(apiData);
-      console.log("Service created:", created);
-
-      // Now you can use the created service data if needed
-      // router.push(`/dashboard/servicios/detalle/${created.id}`);
 
       toast.success("Servicio creado", {
         description:
           "El servicio se ha creado correctamente con asignación automática.",
       });
+
+      // Redirigir a la lista de servicios después de crearlo
+      router.push("/dashboard/servicios/listado");
     } catch (error) {
       console.error("Error al crear el servicio:", error);
       toast.error("Error", {
@@ -190,204 +196,288 @@ const ServiciosCreateComponent = () => {
     }
   };
 
+  if (loading && clients.length === 0) {
+    return (
+      <div className="w-full h-screen flex justify-center items-center">
+        <Loader />
+      </div>
+    );
+  }
+
   return (
-    <div className="container mx-auto py-6">
-      <h1 className="text-2xl font-bold mb-6">
-        Crear Servicio (Asignación Automática)
-      </h1>
-
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <Controller
-            name="clienteId"
-            control={control}
-            render={({ field, fieldState }) => (
-              <FormField
-                label="Cliente"
-                name="clienteId"
-                fieldType="select"
-                value={field.value ? String(field.value) : ""}
-                onChange={(value) => field.onChange(Number(value))}
-                options={clients.map((client) => ({
-                  label: client.nombre,
-                  value: String(client.clienteId),
-                }))}
-                error={fieldState.error?.message}
-              />
-            )}
-          />
-
-          <Controller
-            name="condicionContractualId"
-            control={control}
-            render={({ field, fieldState }) => (
-              <FormField
-                label="Condición Contractual"
-                name="condicionContractualId"
-                fieldType="select"
-                value={field.value ? String(field.value) : ""}
-                onChange={(value) => field.onChange(Number(value))}
-                options={
-                  condiciones?.items.map((condition) => ({
-                    label: `${condition.tipo_de_contrato} - ${condition.tarifa} (${condition.periodicidad})`,
-                    value: String(condition.condicionContractualId),
-                  })) || []
-                }
-                error={fieldState.error?.message}
-              />
-            )}
-          />
-
-          <Controller
-            name="tipoServicio"
-            control={control}
-            render={({ field, fieldState }) => (
-              <FormField
-                label="Tipo de servicio"
-                name="tipoServicio"
-                fieldType="select"
-                value={field.value}
-                onChange={field.onChange}
-                options={[
-                  { label: "Instalación", value: "INSTALACION" },
-                  { label: "Retiro", value: "RETIRO" },
-                  { label: "Limpieza", value: "LIMPIEZA" },
-                  { label: "Mantenimiento", value: "MANTENIMIENTO" },
-                ]}
-                error={fieldState.error?.message}
-              />
-            )}
-          />
-
-          <Controller
-            name="descripcion"
-            control={control}
-            render={({ field, fieldState }) => (
-              <FormField
-                label="Descripción"
-                name="descripcion"
-                type="textarea"
-                value={field.value || ""}
-                onChange={field.onChange}
-                error={fieldState.error?.message}
-              />
-            )}
-          />
-
-          <Controller
-            name="ubicacion"
-            control={control}
-            render={({ field, fieldState }) => (
-              <FormField
-                label="Dirección de servicio"
-                name="ubicacion"
-                value={field.value}
-                onChange={field.onChange}
-                error={fieldState.error?.message}
-              />
-            )}
-          />
-
-          <Controller
-            name="contactoNombre"
-            control={control}
-            render={({ field, fieldState }) => (
-              <FormField
-                label="Nombre de contacto"
-                name="contactoNombre"
-                value={field.value}
-                onChange={field.onChange}
-                error={fieldState.error?.message}
-              />
-            )}
-          />
-
-          <Controller
-            name="contactoTelefono"
-            control={control}
-            render={({ field, fieldState }) => (
-              <FormField
-                label="Teléfono de contacto"
-                name="contactoTelefono"
-                value={field.value}
-                onChange={field.onChange}
-                placeholder="123-4567-8901"
-                error={fieldState.error?.message}
-              />
-            )}
-          />
-        </div>
-
-        <div className="mt-8">
-          <h2 className="text-xl font-semibold mb-4">
-            Recursos Requeridos (Asignación Automática)
-          </h2>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <Controller
-              name="cantidadVehiculos"
-              control={control}
-              render={({ field, fieldState }) => (
-                <FormField
-                  label="Cantidad de vehículos"
-                  name="cantidadVehiculos"
-                  type="number"
-                  value={String(field.value)}
-                  onChange={(value) => field.onChange(Number(value))}
-                  error={fieldState.error?.message}
-                  min={0}
-                />
-              )}
-            />
-
-            <Controller
-              name="cantidadEmpleados"
-              control={control}
-              render={({ field, fieldState }) => (
-                <FormField
-                  label="Cantidad de empleados"
-                  name="cantidadEmpleados"
-                  type="number"
-                  value={String(field.value)}
-                  onChange={(value) => field.onChange(Number(value))}
-                  error={fieldState.error?.message}
-                  min={0}
-                />
-              )}
-            />
-
-            <Controller
-              name="cantidadBanos"
-              control={control}
-              render={({ field, fieldState }) => (
-                <FormField
-                  label="Cantidad de sanitarios"
-                  name="cantidadBanos"
-                  type="number"
-                  value={String(field.value)}
-                  onChange={(value) => field.onChange(Number(value))}
-                  error={fieldState.error?.message}
-                  min={0}
-                />
-              )}
-            />
+    <Card className="w-full shadow-md">
+      <CardHeader className="bg-slate-50 dark:bg-slate-900 border-b">
+        <div className="flex items-center justify-between">
+          <div>
+            <CardTitle className="text-2xl font-bold">
+              Crear Nuevo Servicio
+            </CardTitle>
+            <CardDescription className="text-muted-foreground mt-1">
+              Complete los datos para crear un servicio con asignación
+              automática
+            </CardDescription>
           </div>
-        </div>
-
-        <div className="flex justify-end gap-4 mt-8">
           <Button
-            type="button"
-            variant="outline"
             onClick={() => router.push("/dashboard/servicios/listado")}
+            className="cursor-pointer border-slate-200 hover:bg-slate-50 hover:text-slate-900"
+            variant="outline"
           >
-            Cancelar
-          </Button>
-          <Button type="submit" disabled={loading}>
-            {loading ? "Creando..." : "Crear Servicio"}
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            Volver
           </Button>
         </div>
-      </form>
-    </div>
+      </CardHeader>
+
+      <CardContent className="p-6">
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="space-y-6">
+              <div className="border rounded-md p-4">
+                <h3 className="font-medium text-sm text-muted-foreground flex items-center mb-4">
+                  <Building className="h-4 w-4 mr-2" />
+                  INFORMACIÓN DEL CLIENTE
+                </h3>
+                <div className="space-y-4">
+                  <Controller
+                    name="clienteId"
+                    control={control}
+                    render={({ field, fieldState }) => (
+                      <FormField
+                        label="Cliente"
+                        name="clienteId"
+                        fieldType="select"
+                        value={field.value ? String(field.value) : ""}
+                        onChange={(value) => field.onChange(Number(value))}
+                        options={clients.map((client) => ({
+                          label: client.nombre,
+                          value: String(client.clienteId),
+                        }))}
+                        error={fieldState.error?.message}
+                      />
+                    )}
+                  />
+
+                  <Controller
+                    name="condicionContractualId"
+                    control={control}
+                    render={({ field, fieldState }) => (
+                      <FormField
+                        label="Condición Contractual"
+                        name="condicionContractualId"
+                        fieldType="select"
+                        value={field.value ? String(field.value) : ""}
+                        onChange={(value) => field.onChange(Number(value))}
+                        options={
+                          condiciones?.items.map((condition) => ({
+                            label: `${condition.tipo_de_contrato} - ${condition.tarifa} (${condition.periodicidad})`,
+                            value: String(condition.condicionContractualId),
+                          })) || []
+                        }
+                        error={fieldState.error?.message}
+                      />
+                    )}
+                  />
+                </div>
+              </div>
+
+              <div className="border rounded-md p-4">
+                <h3 className="font-medium text-sm text-muted-foreground flex items-center mb-4">
+                  <ClipboardList className="h-4 w-4 mr-2" />
+                  DATOS DEL SERVICIO
+                </h3>
+                <div className="space-y-4">
+                  <Controller
+                    name="tipoServicio"
+                    control={control}
+                    render={({ field, fieldState }) => (
+                      <FormField
+                        label="Tipo de servicio"
+                        name="tipoServicio"
+                        fieldType="select"
+                        value={field.value}
+                        onChange={field.onChange}
+                        options={[
+                          { label: "Instalación", value: "INSTALACION" },
+                          { label: "Retiro", value: "RETIRO" },
+                          { label: "Limpieza", value: "LIMPIEZA" },
+                          { label: "Mantenimiento", value: "MANTENIMIENTO" },
+                        ]}
+                        error={fieldState.error?.message}
+                      />
+                    )}
+                  />
+
+                  <Controller
+                    name="fechaProgramada"
+                    control={control}
+                    render={({ field, fieldState }) => (
+                      <FormField
+                        label="Fecha programada"
+                        name="fechaProgramada"
+                        type="date"
+                        value={field.value || ""}
+                        onChange={field.onChange}
+                        error={fieldState.error?.message}
+                      />
+                    )}
+                  />
+
+                  <Controller
+                    name="ubicacion"
+                    control={control}
+                    render={({ field, fieldState }) => (
+                      <FormField
+                        label="Dirección de servicio"
+                        name="ubicacion"
+                        value={field.value}
+                        onChange={field.onChange}
+                        error={fieldState.error?.message}
+                      />
+                    )}
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-6">
+              <div className="border rounded-md p-4">
+                <h3 className="font-medium text-sm text-muted-foreground flex items-center mb-4">
+                  <User2 className="h-4 w-4 mr-2" />
+                  CONTACTO EN SITIO
+                </h3>
+                <div className="space-y-4">
+                  <Controller
+                    name="contactoNombre"
+                    control={control}
+                    render={({ field, fieldState }) => (
+                      <FormField
+                        label="Nombre de contacto"
+                        name="contactoNombre"
+                        value={field.value}
+                        onChange={field.onChange}
+                        error={fieldState.error?.message}
+                      />
+                    )}
+                  />
+
+                  <Controller
+                    name="contactoTelefono"
+                    control={control}
+                    render={({ field, fieldState }) => (
+                      <FormField
+                        label="Teléfono de contacto"
+                        name="contactoTelefono"
+                        value={field.value}
+                        onChange={field.onChange}
+                        placeholder="123-4567-8901"
+                        error={fieldState.error?.message}
+                      />
+                    )}
+                  />
+
+                  <Controller
+                    name="descripcion"
+                    control={control}
+                    render={({ field, fieldState }) => (
+                      <FormField
+                        label="Descripción"
+                        name="descripcion"
+                        type="textarea"
+                        value={field.value || ""}
+                        onChange={field.onChange}
+                        error={fieldState.error?.message}
+                      />
+                    )}
+                  />
+                </div>
+              </div>
+
+              <div className="border rounded-md p-4">
+                <h3 className="font-medium text-sm text-muted-foreground flex items-center mb-4">
+                  <FileSpreadsheet className="h-4 w-4 mr-2" />
+                  RECURSOS REQUERIDOS
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <Controller
+                    name="cantidadVehiculos"
+                    control={control}
+                    render={({ field, fieldState }) => (
+                      <FormField
+                        label="Vehículos"
+                        name="cantidadVehiculos"
+                        type="number"
+                        value={String(field.value)}
+                        onChange={(value) => field.onChange(Number(value))}
+                        error={fieldState.error?.message}
+                        min={0}
+                      />
+                    )}
+                  />
+
+                  <Controller
+                    name="cantidadEmpleados"
+                    control={control}
+                    render={({ field, fieldState }) => (
+                      <FormField
+                        label="Empleados"
+                        name="cantidadEmpleados"
+                        type="number"
+                        value={String(field.value)}
+                        onChange={(value) => field.onChange(Number(value))}
+                        error={fieldState.error?.message}
+                        min={0}
+                      />
+                    )}
+                  />
+
+                  <Controller
+                    name="cantidadBanos"
+                    control={control}
+                    render={({ field, fieldState }) => (
+                      <FormField
+                        label="Sanitarios"
+                        name="cantidadBanos"
+                        type="number"
+                        value={String(field.value)}
+                        onChange={(value) => field.onChange(Number(value))}
+                        error={fieldState.error?.message}
+                        min={0}
+                      />
+                    )}
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex justify-end gap-4 mt-8">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => router.push("/dashboard/servicios/listado")}
+              className="cursor-pointer border-slate-200 hover:bg-slate-50 hover:text-slate-900"
+            >
+              Cancelar
+            </Button>
+            <Button
+              type="submit"
+              disabled={loading}
+              className="cursor-pointer bg-indigo-600 hover:bg-indigo-700"
+            >
+              {loading ? (
+                <>
+                  <Loader className="mr-2 h-4 w-4" /> Creando...
+                </>
+              ) : (
+                <>
+                  <Save className="mr-2 h-4 w-4" /> Crear Servicio
+                </>
+              )}
+            </Button>
+          </div>
+        </form>
+      </CardContent>
+    </Card>
   );
 };
 

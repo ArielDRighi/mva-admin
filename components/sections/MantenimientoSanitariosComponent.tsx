@@ -21,6 +21,23 @@ import { Badge } from "../ui/badge";
 import { Button } from "../ui/button";
 import { FormDialog } from "../ui/local/FormDialog";
 import { FormField } from "../ui/local/FormField";
+import {
+  Toilet,
+  Edit2,
+  Trash2,
+  CheckCircle,
+  PlusCircle,
+  RefreshCcw,
+  Calendar,
+} from "lucide-react";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const MantenimientoSanitariosComponent = ({
   data,
@@ -49,6 +66,9 @@ const MantenimientoSanitariosComponent = ({
   const [mantenimientoToComplete, setMantenimientoToComplete] = useState<
     number | null
   >(null);
+  const [activeTab, setActiveTab] = useState("todos");
+
+  // Schema y resto del código existente...
   const createSanitarioSchema = z.object({
     baño_id: z.number({
       required_error: "El baño es obligatorio",
@@ -77,6 +97,7 @@ const MantenimientoSanitariosComponent = ({
       })
       .nonnegative("El costo no puede ser negativo"),
   });
+
   const form = useForm<z.infer<typeof createSanitarioSchema>>({
     resolver: zodResolver(createSanitarioSchema),
     defaultValues: {
@@ -91,6 +112,7 @@ const MantenimientoSanitariosComponent = ({
 
   const { handleSubmit, setValue, control, reset } = form;
 
+  // Funciones existentes
   const handlePageChange = (page: number) => {
     const params = new URLSearchParams(searchParams.toString());
     params.set("page", String(page));
@@ -103,11 +125,34 @@ const MantenimientoSanitariosComponent = ({
     params.set("page", "1");
     router.replace(`?${params.toString()}`);
   };
+
+  const handleTabChange = (value: string) => {
+    setActiveTab(value);
+  };
+
+  const filteredMantenimientos =
+    activeTab === "todos"
+      ? mantenimientoSanitarios
+      : mantenimientoSanitarios.filter((man) => {
+          if (activeTab === "pendiente")
+            return (
+              !man.completado &&
+              new Date(man.fecha_mantenimiento || "") >= new Date()
+            );
+          if (activeTab === "proceso")
+            return (
+              !man.completado &&
+              new Date(man.fecha_mantenimiento || "") < new Date()
+            );
+          if (activeTab === "completado") return man.completado;
+          return true;
+        });
+
   const handleEditClick = (
     mantenimientoSanitario: MantenimientoSanitarioForm
   ) => {
     setSelectedMantenimientoSanitario(mantenimientoSanitario);
-    setIsCreating(false); // Configurar todos los campos del formulario
+    setIsCreating(false);
     setValue("baño_id", mantenimientoSanitario.baño_id);
     setValue(
       "fecha_mantenimiento",
@@ -124,6 +169,7 @@ const MantenimientoSanitariosComponent = ({
     setValue("tecnico_responsable", mantenimientoSanitario.tecnico_responsable);
     setValue("costo", mantenimientoSanitario.costo);
   };
+
   const handleCreateClick = () => {
     reset({
       baño_id: 0,
@@ -140,14 +186,15 @@ const MantenimientoSanitariosComponent = ({
   const handleDeleteClick = async (id: number) => {
     try {
       await deleteSanitarioEnMantenimiento(id);
-      toast.success("Sanitario eliminado", {
-        description: "El sanitario se ha eliminado correctamente.",
+      toast.success("Mantenimiento eliminado", {
+        description:
+          "El registro de mantenimiento se ha eliminado correctamente.",
       });
       await fetchSanitariosMantenimiento();
     } catch (error) {
-      console.error("Error al eliminar el sanitario:", error);
+      console.error("Error al eliminar el mantenimiento:", error);
       toast.error("Error", {
-        description: "No se pudo eliminar el sanitario.",
+        description: "No se pudo eliminar el registro de mantenimiento.",
       });
     }
   };
@@ -177,13 +224,13 @@ const MantenimientoSanitariosComponent = ({
           selectedMantenimientoSanitario.mantenimiento_id!,
           data
         );
-        toast.success("Sanitario actualizado", {
+        toast.success("Mantenimiento actualizado", {
           description: "Los cambios se han guardado correctamente.",
         });
       } else {
         await createSanitarioEnMantenimiento(data);
-        toast.success("Sanitario creado", {
-          description: "El sanitario se ha agregado correctamente.",
+        toast.success("Mantenimiento creado", {
+          description: "El mantenimiento se ha registrado correctamente.",
         });
       }
 
@@ -194,8 +241,8 @@ const MantenimientoSanitariosComponent = ({
       console.error("Error en el envío del formulario:", error);
       toast.error("Error", {
         description: selectedMantenimientoSanitario
-          ? "No se pudo actualizar el sanitario."
-          : "No se pudo crear el sanitario.",
+          ? "No se pudo actualizar el mantenimiento."
+          : "No se pudo crear el mantenimiento.",
       });
     }
   };
@@ -215,7 +262,7 @@ const MantenimientoSanitariosComponent = ({
       setTotal(fetchedSanitariosMantenimiento.total);
       setPage(fetchedSanitariosMantenimiento.page);
     } catch (error) {
-      console.error("Error al cargar los clientes:", error);
+      console.error("Error al cargar los mantenimientos:", error);
     } finally {
       setLoading(false);
     }
@@ -247,140 +294,211 @@ const MantenimientoSanitariosComponent = ({
   }
 
   return (
-    <>
-      <ListadoTabla
-        title="Listado de Sanitarios en Mantenimiento"
-        data={mantenimientoSanitarios}
-        itemsPerPage={itemsPerPage}
-        searchableKeys={[
-          "tipo_mantenimiento",
-          "tecnico_responsable",
-          "baño_id",
-        ]}
-        remotePagination
-        totalItems={total}
-        currentPage={page}
-        onPageChange={handlePageChange}
-        onSearchChange={handleSearchChange}
-        columns={[
-          { title: "Mantenimiento ID", key: "mantenimiento_id" },
-          { title: "Código interno", key: "codigo_interno" },
-          { title: "Estado", key: "estado" },
-          { title: "Fecha de mantenimiento", key: "fecha_mantenimiento" },
-          { title: "Tipo de mantenimiento", key: "tipo_mantenimiento" },
-          { title: "Descripción", key: "descripcion" },
-          { title: "Tecnico responsable", key: "tecnico_responsable" },
-          { title: "Costo", key: "costo" },
-          { title: "Completado", key: "completado" },
-          { title: "Fecha completado", key: "fechaCompletado" },
-        ]}
-        renderRow={(mantenimientoSanitario) => (
-          <>
-            <TableCell className="font-medium">
-              {mantenimientoSanitario.mantenimiento_id}
-            </TableCell>{" "}
-            <TableCell>
-              {mantenimientoSanitario.toilet?.codigo_interno || "No disponible"}
-            </TableCell>
-            <TableCell>
-              <Badge variant="outline">
-                {mantenimientoSanitario.toilet?.estado || "No disponible"}
-              </Badge>
-            </TableCell>
-            <TableCell>
-              {mantenimientoSanitario.fecha_mantenimiento &&
-                new Date(
-                  mantenimientoSanitario.fecha_mantenimiento
-                ).toLocaleDateString("es-AR")}
-            </TableCell>
-            <TableCell>
-              <Badge
-                variant={
-                  mantenimientoSanitario.tipo_mantenimiento === "Preventivo"
-                    ? "default"
-                    : "outline"
-                }
-              >
-                {mantenimientoSanitario.tipo_mantenimiento}
-              </Badge>
-            </TableCell>
-            <TableCell>{mantenimientoSanitario.descripcion}</TableCell>
-            <TableCell>{mantenimientoSanitario.tecnico_responsable}</TableCell>
-            <TableCell>{mantenimientoSanitario.costo}</TableCell>{" "}
-            <TableCell>
-              <Badge
-                variant={
-                  mantenimientoSanitario.completado
-                    ? "default"
-                    : mantenimientoSanitario.fecha_mantenimiento &&
-                      new Date(mantenimientoSanitario.fecha_mantenimiento) <
-                        new Date()
-                    ? "destructive"
-                    : "secondary"
-                }
-              >
-                {mantenimientoSanitario.completado
-                  ? "Completado"
-                  : mantenimientoSanitario.fecha_mantenimiento &&
-                    new Date(mantenimientoSanitario.fecha_mantenimiento) <
-                      new Date()
-                  ? "En proceso"
-                  : "Pendiente"}
-              </Badge>
-            </TableCell>
-            <TableCell>
-              {mantenimientoSanitario.fechaCompletado &&
-                new Date(
-                  mantenimientoSanitario.fechaCompletado
-                ).toLocaleDateString("es-AR")}
-            </TableCell>
-            <TableCell className="flex gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => handleEditClick(mantenimientoSanitario)}
-                className="cursor-pointer"
-              >
-                Editar
-              </Button>
-              <Button
-                variant="destructive"
-                size="sm"
-                onClick={() =>
-                  mantenimientoSanitario.mantenimiento_id &&
-                  handleDeleteClick(mantenimientoSanitario.mantenimiento_id)
-                }
-                className="cursor-pointer"
-              >
-                Eliminar
-              </Button>{" "}
-              <Button
-                variant="default"
-                size="sm"
-                onClick={() => {
-                  if (mantenimientoSanitario.mantenimiento_id) {
-                    setMantenimientoToComplete(
-                      mantenimientoSanitario.mantenimiento_id
-                    );
-                    setConfirmDialogOpen(true);
-                  }
-                }}
-                disabled={mantenimientoSanitario.completado}
-                className={`cursor-pointer ${
-                  mantenimientoSanitario.completado ? "opacity-50" : ""
-                }`}
-              >
-                Completar
-              </Button>
-            </TableCell>
-          </>
-        )}
-        addButton={
-          <Button onClick={handleCreateClick} className="cursor-pointer">
-            Agregar Mantenimiento para Sanitario
+    <Card className="w-full shadow-md">
+      <CardHeader className="bg-slate-50 dark:bg-slate-900 border-b">
+        <div className="flex items-center justify-between">
+          <div>
+            <CardTitle className="text-2xl font-bold">
+              Gestión de Mantenimientos
+            </CardTitle>
+            <CardDescription className="text-muted-foreground mt-1">
+              Administra los mantenimientos de sanitarios de la empresa
+            </CardDescription>
+          </div>
+          <Button
+            onClick={handleCreateClick}
+            className="cursor-pointer bg-indigo-600 hover:bg-indigo-700"
+          >
+            <PlusCircle className="mr-2 h-4 w-4" />
+            Nuevo Mantenimiento
           </Button>
-        }
-      />{" "}
+        </div>
+
+        <div className="mt-4">
+          <Tabs
+            defaultValue="todos"
+            value={activeTab}
+            onValueChange={handleTabChange}
+          >
+            <TabsList className="grid grid-cols-4 w-[500px]">
+              <TabsTrigger value="todos" className="flex items-center">
+                <Toilet className="mr-2 h-4 w-4" />
+                Todos
+              </TabsTrigger>
+              <TabsTrigger value="pendiente" className="flex items-center">
+                <Calendar className="mr-2 h-4 w-4" />
+                Pendientes
+              </TabsTrigger>
+              <TabsTrigger value="proceso" className="flex items-center">
+                <RefreshCcw className="mr-2 h-4 w-4" />
+                En Proceso
+              </TabsTrigger>
+              <TabsTrigger value="completado" className="flex items-center">
+                <CheckCircle className="mr-2 h-4 w-4" />
+                Completados
+              </TabsTrigger>
+            </TabsList>
+          </Tabs>
+        </div>
+      </CardHeader>
+
+      <CardContent className="p-6">
+        <div className="rounded-md border">
+          <ListadoTabla
+            title=""
+            data={filteredMantenimientos}
+            itemsPerPage={itemsPerPage}
+            searchableKeys={[
+              "tipo_mantenimiento",
+              "tecnico_responsable",
+              "descripcion",
+            ]}
+            remotePagination
+            totalItems={total}
+            currentPage={page}
+            onPageChange={handlePageChange}
+            onSearchChange={handleSearchChange}
+            columns={[
+              { title: "Sanitario", key: "codigo_interno" },
+              { title: "Fecha", key: "fecha_mantenimiento" },
+              { title: "Tipo", key: "tipo_mantenimiento" },
+              { title: "Descripción", key: "descripcion" },
+              { title: "Técnico", key: "tecnico_responsable" },
+              { title: "Estado", key: "estado" },
+              { title: "Acciones", key: "acciones" },
+            ]}
+            renderRow={(mantenimientoSanitario) => (
+              <>
+                <TableCell className="min-w-[220px]">
+                  <div className="flex items-center gap-3">
+                    <div className="h-10 w-10 rounded-full bg-slate-100 flex items-center justify-center">
+                      <Toilet className="h-5 w-5 text-slate-600" />
+                    </div>
+                    <div>
+                      <div className="font-medium">
+                        {mantenimientoSanitario.toilet?.codigo_interno ||
+                          "No disponible"}
+                      </div>
+                      <div className="text-sm text-muted-foreground">
+                        {mantenimientoSanitario.toilet?.modelo ||
+                          "Modelo no disponible"}
+                      </div>
+                    </div>
+                  </div>
+                </TableCell>
+
+                <TableCell className="min-w-[120px]">
+                  {mantenimientoSanitario.fecha_mantenimiento &&
+                    new Date(
+                      mantenimientoSanitario.fecha_mantenimiento
+                    ).toLocaleDateString("es-AR")}
+                </TableCell>
+
+                <TableCell>
+                  <Badge
+                    variant={
+                      mantenimientoSanitario.tipo_mantenimiento === "Preventivo"
+                        ? "default"
+                        : "outline"
+                    }
+                    className={
+                      mantenimientoSanitario.tipo_mantenimiento === "Preventivo"
+                        ? "bg-blue-100 text-blue-800 hover:bg-blue-100"
+                        : "bg-amber-100 text-amber-800 hover:bg-amber-100"
+                    }
+                  >
+                    {mantenimientoSanitario.tipo_mantenimiento}
+                  </Badge>
+                </TableCell>
+
+                <TableCell className="max-w-[200px] truncate">
+                  {mantenimientoSanitario.descripcion}
+                </TableCell>
+
+                <TableCell>
+                  {mantenimientoSanitario.tecnico_responsable}
+                </TableCell>
+
+                <TableCell>
+                  <Badge
+                    variant={
+                      mantenimientoSanitario.completado
+                        ? "default"
+                        : mantenimientoSanitario.fecha_mantenimiento &&
+                          new Date(mantenimientoSanitario.fecha_mantenimiento) <
+                            new Date()
+                        ? "destructive"
+                        : "secondary"
+                    }
+                    className={
+                      mantenimientoSanitario.completado
+                        ? "bg-green-100 text-green-800 hover:bg-green-100"
+                        : mantenimientoSanitario.fecha_mantenimiento &&
+                          new Date(mantenimientoSanitario.fecha_mantenimiento) <
+                            new Date()
+                        ? "bg-red-100 text-red-800 hover:bg-red-100"
+                        : "bg-gray-100 text-gray-800 hover:bg-gray-100"
+                    }
+                  >
+                    {mantenimientoSanitario.completado
+                      ? "Completado"
+                      : mantenimientoSanitario.fecha_mantenimiento &&
+                        new Date(mantenimientoSanitario.fecha_mantenimiento) <
+                          new Date()
+                      ? "En proceso"
+                      : "Pendiente"}
+                  </Badge>
+                </TableCell>
+
+                <TableCell className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleEditClick(mantenimientoSanitario)}
+                    className="cursor-pointer border-slate-200 hover:bg-slate-50 hover:text-slate-900"
+                  >
+                    <Edit2 className="h-3.5 w-3.5 mr-1" />
+                    Editar
+                  </Button>
+
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    onClick={() =>
+                      mantenimientoSanitario.mantenimiento_id &&
+                      handleDeleteClick(mantenimientoSanitario.mantenimiento_id)
+                    }
+                    className="cursor-pointer bg-red-100 text-red-700 hover:bg-red-200 hover:text-red-800"
+                  >
+                    <Trash2 className="h-3.5 w-3.5 mr-1" />
+                    Eliminar
+                  </Button>
+
+                  {!mantenimientoSanitario.completado && (
+                    <Button
+                      variant="default"
+                      size="sm"
+                      onClick={() => {
+                        if (mantenimientoSanitario.mantenimiento_id) {
+                          setMantenimientoToComplete(
+                            mantenimientoSanitario.mantenimiento_id
+                          );
+                          setConfirmDialogOpen(true);
+                        }
+                      }}
+                      className="cursor-pointer bg-green-100 text-green-700 hover:bg-green-200 hover:text-green-800"
+                    >
+                      <CheckCircle className="h-3.5 w-3.5 mr-1" />
+                      Completar
+                    </Button>
+                  )}
+                </TableCell>
+              </>
+            )}
+          />
+        </div>
+      </CardContent>
+
       <FormDialog
         open={isCreating || selectedMantenimientoSanitario !== null}
         onOpenChange={(open) => {
@@ -394,9 +512,14 @@ const MantenimientoSanitariosComponent = ({
             ? "Editar Mantenimiento"
             : "Crear Mantenimiento"
         }
+        description={
+          selectedMantenimientoSanitario
+            ? "Modificar información del mantenimiento de sanitario en el sistema."
+            : "Completa el formulario para registrar un nuevo mantenimiento."
+        }
         onSubmit={handleSubmit(onSubmit)}
       >
-        <>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
           <Controller
             name="baño_id"
             control={control}
@@ -453,34 +576,6 @@ const MantenimientoSanitariosComponent = ({
           />
 
           <Controller
-            name="descripcion"
-            control={control}
-            render={({ field, fieldState }) => (
-              <FormField
-                label="Descripción"
-                name="descripcion"
-                value={field.value}
-                onChange={field.onChange}
-                error={fieldState.error?.message}
-              />
-            )}
-          />
-
-          <Controller
-            name="tecnico_responsable"
-            control={control}
-            render={({ field, fieldState }) => (
-              <FormField
-                label="Técnico responsable"
-                name="tecnico_responsable"
-                value={field.value}
-                onChange={field.onChange}
-                error={fieldState.error?.message}
-              />
-            )}
-          />
-
-          <Controller
             name="costo"
             control={control}
             render={({ field, fieldState }) => (
@@ -494,8 +589,44 @@ const MantenimientoSanitariosComponent = ({
               />
             )}
           />
-        </>
+
+          <div className="md:col-span-2">
+            <Controller
+              name="tecnico_responsable"
+              control={control}
+              render={({ field, fieldState }) => (
+                <FormField
+                  label="Técnico responsable"
+                  name="tecnico_responsable"
+                  value={field.value}
+                  onChange={field.onChange}
+                  error={fieldState.error?.message}
+                  placeholder="Nombre del técnico"
+                />
+              )}
+            />
+          </div>
+
+          <div className="md:col-span-2">
+            <Controller
+              name="descripcion"
+              control={control}
+              render={({ field, fieldState }) => (
+                <FormField
+                  label="Descripción"
+                  name="descripcion"
+                  fieldType="textarea"
+                  value={field.value}
+                  onChange={field.onChange}
+                  error={fieldState.error?.message}
+                  placeholder="Detalle el mantenimiento a realizar"
+                />
+              )}
+            />
+          </div>
+        </div>
       </FormDialog>
+
       <FormDialog
         open={confirmDialogOpen}
         submitButtonText="Confirmar"
@@ -523,7 +654,7 @@ const MantenimientoSanitariosComponent = ({
           </p>
         </div>
       </FormDialog>
-    </>
+    </Card>
   );
 };
 

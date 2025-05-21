@@ -5,7 +5,6 @@ import {
   deleteVehicle,
   editVehicle,
   getVehicles,
-  changeVehicleStatus,
 } from "@/app/actions/vehiculos";
 import { CreateVehiculo, UpdateVehiculo, Vehiculo } from "@/types/types";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -21,6 +20,28 @@ import { Badge } from "../ui/badge";
 import { Button } from "../ui/button";
 import { FormDialog } from "../ui/local/FormDialog";
 import { FormField } from "../ui/local/FormField";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Truck,
+  Search,
+  RefreshCcw,
+  PlusCircle,
+  Edit2,
+  Trash2,
+  CheckCircle,
+  PauseCircle,
+  BadgeInfo,
+  Calendar,
+  Tag,
+  Package,
+} from "lucide-react";
 
 const ListadoVehiculosComponent = ({
   data,
@@ -36,7 +57,10 @@ const ListadoVehiculosComponent = ({
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  const [vehiculos, setVehiculos] = useState<Vehiculo[]>(data);
+  // Asegurarnos de que data siempre sea un array
+  const safeData = Array.isArray(data) ? data : [];
+
+  const [vehiculos, setVehiculos] = useState<Vehiculo[]>(safeData);
   const [total, setTotal] = useState<number>(totalItems);
   const [page, setPage] = useState<number>(currentPage);
   const [loading, setLoading] = useState<boolean>(false);
@@ -44,6 +68,8 @@ const ListadoVehiculosComponent = ({
     null
   );
   const [isCreating, setIsCreating] = useState(false);
+  const [activeTab, setActiveTab] = useState("todos");
+  const [isFirstLoad, setIsFirstLoad] = useState(true);
 
   const vehiculoSchema = z.object({
     placa: z.string().min(1, "La placa es obligatoria"),
@@ -137,6 +163,20 @@ const ListadoVehiculosComponent = ({
     }
   };
 
+  const handleChangeStatus = async (id: number, estado: string) => {
+    try {
+      // Asumiendo que existe una función para cambiar el estado (crearla si es necesario)
+      await editVehicle(id.toString(), { estado } as UpdateVehiculo);
+      toast.success("Estado actualizado", {
+        description: `El vehículo ahora está ${estado}.`,
+      });
+      await fetchVehiculos();
+    } catch (error) {
+      console.error("Error al cambiar el estado:", error);
+      toast.error("Error", { description: "No se pudo cambiar el estado." });
+    }
+  };
+
   const onSubmit = async (data: z.infer<typeof vehiculoSchema>) => {
     try {
       if (selectedVehiculo && selectedVehiculo.id) {
@@ -185,9 +225,23 @@ const ListadoVehiculosComponent = ({
     }
   }, [searchParams, itemsPerPage]);
 
+  const handleTabChange = (value: string) => {
+    setActiveTab(value);
+    // Implementar filtrado por estado al cambiar de pestaña
+  };
+
+  const filteredVehiculos =
+    activeTab === "todos"
+      ? vehiculos
+      : vehiculos.filter((veh) => veh.estado === activeTab.toUpperCase());
+
   useEffect(() => {
-    fetchVehiculos();
-  }, [fetchVehiculos]);
+    if (isFirstLoad) {
+      setIsFirstLoad(false);
+    } else {
+      fetchVehiculos();
+    }
+  }, [fetchVehiculos, isFirstLoad]);
 
   if (loading) {
     return (
@@ -197,78 +251,193 @@ const ListadoVehiculosComponent = ({
     );
   }
 
-  const getStatusBadgeVariant = (status: string) => {
-    const variants: Record<
-      string,
-      "default" | "outline" | "secondary" | "destructive"
-    > = {
-      DISPONIBLE: "default",
-      ASIGNADO: "secondary",
-      MANTENIMIENTO: "outline",
-      INACTIVO: "outline",
-      BAJA: "destructive",
-    };
-    return variants[status] || "outline";
-  };
-
   return (
-    <>
-      <ListadoTabla
-        title="Listado de Vehículos"
-        data={vehiculos}
-        itemsPerPage={itemsPerPage}
-        searchableKeys={["placa", "marca", "modelo"]}
-        remotePagination
-        totalItems={total}
-        currentPage={page}
-        onPageChange={handlePageChange}
-        onSearchChange={handleSearchChange}
-        columns={[
-          { title: "Placa", key: "placa" },
-          { title: "Marca", key: "marca" },
-          { title: "Modelo", key: "modelo" },
-          { title: "Año", key: "anio" },
-          { title: "Capacidad de Carga", key: "capacidadCarga" },
-          { title: "Estado", key: "estado" },
-        ]}
-        renderRow={(vehiculo) => (
-          <>
-            <TableCell className="font-medium">{vehiculo.placa}</TableCell>
-            <TableCell>{vehiculo.marca}</TableCell>
-            <TableCell>{vehiculo.modelo}</TableCell>
-            <TableCell>{vehiculo.anio}</TableCell>
-            <TableCell>{vehiculo.capacidadCarga} kg</TableCell>
-            <TableCell>
-              <Badge variant={getStatusBadgeVariant(vehiculo.estado)}>
-                {vehiculo.estado}
-              </Badge>
-            </TableCell>
-            <TableCell className="flex gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => handleEditClick(vehiculo)}
-                className="cursor-pointer"
-              >
-                Editar
-              </Button>
-              <Button
-                variant="destructive"
-                size="sm"
-                onClick={() => vehiculo.id && handleDeleteClick(vehiculo.id)}
-                className="cursor-pointer"
-              >
-                Eliminar
-              </Button>
-            </TableCell>
-          </>
-        )}
-        addButton={
-          <Button onClick={handleCreateClick} className="cursor-pointer">
-            Agregar Vehículo
+    <Card className="w-full shadow-md">
+      <CardHeader className="bg-slate-50 dark:bg-slate-900 border-b">
+        <div className="flex items-center justify-between">
+          <div>
+            <CardTitle className="text-2xl font-bold">
+              Gestión de Vehículos
+            </CardTitle>
+            <CardDescription className="text-muted-foreground mt-1">
+              Administra la información de los vehículos de la empresa
+            </CardDescription>
+          </div>
+          <Button
+            onClick={handleCreateClick}
+            className="cursor-pointer bg-indigo-600 hover:bg-indigo-700"
+          >
+            <PlusCircle className="mr-2 h-4 w-4" />
+            Nuevo Vehículo
           </Button>
-        }
-      />
+        </div>
+
+        <div className="mt-4">
+          <Tabs
+            defaultValue="todos"
+            value={activeTab}
+            onValueChange={handleTabChange}
+          >
+            <TabsList className="grid grid-cols-5 w-[600px]">
+              <TabsTrigger value="todos" className="flex items-center">
+                <Truck className="mr-2 h-4 w-4" />
+                Todos
+              </TabsTrigger>
+              <TabsTrigger value="disponible" className="flex items-center">
+                <CheckCircle className="mr-2 h-4 w-4" />
+                Disponibles
+              </TabsTrigger>
+              <TabsTrigger value="asignado" className="flex items-center">
+                <BadgeInfo className="mr-2 h-4 w-4" />
+                Asignados
+              </TabsTrigger>
+              <TabsTrigger value="mantenimiento" className="flex items-center">
+                <PauseCircle className="mr-2 h-4 w-4" />
+                Mantenimiento
+              </TabsTrigger>
+              <TabsTrigger value="baja" className="flex items-center">
+                <Trash2 className="mr-2 h-4 w-4" />
+                Baja
+              </TabsTrigger>
+            </TabsList>
+          </Tabs>
+        </div>
+      </CardHeader>
+
+      <CardContent className="p-6">
+        <div className="rounded-md border">
+          <ListadoTabla
+            title=""
+            data={filteredVehiculos}
+            itemsPerPage={itemsPerPage}
+            searchableKeys={["placa", "marca", "modelo"]}
+            remotePagination
+            totalItems={total}
+            currentPage={page}
+            onPageChange={handlePageChange}
+            onSearchChange={handleSearchChange}
+            columns={[
+              { title: "Vehículo", key: "vehiculo" },
+              { title: "Información", key: "informacion" },
+              { title: "Estado", key: "estado" },
+              { title: "Acciones", key: "acciones" },
+            ]}
+            renderRow={(vehiculo) => (
+              <>
+                <TableCell className="min-w-[250px]">
+                  <div className="flex items-center gap-3">
+                    <div className="h-10 w-10 rounded-full bg-slate-100 flex items-center justify-center">
+                      <Truck className="h-5 w-5 text-slate-600" />
+                    </div>
+                    <div>
+                      <div className="font-medium">{`${vehiculo.marca} ${vehiculo.modelo}`}</div>
+                      <div className="text-sm text-muted-foreground flex items-center">
+                        <Tag className="h-3.5 w-3.5 mr-1" />
+                        {vehiculo.placa}
+                      </div>
+                    </div>
+                  </div>
+                </TableCell>
+
+                <TableCell className="min-w-[220px]">
+                  <div className="space-y-1">
+                    <div className="flex items-center text-sm">
+                      <Calendar className="h-3.5 w-3.5 mr-2 text-muted-foreground" />
+                      <span>Año: {vehiculo.anio}</span>
+                    </div>
+                    <div className="flex items-center text-sm">
+                      <Package className="h-3.5 w-3.5 mr-2 text-muted-foreground" />
+                      <span>Capacidad: {vehiculo.capacidadCarga} kg</span>
+                    </div>
+                  </div>
+                </TableCell>
+
+                <TableCell>
+                  <Badge
+                    variant={
+                      vehiculo.estado === "DISPONIBLE"
+                        ? "default"
+                        : vehiculo.estado === "BAJA"
+                        ? "destructive"
+                        : "outline"
+                    }
+                    className={
+                      vehiculo.estado === "DISPONIBLE"
+                        ? "bg-green-100 text-green-800 hover:bg-green-100"
+                        : vehiculo.estado === "ASIGNADO"
+                        ? "bg-blue-100 text-blue-800 hover:bg-blue-100"
+                        : vehiculo.estado === "MANTENIMIENTO"
+                        ? "bg-yellow-100 text-yellow-800 hover:bg-yellow-100"
+                        : vehiculo.estado === "BAJA"
+                        ? "bg-red-100 text-red-800 hover:bg-red-100"
+                        : "bg-gray-100 text-gray-800 hover:bg-gray-100"
+                    }
+                  >
+                    {vehiculo.estado}
+                  </Badge>
+                </TableCell>
+
+                <TableCell className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleEditClick(vehiculo)}
+                    className="cursor-pointer border-slate-200 hover:bg-slate-50 hover:text-slate-900"
+                  >
+                    <Edit2 className="h-3.5 w-3.5 mr-1" />
+                    Editar
+                  </Button>
+
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    onClick={() =>
+                      vehiculo.id && handleDeleteClick(vehiculo.id)
+                    }
+                    className="cursor-pointer bg-red-100 text-red-700 hover:bg-red-200 hover:text-red-800"
+                  >
+                    <Trash2 className="h-3.5 w-3.5 mr-1" />
+                    Eliminar
+                  </Button>
+
+                  <div className="ml-1">
+                    {vehiculo.estado !== "DISPONIBLE" && (
+                      <Button
+                        variant="default"
+                        size="sm"
+                        onClick={() =>
+                          vehiculo.id &&
+                          handleChangeStatus(vehiculo.id, "DISPONIBLE")
+                        }
+                        className="cursor-pointer bg-green-100 text-green-700 hover:bg-green-200 hover:text-green-800"
+                      >
+                        <CheckCircle className="h-3.5 w-3.5 mr-1" />
+                        Disponible
+                      </Button>
+                    )}
+
+                    {vehiculo.estado !== "MANTENIMIENTO" && (
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        onClick={() =>
+                          vehiculo.id &&
+                          handleChangeStatus(vehiculo.id, "MANTENIMIENTO")
+                        }
+                        className="cursor-pointer"
+                      >
+                        <PauseCircle className="h-3.5 w-3.5 mr-1" />
+                        Mantenimiento
+                      </Button>
+                    )}
+                  </div>
+                </TableCell>
+              </>
+            )}
+          />
+        </div>
+      </CardContent>
+
       <FormDialog
         open={isCreating || selectedVehiculo !== null}
         onOpenChange={(open) => {
@@ -278,31 +447,58 @@ const ListadoVehiculosComponent = ({
           }
         }}
         title={selectedVehiculo ? "Editar Vehículo" : "Crear Vehículo"}
+        description={
+          selectedVehiculo
+            ? "Modificar información del vehículo en el sistema."
+            : "Completa el formulario para registrar un nuevo vehículo."
+        }
         onSubmit={handleSubmit(onSubmit)}
       >
-        <>
-          {(
-            [
-              ["placa", "Placa"],
-              ["marca", "Marca"],
-              ["modelo", "Modelo"],
-            ] as const
-          ).map(([name, label]) => (
-            <Controller
-              key={name}
-              name={name}
-              control={control}
-              render={({ field, fieldState }) => (
-                <FormField
-                  label={label}
-                  name={name}
-                  value={field.value}
-                  onChange={field.onChange}
-                  error={fieldState.error?.message}
-                />
-              )}
-            />
-          ))}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
+          <Controller
+            name="placa"
+            control={control}
+            render={({ field, fieldState }) => (
+              <FormField
+                label="Placa"
+                name="placa"
+                value={field.value?.toString() || ""}
+                onChange={field.onChange}
+                error={fieldState.error?.message}
+                placeholder="Ingrese la placa"
+              />
+            )}
+          />
+
+          <Controller
+            name="marca"
+            control={control}
+            render={({ field, fieldState }) => (
+              <FormField
+                label="Marca"
+                name="marca"
+                value={field.value?.toString() || ""}
+                onChange={field.onChange}
+                error={fieldState.error?.message}
+                placeholder="Ingrese la marca"
+              />
+            )}
+          />
+
+          <Controller
+            name="modelo"
+            control={control}
+            render={({ field, fieldState }) => (
+              <FormField
+                label="Modelo"
+                name="modelo"
+                value={field.value?.toString() || ""}
+                onChange={field.onChange}
+                error={fieldState.error?.message}
+                placeholder="Ingrese el modelo"
+              />
+            )}
+          />
 
           <Controller
             name="anio"
@@ -315,6 +511,7 @@ const ListadoVehiculosComponent = ({
                 value={field.value?.toString() || ""}
                 onChange={(value) => field.onChange(Number(value))}
                 error={fieldState.error?.message}
+                placeholder="Ej: 2023"
               />
             )}
           />
@@ -330,6 +527,7 @@ const ListadoVehiculosComponent = ({
                 value={field.value?.toString() || ""}
                 onChange={(value) => field.onChange(Number(value))}
                 error={fieldState.error?.message}
+                placeholder="Ej: 1000"
               />
             )}
           />
@@ -347,19 +545,19 @@ const ListadoVehiculosComponent = ({
                   field.onChange(selectedValue)
                 }
                 options={[
-                  { label: "DISPONIBLE", value: "DISPONIBLE" },
-                  { label: "ASIGNADO", value: "ASIGNADO" },
-                  { label: "MANTENIMIENTO", value: "MANTENIMIENTO" },
-                  { label: "INACTIVO", value: "INACTIVO" },
-                  { label: "BAJA", value: "BAJA" },
+                  { label: "Disponible", value: "DISPONIBLE" },
+                  { label: "Asignado", value: "ASIGNADO" },
+                  { label: "Mantenimiento", value: "MANTENIMIENTO" },
+                  { label: "Inactivo", value: "INACTIVO" },
+                  { label: "Baja", value: "BAJA" },
                 ]}
                 error={fieldState.error?.message}
               />
             )}
           />
-        </>
+        </div>
       </FormDialog>
-    </>
+    </Card>
   );
 };
 

@@ -21,6 +21,29 @@ import Loader from "../ui/local/Loader";
 import { z } from "zod";
 import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import {
+  UserRound,
+  Search,
+  RefreshCcw,
+  UserPlus,
+  Edit2,
+  Trash2,
+  CheckCircle,
+  PauseCircle,
+  BadgeInfo,
+  Mail,
+  Phone,
+  Briefcase,
+  Calendar,
+} from "lucide-react";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export default function ListadoEmpleadosComponent({
   data,
@@ -47,9 +70,10 @@ export default function ListadoEmpleadosComponent({
     null
   );
   const [isCreating, setIsCreating] = useState(false);
-
+  const [activeTab, setActiveTab] = useState("todos");
   const [isFirstLoad, setIsFirstLoad] = useState(true);
 
+  // Schema y lógica de formulario existente
   const createEmployeeSchema = z.object({
     nombre: z.string().min(1, "El nombre es obligatorio"),
     apellido: z.string().min(1, "El apellido es obligatorio"),
@@ -72,9 +96,21 @@ export default function ListadoEmpleadosComponent({
         "Formato de email inválido, ejemplo: empleado@empresa.com"
       ),
     cargo: z.string().min(1, "El puesto es obligatorio"),
-    estado: z.enum(["ACTIVO", "INACTIVO", "SUSPENDIDO"], {
+    estado: z.enum(["ACTIVO", "DISPONIBLE", "SUSPENDIDO"], {
       errorMap: () => ({ message: "El estado es obligatorio" }),
     }),
+    numero_legajo: z.coerce.number({
+      required_error: "El número de legajo es obligatorio",
+      invalid_type_error: "El número de legajo debe ser numérico",
+    }),
+    cuil: z
+      .string()
+      .min(11, "El CUIL debe tener entre 11 y 20 caracteres")
+      .max(20, "El CUIL debe tener entre 11 y 20 caracteres"),
+    cbu: z
+      .string()
+      .min(11, "El CBU debe tener entre 11 y 20 caracteres")
+      .max(20, "El CBU debe tener entre 11 y 20 caracteres"),
   });
 
   const form = useForm<z.infer<typeof createEmployeeSchema>>({
@@ -89,11 +125,15 @@ export default function ListadoEmpleadosComponent({
       email: "",
       cargo: "",
       estado: "ACTIVO",
+      numero_legajo: undefined,
+      cuil: "",
+      cbu: "",
     },
   });
 
   const { handleSubmit, setValue, control, reset } = form;
 
+  // Funciones existentes
   const handlePageChange = (page: number) => {
     const params = new URLSearchParams(searchParams.toString());
     params.set("page", String(page));
@@ -121,6 +161,9 @@ export default function ListadoEmpleadosComponent({
       "email",
       "cargo",
       "estado",
+      "numero_legajo",
+      "cuil",
+      "cbu",
     ];
 
     camposFormulario.forEach((key) => {
@@ -146,6 +189,9 @@ export default function ListadoEmpleadosComponent({
       email: "",
       cargo: "",
       estado: "ACTIVO",
+      numero_legajo: undefined,
+      cuil: "",
+      cbu: "",
     });
     setSelectedEmployee(null);
     setIsCreating(true);
@@ -245,6 +291,16 @@ export default function ListadoEmpleadosComponent({
     }
   }, [searchParams, itemsPerPage]);
 
+  const handleTabChange = (value: string) => {
+    setActiveTab(value);
+    // Aquí podrías implementar filtrado por estado al cambiar de pestaña
+  };
+
+  const filteredEmployees =
+    activeTab === "todos"
+      ? employees
+      : employees.filter((emp) => emp.estado === activeTab.toUpperCase());
+
   useEffect(() => {
     if (isFirstLoad) {
       setIsFirstLoad(false);
@@ -262,105 +318,201 @@ export default function ListadoEmpleadosComponent({
   }
 
   return (
-    <>
-      <ListadoTabla
-        title="Listado de Empleados"
-        data={Array.isArray(employees) ? employees : []}
-        itemsPerPage={itemsPerPage}
-        searchableKeys={["nombre", "apellido", "documento", "email"]}
-        remotePagination
-        totalItems={total}
-        currentPage={page}
-        onPageChange={handlePageChange}
-        onSearchChange={handleSearchChange}
-        columns={[
-          { title: "Nombre", key: "nombre" },
-          { title: "Apellido", key: "apellido" },
-          { title: "Documento", key: "documento" },
-          { title: "Teléfono", key: "telefono" },
-          { title: "Email", key: "email" },
-          { title: "Puesto", key: "puesto" },
-          { title: "Registro", key: "fecha_registro" },
-          { title: "Estado", key: "estado" },
-          { title: "Acciones", key: "acciones" },
-        ]}
-        renderRow={(empleado) => (
-          <>
-            <TableCell className="font-medium">{empleado.nombre}</TableCell>
-            <TableCell>{empleado.apellido}</TableCell>
-            <TableCell>{`DNI: ${empleado.documento}`}</TableCell>
-            <TableCell>{empleado.telefono}</TableCell>
-            <TableCell>{empleado.email}</TableCell>
-            <TableCell>{empleado.cargo}</TableCell>
-            <TableCell>
-              {empleado.fecha_contratacion &&
-                new Date(empleado.fecha_contratacion).toLocaleDateString(
-                  "es-AR"
-                )}
-            </TableCell>
-            <TableCell>
-              <Badge
-                variant={
-                  empleado.estado === "ACTIVO"
-                    ? "default"
-                    : empleado.estado === "SUSPENDIDO"
-                    ? "destructive"
-                    : "outline"
-                }
-              >
-                {empleado.estado}
-              </Badge>
-            </TableCell>
-            <TableCell className="flex gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => handleEditClick(empleado)}
-                className="cursor-pointer"
-              >
-                Editar
-              </Button>
-              <Button
-                variant="destructive"
-                size="sm"
-                onClick={() => empleado.id && handleDeleteClick(empleado.id)}
-                className="cursor-pointer"
-              >
-                Eliminar
-              </Button>
-              {empleado.estado !== "ACTIVO" && (
-                <Button
-                  variant="default"
-                  size="sm"
-                  onClick={() =>
-                    empleado.id && handleChangeStatus(empleado.id, "ACTIVO")
-                  }
-                  className="cursor-pointer"
-                >
-                  Activar
-                </Button>
-              )}
-              {empleado.estado !== "SUSPENDIDO" && (
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  onClick={() =>
-                    empleado.id && handleChangeStatus(empleado.id, "SUSPENDIDO")
-                  }
-                  className="cursor-pointer"
-                >
-                  Suspender
-                </Button>
-              )}
-            </TableCell>
-          </>
-        )}
-        addButton={
-          <Button onClick={handleCreateClick} className="cursor-pointer">
-            Agregar empleado
+    <Card className="w-full shadow-md">
+      <CardHeader className="bg-slate-50 dark:bg-slate-900 border-b">
+        <div className="flex items-center justify-between">
+          <div>
+            <CardTitle className="text-2xl font-bold">
+              Gestión de Personal
+            </CardTitle>
+            <CardDescription className="text-muted-foreground mt-1">
+              Administra la información de empleados de la empresa
+            </CardDescription>
+          </div>
+          <Button
+            onClick={handleCreateClick}
+            className="cursor-pointer bg-indigo-600 hover:bg-indigo-700"
+          >
+            <UserPlus className="mr-2 h-4 w-4" />
+            Nuevo Empleado
           </Button>
-        }
-      />
+        </div>
+
+        <div className="mt-4">
+          <Tabs
+            defaultValue="todos"
+            value={activeTab}
+            onValueChange={handleTabChange}
+          >
+            <TabsList className="grid grid-cols-4 w-[500px]">
+              <TabsTrigger value="todos" className="flex items-center">
+                <UserRound className="mr-2 h-4 w-4" />
+                Todos
+              </TabsTrigger>
+              <TabsTrigger value="activo" className="flex items-center">
+                <CheckCircle className="mr-2 h-4 w-4" />
+                Activos
+              </TabsTrigger>
+              <TabsTrigger value="suspendido" className="flex items-center">
+                <PauseCircle className="mr-2 h-4 w-4" />
+                Suspendidos
+              </TabsTrigger>
+              <TabsTrigger value="disponible" className="flex items-center">
+                <BadgeInfo className="mr-2 h-4 w-4" />
+                Disponibles
+              </TabsTrigger>
+            </TabsList>
+          </Tabs>
+        </div>
+      </CardHeader>
+
+      <CardContent className="p-6">
+        <div className="rounded-md border">
+          <ListadoTabla
+            title=""
+            data={filteredEmployees}
+            itemsPerPage={itemsPerPage}
+            searchableKeys={["nombre", "apellido", "documento", "email"]}
+            remotePagination
+            totalItems={total}
+            currentPage={page}
+            onPageChange={handlePageChange}
+            onSearchChange={handleSearchChange}
+            columns={[
+              { title: "Empleado", key: "empleado" },
+              { title: "Contacto", key: "contacto" },
+              { title: "Información", key: "informacion" },
+              { title: "Estado", key: "estado" },
+              { title: "Acciones", key: "acciones" },
+            ]}
+            renderRow={(empleado) => (
+              <>
+                <TableCell className="min-w-[250px]">
+                  <div className="flex items-center gap-3">
+                    <div className="h-10 w-10 rounded-full bg-slate-100 flex items-center justify-center">
+                      <UserRound className="h-5 w-5 text-slate-600" />
+                    </div>
+                    <div>
+                      <div className="font-medium">{`${empleado.nombre} ${empleado.apellido}`}</div>
+                      <div className="text-sm text-muted-foreground">{`Legajo: ${
+                        empleado.numero_legajo || "N/A"
+                      }`}</div>
+                    </div>
+                  </div>
+                </TableCell>
+
+                <TableCell className="min-w-[220px]">
+                  <div className="space-y-1">
+                    <div className="flex items-center text-sm">
+                      <Mail className="h-3.5 w-3.5 mr-2 text-muted-foreground" />
+                      <span>{empleado.email}</span>
+                    </div>
+                    <div className="flex items-center text-sm">
+                      <Phone className="h-3.5 w-3.5 mr-2 text-muted-foreground" />
+                      <span>{empleado.telefono}</span>
+                    </div>
+                  </div>
+                </TableCell>
+
+                <TableCell className="min-w-[200px]">
+                  <div className="space-y-1">
+                    <div className="flex items-center text-sm">
+                      <Briefcase className="h-3.5 w-3.5 mr-2 text-muted-foreground" />
+                      <span>{empleado.cargo}</span>
+                    </div>
+                    <div className="flex items-center text-sm">
+                      <Calendar className="h-3.5 w-3.5 mr-2 text-muted-foreground" />
+                      <span>
+                        {empleado.fecha_contratacion &&
+                          new Date(
+                            empleado.fecha_contratacion
+                          ).toLocaleDateString("es-AR")}
+                      </span>
+                    </div>
+                  </div>
+                </TableCell>
+
+                <TableCell>
+                  <Badge
+                    variant={
+                      empleado.estado === "ACTIVO"
+                        ? "default"
+                        : empleado.estado === "SUSPENDIDO"
+                        ? "destructive"
+                        : "outline"
+                    }
+                    className={
+                      empleado.estado === "ACTIVO"
+                        ? "bg-green-100 text-green-800 hover:bg-green-100"
+                        : empleado.estado === "SUSPENDIDO"
+                        ? "bg-red-100 text-red-800 hover:bg-red-100"
+                        : "bg-gray-100 text-gray-800 hover:bg-gray-100"
+                    }
+                  >
+                    {empleado.estado}
+                  </Badge>
+                </TableCell>
+
+                <TableCell className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleEditClick(empleado)}
+                    className="cursor-pointer border-slate-200 hover:bg-slate-50 hover:text-slate-900"
+                  >
+                    <Edit2 className="h-3.5 w-3.5 mr-1" />
+                    Editar
+                  </Button>
+
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    onClick={() =>
+                      empleado.id && handleDeleteClick(empleado.id)
+                    }
+                    className="cursor-pointer bg-red-100 text-red-700 hover:bg-red-200 hover:text-red-800"
+                  >
+                    <Trash2 className="h-3.5 w-3.5 mr-1" />
+                    Eliminar
+                  </Button>
+
+                  <div className="ml-1">
+                    {empleado.estado !== "ACTIVO" && (
+                      <Button
+                        variant="default"
+                        size="sm"
+                        onClick={() =>
+                          empleado.id &&
+                          handleChangeStatus(empleado.id, "ACTIVO")
+                        }
+                        className="cursor-pointer bg-green-100 text-green-700 hover:bg-green-200 hover:text-green-800"
+                      >
+                        <CheckCircle className="h-3.5 w-3.5 mr-1" />
+                        Activar
+                      </Button>
+                    )}
+
+                    {empleado.estado !== "SUSPENDIDO" && (
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        onClick={() =>
+                          empleado.id &&
+                          handleChangeStatus(empleado.id, "SUSPENDIDO")
+                        }
+                        className="cursor-pointer"
+                      >
+                        <PauseCircle className="h-3.5 w-3.5 mr-1" />
+                        Suspender
+                      </Button>
+                    )}
+                  </div>
+                </TableCell>
+              </>
+            )}
+          />
+        </div>
+      </CardContent>
 
       <FormDialog
         open={isCreating || selectedEmployee !== null}
@@ -371,37 +523,180 @@ export default function ListadoEmpleadosComponent({
           }
         }}
         title={selectedEmployee ? "Editar Empleado" : "Crear Empleado"}
+        description={
+          selectedEmployee
+            ? "Modificar información del empleado en el sistema."
+            : "Completa el formulario para registrar un nuevo empleado."
+        }
         onSubmit={handleSubmit(onSubmit)}
+        // Remove className prop as it's not accepted by FormDialog
       >
-        <>
-          {(
-            [
-              ["nombre", "Nombre"],
-              ["apellido", "Apellido"],
-              ["documento", "Número de Documento"],
-              ["fecha_nacimiento", "Fecha de Nacimiento"],
-              ["direccion", "Dirección"],
-              ["telefono", "Teléfono"],
-              ["email", "Email"],
-              ["cargo", "Cargo"],
-            ] as const
-          ).map(([name, label]) => (
-            <Controller
-              key={name}
-              name={name}
-              control={control}
-              render={({ field, fieldState }) => (
-                <FormField
-                  label={label}
-                  name={name}
-                  value={field.value}
-                  onChange={field.onChange}
-                  error={fieldState.error?.message}
-                  type={name === "fecha_nacimiento" ? "date" : "text"}
-                />
-              )}
-            />
-          ))}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
+          <Controller
+            name="nombre"
+            control={control}
+            render={({ field, fieldState }) => (
+              <FormField
+                label="Nombre"
+                name="nombre"
+                value={field.value?.toString() || ""}
+                onChange={field.onChange}
+                error={fieldState.error?.message}
+                placeholder="Ingrese el nombre"
+              />
+            )}
+          />
+
+          <Controller
+            name="apellido"
+            control={control}
+            render={({ field, fieldState }) => (
+              <FormField
+                label="Apellido"
+                name="apellido"
+                value={field.value?.toString() || ""}
+                onChange={field.onChange}
+                error={fieldState.error?.message}
+                placeholder="Ingrese el apellido"
+              />
+            )}
+          />
+
+          <Controller
+            name="documento"
+            control={control}
+            render={({ field, fieldState }) => (
+              <FormField
+                label="Número de Documento"
+                name="documento"
+                value={field.value?.toString() || ""}
+                onChange={field.onChange}
+                error={fieldState.error?.message}
+                placeholder="Ej: 35789654"
+              />
+            )}
+          />
+
+          <Controller
+            name="fecha_nacimiento"
+            control={control}
+            render={({ field, fieldState }) => (
+              <FormField
+                label="Fecha de Nacimiento"
+                name="fecha_nacimiento"
+                value={field.value?.toString() || ""}
+                onChange={field.onChange}
+                error={fieldState.error?.message}
+                type="date"
+              />
+            )}
+          />
+
+          <Controller
+            name="direccion"
+            control={control}
+            render={({ field, fieldState }) => (
+              <FormField
+                label="Dirección"
+                name="direccion"
+                value={field.value?.toString() || ""}
+                onChange={field.onChange}
+                error={fieldState.error?.message}
+                placeholder="Dirección completa"
+              />
+            )}
+          />
+
+          <Controller
+            name="telefono"
+            control={control}
+            render={({ field, fieldState }) => (
+              <FormField
+                label="Teléfono"
+                name="telefono"
+                value={field.value?.toString() || ""}
+                onChange={field.onChange}
+                error={fieldState.error?.message}
+                placeholder="Ej: 123-4567-8901"
+              />
+            )}
+          />
+
+          <Controller
+            name="email"
+            control={control}
+            render={({ field, fieldState }) => (
+              <FormField
+                label="Email"
+                name="email"
+                value={field.value?.toString() || ""}
+                onChange={field.onChange}
+                error={fieldState.error?.message}
+                placeholder="correo@ejemplo.com"
+              />
+            )}
+          />
+
+          <Controller
+            name="cargo"
+            control={control}
+            render={({ field, fieldState }) => (
+              <FormField
+                label="Cargo"
+                name="cargo"
+                value={field.value?.toString() || ""}
+                onChange={field.onChange}
+                error={fieldState.error?.message}
+                placeholder="Cargo o puesto"
+              />
+            )}
+          />
+
+          <Controller
+            name="numero_legajo"
+            control={control}
+            render={({ field, fieldState }) => (
+              <FormField
+                label="Número de Legajo"
+                name="numero_legajo"
+                value={field.value?.toString() || ""}
+                onChange={field.onChange}
+                error={fieldState.error?.message}
+                type="number"
+                placeholder="Ej: 12345"
+              />
+            )}
+          />
+
+          <Controller
+            name="cuil"
+            control={control}
+            render={({ field, fieldState }) => (
+              <FormField
+                label="CUIL"
+                name="cuil"
+                value={field.value?.toString() || ""}
+                onChange={field.onChange}
+                error={fieldState.error?.message}
+                placeholder="Ej: 20-35789654-0"
+              />
+            )}
+          />
+
+          <Controller
+            name="cbu"
+            control={control}
+            render={({ field, fieldState }) => (
+              <FormField
+                label="CBU"
+                name="cbu"
+                value={field.value?.toString() || ""}
+                onChange={field.onChange}
+                error={fieldState.error?.message}
+                placeholder="Ingrese el CBU"
+              />
+            )}
+          />
 
           <Controller
             name="estado"
@@ -417,15 +712,15 @@ export default function ListadoEmpleadosComponent({
                 }
                 options={[
                   { label: "Activo", value: "ACTIVO" },
-                  { label: "Inactivo", value: "INACTIVO" },
+                  { label: "Disponibles", value: "DISPONIBLE" },
                   { label: "Suspendido", value: "SUSPENDIDO" },
                 ]}
                 error={fieldState.error?.message}
               />
             )}
           />
-        </>
+        </div>
       </FormDialog>
-    </>
+    </Card>
   );
 }

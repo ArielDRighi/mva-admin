@@ -13,6 +13,27 @@ import { z } from "zod";
 import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { getServices } from "@/app/actions/services";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  History,
+  CalendarCheck,
+  CalendarX,
+  Search,
+  RefreshCcw,
+  FileText,
+  Calendar,
+  MapPin,
+  ClipboardList,
+  Building,
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 export default function ListadoServiciosHistorialComponent({
   data,
@@ -34,6 +55,7 @@ export default function ListadoServiciosHistorialComponent({
   const [loading, setLoading] = useState<boolean>(false);
   const [selectedService, setSelectedService] = useState<any | null>(null);
   const [isFirstLoad, setIsFirstLoad] = useState(true);
+  const [activeTab, setActiveTab] = useState("todos");
 
   const serviceDetailsSchema = z.object({
     id: z.string().optional(),
@@ -77,7 +99,6 @@ export default function ListadoServiciosHistorialComponent({
   const handleViewDetails = (service: any) => {
     setSelectedService(service);
 
-    // Update form schema and fields to match the actual data structure
     setValue("id", service.id?.toString() || "");
     setValue("cliente", service.cliente?.nombre || "");
     setValue("fechaInicio", service.fechaInicio || "");
@@ -88,20 +109,18 @@ export default function ListadoServiciosHistorialComponent({
     setValue("notas", service.notas || "");
   };
 
+  const handleTabChange = (value: string) => {
+    setActiveTab(value);
+  };
+
   const fetchServices = useCallback(async () => {
     const currentPage = Number(searchParams.get("page")) || 1;
     const search = searchParams.get("search") || "";
     setLoading(true);
 
     try {
-      // Properly call the getServices function with parameters
-      const fetchedServices = await getServices(
-        currentPage,
-        itemsPerPage,
-        search
-      );
+      const fetchedServices = await getServices();
 
-      // Set states only once with the correct data
       setServices(fetchedServices.data || []);
       setTotal(fetchedServices.totalItems || 0);
       setPage(fetchedServices.currentPage || 1);
@@ -123,6 +142,14 @@ export default function ListadoServiciosHistorialComponent({
     }
   }, [fetchServices, isFirstLoad]);
 
+  // Filtrar servicios según la pestaña activa
+  const filteredServices =
+    activeTab === "todos"
+      ? services
+      : services.filter(
+          (service) => service.estado === activeTab.toUpperCase()
+        );
+
   if (loading) {
     return (
       <div className="w-full h-screen flex justify-center items-center">
@@ -132,58 +159,163 @@ export default function ListadoServiciosHistorialComponent({
   }
 
   return (
-    <>
-      <ListadoTabla
-        title="Historial de Servicios"
-        data={services}
-        itemsPerPage={itemsPerPage}
-        searchableKeys={["cliente", "descripcion", "estado"]}
-        remotePagination
-        totalItems={total}
-        currentPage={page}
-        onPageChange={handlePageChange}
-        onSearchChange={handleSearchChange}
-        columns={[
-          { title: "ID", key: "id" },
-          { title: "Cliente", key: "cliente.nombre" },
-          { title: "Tipo de Servicio", key: "tipoServicio" },
-          { title: "Fecha Inicio", key: "fechaInicio" },
-          { title: "Fecha Fin", key: "fechaFin" },
-          { title: "Ubicación", key: "ubicacion" },
-          { title: "Estado", key: "estado" },
-        ]}
-        renderRow={(service) => (
-          <>
-            <TableCell className="font-medium">{service.id}</TableCell>
-            <TableCell>{service.cliente?.nombre || "Sin cliente"}</TableCell>
-            <TableCell>{service.tipoServicio}</TableCell>
-            <TableCell>
-              {service.fechaInicio &&
-                new Date(service.fechaInicio).toLocaleDateString("es-AR")}
-            </TableCell>
-            <TableCell>
-              {service.fechaFin &&
-                new Date(service.fechaFin).toLocaleDateString("es-AR")}
-            </TableCell>
-            <TableCell>{service.ubicacion}</TableCell>
-            <TableCell>
-              <Badge
-                variant={
-                  service.estado === "COMPLETADO"
-                    ? "default"
-                    : service.estado === "CANCELADO"
-                    ? "destructive"
-                    : service.estado === "PROGRAMADO"
-                    ? "outline"
-                    : "secondary"
-                }
-              >
-                {service.estado}
-              </Badge>
-            </TableCell>
-          </>
-        )}
-      />
+    <Card className="w-full shadow-md">
+      <CardHeader className="bg-slate-50 dark:bg-slate-900 border-b">
+        <div className="flex items-center justify-between">
+          <div>
+            <CardTitle className="text-2xl font-bold">
+              Historial de Servicios
+            </CardTitle>
+            <CardDescription className="text-muted-foreground mt-1">
+              Consulta el registro histórico de servicios completados y
+              cancelados
+            </CardDescription>
+          </div>
+          <Button
+            onClick={fetchServices}
+            className="cursor-pointer border-slate-200 hover:bg-slate-50 hover:text-slate-900"
+            variant="outline"
+          >
+            <RefreshCcw className="mr-2 h-4 w-4" />
+            Actualizar
+          </Button>
+        </div>
+
+        <div className="mt-4">
+          <Tabs
+            defaultValue="todos"
+            value={activeTab}
+            onValueChange={handleTabChange}
+          >
+            <TabsList className="grid grid-cols-4 w-[500px]">
+              <TabsTrigger value="todos" className="flex items-center">
+                <History className="mr-2 h-4 w-4" />
+                Todos
+              </TabsTrigger>
+              <TabsTrigger value="completado" className="flex items-center">
+                <CalendarCheck className="mr-2 h-4 w-4" />
+                Completados
+              </TabsTrigger>
+              <TabsTrigger value="cancelado" className="flex items-center">
+                <CalendarX className="mr-2 h-4 w-4" />
+                Cancelados
+              </TabsTrigger>
+              <TabsTrigger value="programado" className="flex items-center">
+                <Calendar className="mr-2 h-4 w-4" />
+                Programados
+              </TabsTrigger>
+            </TabsList>
+          </Tabs>
+        </div>
+      </CardHeader>
+
+      <CardContent className="p-6">
+        <div className="rounded-md border">
+          <ListadoTabla
+            title=""
+            data={filteredServices}
+            itemsPerPage={itemsPerPage}
+            searchableKeys={["cliente.nombre", "tipoServicio", "ubicacion"]}
+            remotePagination
+            totalItems={total}
+            currentPage={page}
+            onPageChange={handlePageChange}
+            onSearchChange={handleSearchChange}
+            columns={[
+              { title: "ID", key: "id" },
+              { title: "Cliente", key: "cliente.nombre" },
+              { title: "Tipo de Servicio", key: "tipoServicio" },
+              { title: "Fecha Inicio", key: "fechaInicio" },
+              { title: "Fecha Fin", key: "fechaFin" },
+              { title: "Ubicación", key: "ubicacion" },
+              { title: "Estado", key: "estado" },
+              { title: "Acciones", key: "acciones" },
+            ]}
+            renderRow={(service) => (
+              <>
+                <TableCell className="font-medium">{service.id}</TableCell>
+                <TableCell>
+                  <div className="space-y-1">
+                    <div className="flex items-center">
+                      <Building className="h-3.5 w-3.5 mr-2 text-muted-foreground" />
+                      <span>{service.cliente?.nombre || "Sin cliente"}</span>
+                    </div>
+                  </div>
+                </TableCell>
+                <TableCell>
+                  <div className="flex items-center text-sm">
+                    <ClipboardList className="h-3.5 w-3.5 mr-2 text-muted-foreground" />
+                    <span>{service.tipoServicio}</span>
+                  </div>
+                </TableCell>
+                <TableCell>
+                  <div className="flex items-center text-sm">
+                    <Calendar className="h-3.5 w-3.5 mr-2 text-muted-foreground" />
+                    <span>
+                      {service.fechaInicio &&
+                        new Date(service.fechaInicio).toLocaleDateString(
+                          "es-AR"
+                        )}
+                    </span>
+                  </div>
+                </TableCell>
+                <TableCell>
+                  <div className="flex items-center text-sm">
+                    <Calendar className="h-3.5 w-3.5 mr-2 text-muted-foreground" />
+                    <span>
+                      {service.fechaFin &&
+                        new Date(service.fechaFin).toLocaleDateString("es-AR")}
+                    </span>
+                  </div>
+                </TableCell>
+                <TableCell>
+                  <div className="flex items-center text-sm">
+                    <MapPin className="h-3.5 w-3.5 mr-2 text-muted-foreground" />
+                    <span className="truncate max-w-[180px]">
+                      {service.ubicacion}
+                    </span>
+                  </div>
+                </TableCell>
+                <TableCell>
+                  <Badge
+                    variant={
+                      service.estado === "COMPLETADO"
+                        ? "default"
+                        : service.estado === "CANCELADO"
+                        ? "destructive"
+                        : service.estado === "PROGRAMADO"
+                        ? "outline"
+                        : "secondary"
+                    }
+                    className={
+                      service.estado === "COMPLETADO"
+                        ? "bg-green-100 text-green-800 hover:bg-green-100"
+                        : service.estado === "CANCELADO"
+                        ? "bg-red-100 text-red-800 hover:bg-red-100"
+                        : service.estado === "PROGRAMADO"
+                        ? "bg-blue-100 text-blue-800 hover:bg-blue-100"
+                        : "bg-gray-100 text-gray-800 hover:bg-gray-100"
+                    }
+                  >
+                    {service.estado}
+                  </Badge>
+                </TableCell>
+                <TableCell>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleViewDetails(service)}
+                    className="cursor-pointer border-slate-200 hover:bg-slate-50 hover:text-slate-900"
+                  >
+                    <FileText className="h-3.5 w-3.5 mr-1" />
+                    Detalles
+                  </Button>
+                </TableCell>
+              </>
+            )}
+          />
+        </div>
+      </CardContent>
 
       <FormDialog
         open={!!selectedService}
@@ -310,6 +442,6 @@ export default function ListadoServiciosHistorialComponent({
           />
         </>
       </FormDialog>
-    </>
+    </Card>
   );
 }
