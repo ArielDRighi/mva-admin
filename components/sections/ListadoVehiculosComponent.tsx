@@ -5,7 +5,6 @@ import {
   deleteVehicle,
   editVehicle,
   getVehicles,
-  changeVehicleStatus,
 } from "@/app/actions/vehiculos";
 import { CreateVehiculo, UpdateVehiculo, Vehiculo } from "@/types/types";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -21,6 +20,23 @@ import { Badge } from "../ui/badge";
 import { Button } from "../ui/button";
 import { FormDialog } from "../ui/local/FormDialog";
 import { FormField } from "../ui/local/FormField";
+import {
+  FiEdit2,
+  FiTrash2,
+  FiPlus,
+  FiTruck,
+  FiTag,
+  FiCalendar,
+  FiBox,
+} from "react-icons/fi";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "../ui/card";
 
 const ListadoVehiculosComponent = ({
   data,
@@ -44,6 +60,19 @@ const ListadoVehiculosComponent = ({
     null
   );
   const [isCreating, setIsCreating] = useState(false);
+  const [viewMode, setViewMode] = useState<"table" | "cards">("table");
+
+  // Comprobar ancho de pantalla para modo responsive
+  useEffect(() => {
+    const checkScreenSize = () => {
+      setViewMode(window.innerWidth < 768 ? "cards" : "table");
+    };
+
+    checkScreenSize();
+    window.addEventListener("resize", checkScreenSize);
+
+    return () => window.removeEventListener("resize", checkScreenSize);
+  }, []);
 
   const vehiculoSchema = z.object({
     placa: z.string().min(1, "La placa es obligatoria"),
@@ -191,7 +220,7 @@ const ListadoVehiculosComponent = ({
 
   if (loading) {
     return (
-      <div className="w-full h-screen flex justify-center items-center">
+      <div className="w-full h-[60vh] flex justify-center items-center">
         <Loader />
       </div>
     );
@@ -211,64 +240,203 @@ const ListadoVehiculosComponent = ({
     return variants[status] || "outline";
   };
 
-  return (
-    <>
-      <ListadoTabla
-        title="Listado de Vehículos"
-        data={vehiculos}
-        itemsPerPage={itemsPerPage}
-        searchableKeys={["placa", "marca", "modelo"]}
-        remotePagination
-        totalItems={total}
-        currentPage={page}
-        onPageChange={handlePageChange}
-        onSearchChange={handleSearchChange}
-        columns={[
-          { title: "Placa", key: "placa" },
-          { title: "Marca", key: "marca" },
-          { title: "Modelo", key: "modelo" },
-          { title: "Año", key: "anio" },
-          { title: "Capacidad de Carga", key: "capacidadCarga" },
-          { title: "Estado", key: "estado" },
-        ]}
-        renderRow={(vehiculo) => (
-          <>
-            <TableCell className="font-medium">{vehiculo.placa}</TableCell>
-            <TableCell>{vehiculo.marca}</TableCell>
-            <TableCell>{vehiculo.modelo}</TableCell>
-            <TableCell>{vehiculo.anio}</TableCell>
-            <TableCell>{vehiculo.capacidadCarga} kg</TableCell>
-            <TableCell>
-              <Badge variant={getStatusBadgeVariant(vehiculo.estado)}>
+  const getStatusColor = (status: string) => {
+    const colors: Record<string, string> = {
+      DISPONIBLE: "bg-green-100 text-green-800",
+      ASIGNADO: "bg-blue-100 text-blue-800",
+      MANTENIMIENTO: "bg-yellow-100 text-yellow-800",
+      INACTIVO: "bg-gray-100 text-gray-800",
+      BAJA: "bg-red-100 text-red-800",
+    };
+    return colors[status] || "bg-gray-100 text-gray-800";
+  };
+
+  const renderCardsView = () => (
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 p-4">
+      {vehiculos.map((vehiculo) => (
+        <Card
+          key={vehiculo.id}
+          className="shadow-md hover:shadow-lg transition-shadow"
+        >
+          <CardHeader className="pb-2">
+            <div className="flex justify-between items-center">
+              <CardTitle className="text-lg font-bold">
+                {vehiculo.marca} {vehiculo.modelo}
+              </CardTitle>
+              <Badge
+                className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(
+                  vehiculo.estado
+                )}`}
+              >
                 {vehiculo.estado}
               </Badge>
-            </TableCell>
-            <TableCell className="flex gap-2">
+            </div>
+            <CardDescription className="font-mono text-sm flex items-center gap-1">
+              <FiTag className="inline-block" /> {vehiculo.placa}
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="pb-2">
+            <div className="grid grid-cols-2 gap-2 text-sm">
+              <div className="flex items-center gap-1">
+                <FiCalendar className="text-muted-foreground" />
+                <span>{vehiculo.anio}</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <FiBox className="text-muted-foreground" />
+                <span>{vehiculo.capacidadCarga} kg</span>
+              </div>
+            </div>
+          </CardContent>
+          <CardFooter className="flex justify-end gap-2 pt-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => handleEditClick(vehiculo)}
+              className="cursor-pointer h-8"
+            >
+              <FiEdit2 className="mr-1" /> Editar
+            </Button>
+            <Button
+              variant="destructive"
+              size="sm"
+              onClick={() => vehiculo.id && handleDeleteClick(vehiculo.id)}
+              className="cursor-pointer h-8"
+            >
+              <FiTrash2 className="mr-1" /> Eliminar
+            </Button>
+          </CardFooter>
+        </Card>
+      ))}
+    </div>
+  );
+
+  return (
+    <div className="bg-white dark:bg-slate-900 rounded-lg shadow-sm p-4">
+      <div className="flex justify-between items-center mb-6">
+        <div>
+          <h1 className="text-2xl font-bold flex items-center gap-2">
+            <FiTruck className="text-primary" /> Listado de Vehículos
+          </h1>
+          <p className="text-sm text-muted-foreground mt-1">
+            Total: {total} vehículos registrados
+          </p>
+        </div>
+        <Button
+          onClick={handleCreateClick}
+          className="cursor-pointer flex items-center gap-2"
+        >
+          <FiPlus /> Agregar Vehículo
+        </Button>
+      </div>
+
+      {viewMode === "cards" ? (
+        <>
+          <div className="mb-4">
+            <input
+              type="text"
+              placeholder="Buscar por placa, marca o modelo..."
+              className="w-full p-2 border rounded-md"
+              onChange={(e) => handleSearchChange(e.target.value)}
+            />
+          </div>
+          {renderCardsView()}
+          <div className="flex justify-center mt-4">
+            <div className="flex gap-1">
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => handleEditClick(vehiculo)}
-                className="cursor-pointer"
+                disabled={page <= 1}
+                onClick={() => handlePageChange(page - 1)}
               >
-                Editar
+                Anterior
               </Button>
               <Button
-                variant="destructive"
+                variant="outline"
                 size="sm"
-                onClick={() => vehiculo.id && handleDeleteClick(vehiculo.id)}
-                className="cursor-pointer"
+                className="pointer-events-none"
               >
-                Eliminar
+                Página {page} de {Math.ceil(total / itemsPerPage)}
               </Button>
-            </TableCell>
-          </>
-        )}
-        addButton={
-          <Button onClick={handleCreateClick} className="cursor-pointer">
-            Agregar Vehículo
-          </Button>
-        }
-      />
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={page >= Math.ceil(total / itemsPerPage)}
+                onClick={() => handlePageChange(page + 1)}
+              >
+                Siguiente
+              </Button>
+            </div>
+          </div>
+        </>
+      ) : (
+        <ListadoTabla
+          title=""
+          data={vehiculos}
+          itemsPerPage={itemsPerPage}
+          searchableKeys={["placa", "marca", "modelo"]}
+          remotePagination
+          totalItems={total}
+          currentPage={page}
+          onPageChange={handlePageChange}
+          onSearchChange={handleSearchChange}
+          columns={[
+            { title: "Placa", key: "placa" },
+            { title: "Marca", key: "marca" },
+            { title: "Modelo", key: "modelo" },
+            { title: "Año", key: "anio" },
+            { title: "Capacidad de Carga", key: "capacidadCarga" },
+            { title: "Estado", key: "estado" },
+          ]}
+          renderRow={(vehiculo) => (
+            <>
+              <TableCell className="font-medium flex items-center gap-1">
+                <FiTag className="text-muted-foreground" /> {vehiculo.placa}
+              </TableCell>
+              <TableCell>{vehiculo.marca}</TableCell>
+              <TableCell>{vehiculo.modelo}</TableCell>
+              <TableCell>
+                <span className="flex items-center gap-1">
+                  <FiCalendar className="text-muted-foreground" />{" "}
+                  {vehiculo.anio}
+                </span>
+              </TableCell>
+              <TableCell>
+                <span className="flex items-center gap-1">
+                  <FiBox className="text-muted-foreground" />{" "}
+                  {vehiculo.capacidadCarga} kg
+                </span>
+              </TableCell>
+              <TableCell>
+                <Badge
+                  variant={getStatusBadgeVariant(vehiculo.estado)}
+                  className="px-3 py-1 rounded-full text-xs font-medium"
+                >
+                  {vehiculo.estado}
+                </Badge>
+              </TableCell>
+              <TableCell className="flex gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleEditClick(vehiculo)}
+                  className="cursor-pointer flex items-center gap-1 h-8"
+                >
+                  <FiEdit2 /> Editar
+                </Button>
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  onClick={() => vehiculo.id && handleDeleteClick(vehiculo.id)}
+                  className="cursor-pointer flex items-center gap-1 h-8"
+                >
+                  <FiTrash2 /> Eliminar
+                </Button>
+              </TableCell>
+            </>
+          )}
+        />
+      )}
+
       <FormDialog
         open={isCreating || selectedVehiculo !== null}
         onOpenChange={(open) => {
@@ -277,17 +445,22 @@ const ListadoVehiculosComponent = ({
             setSelectedVehiculo(null);
           }
         }}
-        title={selectedVehiculo ? "Editar Vehículo" : "Crear Vehículo"}
+        title={
+          <div className="flex items-center gap-2">
+            <FiTruck className="text-primary" />
+            {selectedVehiculo ? "Editar Vehículo" : "Crear Vehículo"}
+          </div>
+        }
         onSubmit={handleSubmit(onSubmit)}
       >
         <>
           {(
             [
-              ["placa", "Placa"],
-              ["marca", "Marca"],
-              ["modelo", "Modelo"],
+              ["placa", "Placa", <FiTag key="icon-placa" />],
+              ["marca", "Marca", <FiTruck key="icon-marca" />],
+              ["modelo", "Modelo", null],
             ] as const
-          ).map(([name, label]) => (
+          ).map(([name, label, icon]) => (
             <Controller
               key={name}
               name={name}
@@ -299,6 +472,7 @@ const ListadoVehiculosComponent = ({
                   value={field.value}
                   onChange={field.onChange}
                   error={fieldState.error?.message}
+                  icon={icon}
                 />
               )}
             />
@@ -315,6 +489,7 @@ const ListadoVehiculosComponent = ({
                 value={field.value?.toString() || ""}
                 onChange={(value) => field.onChange(Number(value))}
                 error={fieldState.error?.message}
+                icon={<FiCalendar />}
               />
             )}
           />
@@ -330,6 +505,7 @@ const ListadoVehiculosComponent = ({
                 value={field.value?.toString() || ""}
                 onChange={(value) => field.onChange(Number(value))}
                 error={fieldState.error?.message}
+                icon={<FiBox />}
               />
             )}
           />
@@ -359,7 +535,7 @@ const ListadoVehiculosComponent = ({
           />
         </>
       </FormDialog>
-    </>
+    </div>
   );
 };
 
