@@ -20,6 +20,29 @@ import { Badge } from "../ui/badge";
 import { Button } from "../ui/button";
 import { FormDialog } from "../ui/local/FormDialog";
 import { FormField } from "../ui/local/FormField";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  UserRound,
+  Search,
+  RefreshCcw,
+  Edit2,
+  Trash2,
+  CheckCircle,
+  PauseCircle,
+  Calendar,
+  Building,
+  MapPin,
+  ClipboardList,
+  FileText,
+  Plus,
+} from "lucide-react";
 
 export default function ListadoServiciosActivosComponent({
   data,
@@ -45,12 +68,11 @@ export default function ListadoServiciosActivosComponent({
   const [selectedService, setSelectedService] = useState<Service | null>(null);
   const [isCreating, setIsCreating] = useState(false);
   const [isFirstLoad, setIsFirstLoad] = useState(true);
-  console.log("Servicios:", servicios);
+  const [activeTab, setActiveTab] = useState("todos");
 
   // Esquema de validación para la actualización de servicios
   const updateServiceSchema = z.object({
     clienteId: z.number().optional(),
-    // Update other field names to match API data
     fechaInicio: z.string().optional(),
     fechaFin: z.string().optional(),
     fechaProgramada: z.string().optional(),
@@ -69,7 +91,6 @@ export default function ListadoServiciosActivosComponent({
         "SUSPENDIDO",
       ])
       .optional(),
-    // Remove fields not in API response or rename them
   });
 
   const form = useForm({
@@ -102,6 +123,10 @@ export default function ListadoServiciosActivosComponent({
     params.set("search", search);
     params.set("page", "1");
     router.replace(`?${params.toString()}`);
+  };
+
+  const handleTabChange = (value: string) => {
+    setActiveTab(value);
   };
 
   const handleEditClick = (servicio: Service) => {
@@ -243,96 +268,246 @@ export default function ListadoServiciosActivosComponent({
     return variants[status] || "outline";
   };
 
+  const filteredServicios =
+    activeTab === "todos"
+      ? servicios
+      : servicios.filter(
+          (service) => service.estado === activeTab.toUpperCase()
+        );
+
   return (
-    <>
-      <ListadoTabla
-        title="Servicios Activos"
-        data={Array.isArray(servicios) ? servicios : []}
-        itemsPerPage={itemsPerPage}
-        searchableKeys={["clienteId", "tipoServicio"]}
-        remotePagination
-        totalItems={total}
-        currentPage={page}
-        onPageChange={handlePageChange}
-        onSearchChange={handleSearchChange}
-        columns={[
-          { title: "ID", key: "id" },
-          { title: "Cliente", key: "cliente.nombre" },
-          { title: "Ubicación", key: "ubicacion" },
-          { title: "Tipo", key: "tipoServicio" },
-          { title: "Fecha inicio", key: "fechaInicio" },
-          { title: "Fecha fin", key: "fechaFin" },
-          { title: "Estado", key: "estado" },
-          { title: "Acciones", key: "acciones" },
-        ]}
-        renderRow={(servicio) => (
-          <>
-            <TableCell className="font-medium">{servicio.id}</TableCell>
-            <TableCell>
-              {servicio.cliente?.nombre || servicio.clienteId}
-            </TableCell>
-            <TableCell>{servicio.ubicacion}</TableCell>
-            <TableCell>{servicio.tipoServicio}</TableCell>
-            <TableCell>
-              {servicio.fechaInicio &&
-                new Date(servicio.fechaInicio).toLocaleDateString("es-AR")}
-            </TableCell>
-            <TableCell>
-              {servicio.fechaFin &&
-                new Date(servicio.fechaFin).toLocaleDateString("es-AR")}
-            </TableCell>
-            <TableCell>
-              <Badge variant={getStatusBadgeVariant(servicio.estado)}>
-                {servicio.estado}
-              </Badge>
-            </TableCell>
-            <TableCell className="flex gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => handleEditClick(servicio)}
-                className="cursor-pointer"
-              >
-                Editar
-              </Button>
-              <Button
-                variant="destructive"
-                size="sm"
-                onClick={() => servicio.id && handleDeleteClick(servicio.id)}
-                className="cursor-pointer"
-              >
-                Eliminar
-              </Button>
-              {servicio.estado === "EN_PROGRESO" && (
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  onClick={() =>
-                    servicio.id &&
-                    handleChangeStatus(servicio.id, ServiceState.COMPLETADO)
-                  }
-                  className="cursor-pointer"
-                >
-                  Completar
-                </Button>
-              )}
-              {servicio.estado === "EN_PROGRESO" && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() =>
-                    servicio.id &&
-                    handleChangeStatus(servicio.id, ServiceState.SUSPENDIDO)
-                  }
-                  className="cursor-pointer"
-                >
-                  Suspender
-                </Button>
-              )}
-            </TableCell>
-          </>
-        )}
-      />
+    <Card className="w-full shadow-md">
+      <CardHeader className="bg-slate-50 dark:bg-slate-900 border-b">
+        <div className="flex items-center justify-between">
+          <div>
+            <CardTitle className="text-2xl font-bold">
+              Servicios Activos
+            </CardTitle>
+            <CardDescription className="text-muted-foreground mt-1">
+              Administra los servicios en progreso y programados
+            </CardDescription>
+          </div>
+          <Button
+            onClick={() => router.push("/dashboard/servicios/crear")}
+            className="cursor-pointer bg-indigo-600 hover:bg-indigo-700"
+          >
+            <Plus className="mr-2 h-4 w-4" />
+            Nuevo Servicio
+          </Button>
+        </div>
+
+        <div className="mt-4">
+          <Tabs
+            defaultValue="todos"
+            value={activeTab}
+            onValueChange={handleTabChange}
+          >
+            <TabsList className="grid grid-cols-5 w-[600px]">
+              <TabsTrigger value="todos" className="flex items-center">
+                <ClipboardList className="mr-2 h-4 w-4" />
+                Todos
+              </TabsTrigger>
+              <TabsTrigger value="en_progreso" className="flex items-center">
+                <CheckCircle className="mr-2 h-4 w-4" />
+                En Progreso
+              </TabsTrigger>
+              <TabsTrigger value="programado" className="flex items-center">
+                <Calendar className="mr-2 h-4 w-4" />
+                Programados
+              </TabsTrigger>
+              <TabsTrigger value="suspendido" className="flex items-center">
+                <PauseCircle className="mr-2 h-4 w-4" />
+                Suspendidos
+              </TabsTrigger>
+              <TabsTrigger value="cancelado" className="flex items-center">
+                <Trash2 className="mr-2 h-4 w-4" />
+                Cancelados
+              </TabsTrigger>
+            </TabsList>
+          </Tabs>
+        </div>
+      </CardHeader>
+
+      <CardContent className="p-6">
+        <div className="flex justify-end mb-4">
+          <Button
+            onClick={fetchServicios}
+            className="cursor-pointer border-slate-200 hover:bg-slate-50 hover:text-slate-900"
+            variant="outline"
+          >
+            <RefreshCcw className="mr-2 h-4 w-4" />
+            Actualizar
+          </Button>
+        </div>
+
+        <div className="rounded-md border">
+          <ListadoTabla
+            title=""
+            data={filteredServicios}
+            itemsPerPage={itemsPerPage}
+            searchableKeys={["ubicacion", "tipoServicio", "clienteId"]}
+            remotePagination
+            totalItems={total}
+            currentPage={page}
+            onPageChange={handlePageChange}
+            onSearchChange={handleSearchChange}
+            columns={[
+              { title: "ID", key: "id" },
+              { title: "Cliente", key: "cliente.nombre" },
+              { title: "Ubicación", key: "ubicacion" },
+              { title: "Tipo", key: "tipoServicio" },
+              { title: "Fecha inicio", key: "fechaInicio" },
+              { title: "Fecha fin", key: "fechaFin" },
+              { title: "Estado", key: "estado" },
+              { title: "Acciones", key: "acciones" },
+            ]}
+            renderRow={(servicio) => (
+              <>
+                <TableCell className="font-medium">{servicio.id}</TableCell>
+                <TableCell className="min-w-[250px]">
+                  <div className="flex items-center gap-3">
+                    <div className="h-10 w-10 rounded-full bg-slate-100 flex items-center justify-center">
+                      <Building className="h-5 w-5 text-slate-600" />
+                    </div>
+                    <div>
+                      <div className="font-medium">
+                        {servicio.cliente?.nombre ||
+                          `Cliente ID: ${servicio.clienteId}`}
+                      </div>
+                      <div className="text-sm text-muted-foreground">
+                        {servicio.fechaProgramada && (
+                          <span className="flex items-center">
+                            <Calendar className="h-3.5 w-3.5 mr-1 text-muted-foreground" />
+                            {new Date(
+                              servicio.fechaProgramada
+                            ).toLocaleDateString("es-AR")}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </TableCell>
+                <TableCell className="min-w-[200px]">
+                  <div className="flex items-center text-sm">
+                    <MapPin className="h-3.5 w-3.5 mr-2 text-muted-foreground" />
+                    <span className="truncate max-w-[180px]">
+                      {servicio.ubicacion}
+                    </span>
+                  </div>
+                </TableCell>
+                <TableCell>
+                  <div className="flex items-center text-sm">
+                    <ClipboardList className="h-3.5 w-3.5 mr-2 text-muted-foreground" />
+                    <span>{servicio.tipoServicio}</span>
+                  </div>
+                </TableCell>
+                <TableCell>
+                  {servicio.fechaInicio && (
+                    <div className="flex items-center text-sm">
+                      <Calendar className="h-3.5 w-3.5 mr-2 text-muted-foreground" />
+                      <span>
+                        {new Date(servicio.fechaInicio).toLocaleDateString(
+                          "es-AR"
+                        )}
+                      </span>
+                    </div>
+                  )}
+                </TableCell>
+                <TableCell>
+                  {servicio.fechaFin && (
+                    <div className="flex items-center text-sm">
+                      <Calendar className="h-3.5 w-3.5 mr-2 text-muted-foreground" />
+                      <span>
+                        {new Date(servicio.fechaFin).toLocaleDateString(
+                          "es-AR"
+                        )}
+                      </span>
+                    </div>
+                  )}
+                </TableCell>
+                <TableCell>
+                  <Badge
+                    variant={getStatusBadgeVariant(servicio.estado)}
+                    className={
+                      servicio.estado === "EN_PROGRESO"
+                        ? "bg-green-100 text-green-800 hover:bg-green-100"
+                        : servicio.estado === "SUSPENDIDO"
+                        ? "bg-red-100 text-red-800 hover:bg-red-100"
+                        : servicio.estado === "PROGRAMADO"
+                        ? "bg-blue-100 text-blue-800 hover:bg-blue-100"
+                        : servicio.estado === "CANCELADO"
+                        ? "bg-gray-100 text-gray-800 hover:bg-gray-100"
+                        : "bg-gray-100 text-gray-800 hover:bg-gray-100"
+                    }
+                  >
+                    {servicio.estado}
+                  </Badge>
+                </TableCell>
+                <TableCell className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleEditClick(servicio)}
+                    className="cursor-pointer border-slate-200 hover:bg-slate-50 hover:text-slate-900"
+                  >
+                    <Edit2 className="h-3.5 w-3.5 mr-1" />
+                    Editar
+                  </Button>
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    onClick={() =>
+                      servicio.id && handleDeleteClick(servicio.id)
+                    }
+                    className="cursor-pointer bg-red-100 text-red-700 hover:bg-red-200 hover:text-red-800"
+                  >
+                    <Trash2 className="h-3.5 w-3.5 mr-1" />
+                    Eliminar
+                  </Button>
+
+                  <div className="ml-1">
+                    {servicio.estado === "EN_PROGRESO" && (
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        onClick={() =>
+                          servicio.id &&
+                          handleChangeStatus(
+                            servicio.id,
+                            ServiceState.COMPLETADO
+                          )
+                        }
+                        className="cursor-pointer bg-green-100 text-green-700 hover:bg-green-200 hover:text-green-800"
+                      >
+                        <CheckCircle className="h-3.5 w-3.5 mr-1" />
+                        Completar
+                      </Button>
+                    )}
+
+                    {servicio.estado === "EN_PROGRESO" && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() =>
+                          servicio.id &&
+                          handleChangeStatus(
+                            servicio.id,
+                            ServiceState.SUSPENDIDO
+                          )
+                        }
+                        className="cursor-pointer ml-1"
+                      >
+                        <PauseCircle className="h-3.5 w-3.5 mr-1" />
+                        Suspender
+                      </Button>
+                    )}
+                  </div>
+                </TableCell>
+              </>
+            )}
+          />
+        </div>
+      </CardContent>
 
       <FormDialog
         open={selectedService !== null}
@@ -342,92 +517,157 @@ export default function ListadoServiciosActivosComponent({
           }
         }}
         title="Editar Servicio"
+        description="Modifica la información del servicio seleccionado"
         onSubmit={handleSubmit(onSubmit)}
       >
-        <>
-          {(
-            [
-              ["clienteId", "Cliente ID"],
-              ["cantidadBanos", "Cantidad de baños"],
-              ["cantidadEmpleados", "Cantidad de empleados"],
-              ["cantidadVehiculos", "Cantidad de vehículos"],
-              ["ubicacion", "Ubicación"],
-              ["fechaInicio", "Fecha de inicio"],
-              ["fechaFin", "Fecha de fin"],
-              ["fechaProgramada", "Fecha programada"],
-              ["notas", "Notas/Observaciones"],
-              ["tipoServicio", "Tipo de servicio"],
-            ] as const
-          ).map(([name, label]) => {
-            // Handle number fields specifically
-            if (
-              name === "clienteId" ||
-              name === "cantidadBanos" ||
-              name === "cantidadEmpleados" ||
-              name === "cantidadVehiculos"
-            ) {
-              return (
-                <Controller
-                  key={name}
-                  name={name as any}
-                  control={control}
-                  render={({ field, fieldState }) => (
-                    <FormField
-                      label={label}
-                      name={name}
-                      type="number"
-                      value={field.value?.toString() || ""}
-                      onChange={(value) => field.onChange(Number(value))}
-                      error={fieldState.error?.message}
-                    />
-                  )}
-                />
-              );
-            }
-            // Handle date fields
-            else if (
-              name === "fechaInicio" ||
-              name === "fechaFin" ||
-              name === "fechaProgramada"
-            ) {
-              return (
-                <Controller
-                  key={name}
-                  name={name as any}
-                  control={control}
-                  render={({ field, fieldState }) => (
-                    <FormField
-                      label={label}
-                      name={name}
-                      type="date"
-                      value={field.value ? field.value.split("T")[0] : ""}
-                      onChange={field.onChange}
-                      error={fieldState.error?.message}
-                    />
-                  )}
-                />
-              );
-            }
-            // Handle text fields
-            else {
-              return (
-                <Controller
-                  key={name}
-                  name={name as any}
-                  control={control}
-                  render={({ field, fieldState }) => (
-                    <FormField
-                      label={label}
-                      name={name}
-                      value={field.value || ""}
-                      onChange={field.onChange}
-                      error={fieldState.error?.message}
-                    />
-                  )}
-                />
-              );
-            }
-          })}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
+          <Controller
+            name="clienteId"
+            control={control}
+            render={({ field, fieldState }) => (
+              <FormField
+                label="Cliente ID"
+                name="clienteId"
+                type="number"
+                value={field.value?.toString() || ""}
+                onChange={(value) => field.onChange(Number(value))}
+                error={fieldState.error?.message}
+              />
+            )}
+          />
+
+          <Controller
+            name="tipoServicio"
+            control={control}
+            render={({ field, fieldState }) => (
+              <FormField
+                label="Tipo de Servicio"
+                name="tipoServicio"
+                value={field.value || ""}
+                onChange={field.onChange}
+                error={fieldState.error?.message}
+              />
+            )}
+          />
+
+          <Controller
+            name="fechaInicio"
+            control={control}
+            render={({ field, fieldState }) => (
+              <FormField
+                label="Fecha de Inicio"
+                name="fechaInicio"
+                type="date"
+                value={field.value ? field.value.split("T")[0] : ""}
+                onChange={field.onChange}
+                error={fieldState.error?.message}
+              />
+            )}
+          />
+
+          <Controller
+            name="fechaFin"
+            control={control}
+            render={({ field, fieldState }) => (
+              <FormField
+                label="Fecha de Fin"
+                name="fechaFin"
+                type="date"
+                value={field.value ? field.value.split("T")[0] : ""}
+                onChange={field.onChange}
+                error={fieldState.error?.message}
+              />
+            )}
+          />
+
+          <Controller
+            name="fechaProgramada"
+            control={control}
+            render={({ field, fieldState }) => (
+              <FormField
+                label="Fecha Programada"
+                name="fechaProgramada"
+                type="date"
+                value={field.value ? field.value.split("T")[0] : ""}
+                onChange={field.onChange}
+                error={fieldState.error?.message}
+              />
+            )}
+          />
+
+          <Controller
+            name="ubicacion"
+            control={control}
+            render={({ field, fieldState }) => (
+              <FormField
+                label="Ubicación"
+                name="ubicacion"
+                value={field.value || ""}
+                onChange={field.onChange}
+                error={fieldState.error?.message}
+              />
+            )}
+          />
+
+          <Controller
+            name="cantidadBanos"
+            control={control}
+            render={({ field, fieldState }) => (
+              <FormField
+                label="Cantidad de Baños"
+                name="cantidadBanos"
+                type="number"
+                value={field.value?.toString() || ""}
+                onChange={(value) => field.onChange(Number(value))}
+                error={fieldState.error?.message}
+              />
+            )}
+          />
+
+          <Controller
+            name="cantidadEmpleados"
+            control={control}
+            render={({ field, fieldState }) => (
+              <FormField
+                label="Cantidad de Empleados"
+                name="cantidadEmpleados"
+                type="number"
+                value={field.value?.toString() || ""}
+                onChange={(value) => field.onChange(Number(value))}
+                error={fieldState.error?.message}
+              />
+            )}
+          />
+
+          <Controller
+            name="cantidadVehiculos"
+            control={control}
+            render={({ field, fieldState }) => (
+              <FormField
+                label="Cantidad de Vehículos"
+                name="cantidadVehiculos"
+                type="number"
+                value={field.value?.toString() || ""}
+                onChange={(value) => field.onChange(Number(value))}
+                error={fieldState.error?.message}
+              />
+            )}
+          />
+
+          <Controller
+            name="notas"
+            control={control}
+            render={({ field, fieldState }) => (
+              <FormField
+                label="Notas/Observaciones"
+                name="notas"
+                value={field.value || ""}
+                onChange={field.onChange}
+                error={fieldState.error?.message}
+              />
+            )}
+          />
+
           <Controller
             name="estado"
             control={control}
@@ -451,8 +691,8 @@ export default function ListadoServiciosActivosComponent({
               />
             )}
           />
-        </>
+        </div>
       </FormDialog>
-    </>
+    </Card>
   );
 }

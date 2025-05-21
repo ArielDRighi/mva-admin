@@ -26,6 +26,25 @@ import { z } from "zod";
 import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { getEmployees } from "@/app/actions/empleados";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  UserRound,
+  Edit2,
+  Trash2,
+  CheckCircle,
+  PauseCircle,
+  Calendar,
+  FileText,
+  Plus,
+  RefreshCcw,
+} from "lucide-react";
 
 export default function LicenciasEmpleadosComponent({
   data,
@@ -52,6 +71,7 @@ export default function LicenciasEmpleadosComponent({
   const [isCreating, setIsCreating] = useState(false);
   const [empleados, setEmpleados] = useState<any[]>([]);
   const [isFirstLoad, setIsFirstLoad] = useState(true);
+  const [activeTab, setActiveTab] = useState("todos");
 
   // Esquema para validación de formulario
   const createLicenciaSchema = z.object({
@@ -286,6 +306,19 @@ export default function LicenciasEmpleadosComponent({
     fetchEmpleados();
   }, [fetchEmpleados]);
 
+  // Función para manejar el cambio de pestaña
+  const handleTabChange = (value: string) => {
+    setActiveTab(value);
+  };
+
+  const filteredLicencias =
+    activeTab === "todos"
+      ? licencias
+      : licencias.filter((licencia) => {
+          const status = getApprovalStatus(licencia);
+          return status === activeTab.toUpperCase();
+        });
+
   if (loading) {
     return (
       <div className="w-full h-screen flex justify-center items-center">
@@ -312,91 +345,197 @@ export default function LicenciasEmpleadosComponent({
   };
 
   return (
-    <>
-      <ListadoTabla
-        title="Licencias de Empleados"
-        data={Array.isArray(licencias) ? licencias : []}
-        itemsPerPage={itemsPerPage}
-        searchableKeys={[
-          "employee.nombre",
-          "employee.documento",
-          "tipoLicencia",
-          "notas",
-        ]}
-        remotePagination
-        totalItems={total}
-        currentPage={page}
-        onPageChange={handlePageChange}
-        onSearchChange={handleSearchChange}
-        columns={[
-          { title: "Empleado", key: "employee" },
-          { title: "Tipo", key: "tipoLicencia" },
-          { title: "Inicio", key: "fechaInicio" },
-          { title: "Fin", key: "fechaFin" },
-          { title: "Estado", key: "status" },
-          { title: "Acciones", key: "acciones" },
-        ]}
-        renderRow={(licencia) => (
-          <>
-            <TableCell className="font-medium">
-              {licencia.employee?.nombre} {licencia.employee?.apellido}
-            </TableCell>
-            <TableCell>{licencia.tipoLicencia || licencia.type}</TableCell>
-            <TableCell>
-              {(licencia.fechaInicio || licencia.start_date) &&
-                new Date(
-                  licencia.fechaInicio || licencia.start_date
-                ).toLocaleDateString("es-AR")}
-            </TableCell>
-            <TableCell>
-              {(licencia.fechaFin || licencia.end_date) &&
-                new Date(
-                  licencia.fechaFin || licencia.end_date
-                ).toLocaleDateString("es-AR")}
-            </TableCell>
-            <TableCell>
-              <Badge
-                variant={getStatusBadgeVariant(getApprovalStatus(licencia))}
-              >
-                {getApprovalStatus(licencia)}
-              </Badge>
-            </TableCell>
-            <TableCell className="flex gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => handleEditClick(licencia)}
-                className="cursor-pointer"
-              >
-                Editar
-              </Button>
-              {getApprovalStatus(licencia) === "PENDING" && (
-                <Button
-                  variant="default"
-                  size="sm"
-                  onClick={() => licencia.id && handleApproveClick(licencia.id)}
-                  className="cursor-pointer"
-                >
-                  Aprobar
-                </Button>
-              )}
-              <Button
-                variant="destructive"
-                size="sm"
-                onClick={() => licencia.id && handleDeleteClick(licencia.id)}
-                className="cursor-pointer"
-              >
-                Eliminar
-              </Button>
-            </TableCell>
-          </>
-        )}
-        addButton={
-          <Button onClick={handleCreateClick} className="cursor-pointer">
-            Agregar Licencia
+    <Card className="w-full shadow-md">
+      <CardHeader className="bg-slate-50 dark:bg-slate-900 border-b">
+        <div className="flex items-center justify-between">
+          <div>
+            <CardTitle className="text-2xl font-bold">
+              Licencias de Empleados
+            </CardTitle>
+            <CardDescription className="text-muted-foreground mt-1">
+              Administra las licencias y permisos del personal
+            </CardDescription>
+          </div>
+          <Button
+            onClick={handleCreateClick}
+            className="cursor-pointer bg-indigo-600 hover:bg-indigo-700"
+          >
+            <Plus className="mr-2 h-4 w-4" />
+            Nueva Licencia
           </Button>
-        }
-      />
+        </div>
+
+        <div className="mt-4">
+          <Tabs
+            defaultValue="todos"
+            value={activeTab}
+            onValueChange={handleTabChange}
+          >
+            <TabsList className="grid grid-cols-4 w-[500px]">
+              <TabsTrigger value="todos" className="flex items-center">
+                <UserRound className="mr-2 h-4 w-4" />
+                Todas
+              </TabsTrigger>
+              <TabsTrigger value="pending" className="flex items-center">
+                <PauseCircle className="mr-2 h-4 w-4" />
+                Pendientes
+              </TabsTrigger>
+              <TabsTrigger value="approved" className="flex items-center">
+                <CheckCircle className="mr-2 h-4 w-4" />
+                Aprobadas
+              </TabsTrigger>
+              <TabsTrigger value="rejected" className="flex items-center">
+                <Trash2 className="mr-2 h-4 w-4" />
+                Rechazadas
+              </TabsTrigger>
+            </TabsList>
+          </Tabs>
+        </div>
+      </CardHeader>
+
+      <CardContent className="p-6">
+        <div className="rounded-md border">
+          <ListadoTabla
+            title=""
+            data={filteredLicencias}
+            itemsPerPage={itemsPerPage}
+            searchableKeys={[
+              "employee.nombre",
+              "employee.documento",
+              "tipoLicencia",
+              "notas",
+            ]}
+            remotePagination
+            totalItems={total}
+            currentPage={page}
+            onPageChange={handlePageChange}
+            onSearchChange={handleSearchChange}
+            columns={[
+              { title: "Empleado", key: "employee" },
+              { title: "Tipo", key: "tipoLicencia" },
+              { title: "Periodo", key: "fechas" },
+              { title: "Estado", key: "status" },
+              { title: "Acciones", key: "acciones" },
+            ]}
+            renderRow={(licencia) => (
+              <>
+                <TableCell className="min-w-[250px]">
+                  <div className="flex items-center gap-3">
+                    <div className="h-10 w-10 rounded-full bg-slate-100 flex items-center justify-center">
+                      <UserRound className="h-5 w-5 text-slate-600" />
+                    </div>
+                    <div>
+                      <div className="font-medium">
+                        {licencia.employee?.nombre}{" "}
+                        {licencia.employee?.apellido}
+                      </div>
+                      <div className="text-sm text-muted-foreground">
+                        {licencia.employee?.cargo || ""}
+                      </div>
+                    </div>
+                  </div>
+                </TableCell>
+
+                <TableCell className="min-w-[180px]">
+                  <div className="space-y-1">
+                    <div className="flex items-center text-sm font-medium">
+                      <FileText className="h-3.5 w-3.5 mr-2 text-muted-foreground" />
+                      {licencia.tipoLicencia || licencia.type}
+                    </div>
+                    {licencia.notas && (
+                      <div className="text-xs text-muted-foreground truncate max-w-[160px]">
+                        {licencia.notas}
+                      </div>
+                    )}
+                  </div>
+                </TableCell>
+
+                <TableCell className="min-w-[200px]">
+                  <div className="space-y-1">
+                    <div className="flex items-center text-sm">
+                      <Calendar className="h-3.5 w-3.5 mr-2 text-muted-foreground" />
+                      <span>
+                        Desde:{" "}
+                        {(licencia.fechaInicio || licencia.start_date) &&
+                          new Date(
+                            licencia.fechaInicio || licencia.start_date
+                          ).toLocaleDateString("es-AR")}
+                      </span>
+                    </div>
+                    <div className="flex items-center text-sm">
+                      <Calendar className="h-3.5 w-3.5 mr-2 text-muted-foreground" />
+                      <span>
+                        Hasta:{" "}
+                        {(licencia.fechaFin || licencia.end_date) &&
+                          new Date(
+                            licencia.fechaFin || licencia.end_date
+                          ).toLocaleDateString("es-AR")}
+                      </span>
+                    </div>
+                  </div>
+                </TableCell>
+
+                <TableCell>
+                  <Badge
+                    variant={getStatusBadgeVariant(getApprovalStatus(licencia))}
+                    className={
+                      getApprovalStatus(licencia) === "APPROVED"
+                        ? "bg-green-100 text-green-800 hover:bg-green-100"
+                        : getApprovalStatus(licencia) === "REJECTED"
+                        ? "bg-red-100 text-red-800 hover:bg-red-100"
+                        : "bg-blue-100 text-blue-800 hover:bg-blue-100"
+                    }
+                  >
+                    {getApprovalStatus(licencia) === "APPROVED"
+                      ? "Aprobada"
+                      : getApprovalStatus(licencia) === "REJECTED"
+                      ? "Rechazada"
+                      : "Pendiente"}
+                  </Badge>
+                </TableCell>
+
+                <TableCell className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleEditClick(licencia)}
+                    className="cursor-pointer border-slate-200 hover:bg-slate-50 hover:text-slate-900"
+                  >
+                    <Edit2 className="h-3.5 w-3.5 mr-1" />
+                    Editar
+                  </Button>
+
+                  {getApprovalStatus(licencia) === "PENDING" && (
+                    <Button
+                      variant="default"
+                      size="sm"
+                      onClick={() =>
+                        licencia.id && handleApproveClick(licencia.id)
+                      }
+                      className="cursor-pointer bg-green-100 text-green-700 hover:bg-green-200 hover:text-green-800"
+                    >
+                      <CheckCircle className="h-3.5 w-3.5 mr-1" />
+                      Aprobar
+                    </Button>
+                  )}
+
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    onClick={() =>
+                      licencia.id && handleDeleteClick(licencia.id)
+                    }
+                    className="cursor-pointer bg-red-100 text-red-700 hover:bg-red-200 hover:text-red-800"
+                  >
+                    <Trash2 className="h-3.5 w-3.5 mr-1" />
+                    Eliminar
+                  </Button>
+                </TableCell>
+              </>
+            )}
+          />
+        </div>
+      </CardContent>
 
       <FormDialog
         open={isCreating || selectedLicencia !== null}
@@ -407,6 +546,11 @@ export default function LicenciasEmpleadosComponent({
           }
         }}
         title={selectedLicencia ? "Editar Licencia" : "Crear Licencia"}
+        description={
+          selectedLicencia
+            ? "Modificar la información de la licencia seleccionada."
+            : "Completa el formulario para registrar una nueva licencia."
+        }
         onSubmit={handleSubmit(onSubmit)}
       >
         <>
@@ -529,6 +673,6 @@ export default function LicenciasEmpleadosComponent({
           )}
         </>
       </FormDialog>
-    </>
+    </Card>
   );
 }

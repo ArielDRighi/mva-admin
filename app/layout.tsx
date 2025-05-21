@@ -13,8 +13,11 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Admin",
-  description: "Private dashboard",
+  title: "MVA - Sistema de Gestión",
+  description: "Sistema de Gestión de MVA",
+  icons: {
+    icon: "/images/MVA_LogoPNG.png",
+  },
   robots: {
     index: false,
     follow: false,
