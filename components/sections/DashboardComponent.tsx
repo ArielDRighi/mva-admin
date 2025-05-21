@@ -18,6 +18,17 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
+import { getTotalVehicles } from "@/app/actions/vehiculos";
+import { getTotalEmployees } from "@/app/actions/empleados";
+import { getTotalSanitarios } from "@/app/actions/sanitarios";
+import {
+  getProximosServices,
+  getRecentActivity,
+  getResumeServices,
+  getServicesStats,
+} from "@/app/actions/services";
+import { Servicio } from "@/types/serviceTypes";
+import { getFuturesCleanings } from "@/app/actions/services";
 
 export type User = {
   id: number;
@@ -27,17 +38,81 @@ export type User = {
   estado: string;
   roles: string[];
 };
+export type totalVehicles = {
+  total: number;
+  totalDisponibles: number;
+  totalMantenimiento: number;
+  totalAsignado: number;
+};
+export type totalEmployees = {
+  total: number;
+  totalDisponibles: number;
+  totalInactivos: number;
+};
+export type totalSanitarios = {
+  total: number;
+  totalAsignado: number;
+  totalDisponibles: number;
+  totalMantenimiento: number;
+};
+
+export type serviceStats = {
+  total: number;
+  totalInstalacion: number;
+  totalLimpieza: number;
+  totalRetiro: number;
+};
+export type resumeService = {
+  pendientes: number;
+  completados: number;
+};
 
 const DashboardComponent = () => {
   const [user, setUser] = useState<User | null>(null);
+  const [totalVehicles, setTotalVehicles] = useState<totalVehicles>();
+  const [totalEmployees, setTotalEmployees] = useState<totalEmployees>();
+  const [totalSanitarios, setTotalSanitarios] = useState<totalSanitarios>();
+  const [proximosServicios, setProximosServicios] = useState<Servicio[]>([]);
+  const [servicesStats, setServicesStats] = useState<serviceStats | null>(null);
+  const [resumeService, setresumeService] = useState<resumeService>();
+  const [futuresCleanings, setFuturesCleanings] = useState<any>({
+    items: [],
+    total: 0,
+    page: 1,
+    limit: 10,
+    totalPages: 0,
+  });
+  const [activityRecent, setRecentActivity] = useState<any>(null);
+  console.log("activityRecent", activityRecent);
+
   const router = useRouter();
 
-  // Hardcoded data for dashboard
-  const resources = {
-    vehicles: { total: 15, available: 8, maintenance: 2, assigned: 5 },
-    employees: { total: 22, available: 10, unavailable: 3, assigned: 9 },
-    toilets: { total: 35, available: 12, maintenance: 4, assigned: 19 },
-  };
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const totalVehicles = await getTotalVehicles();
+        const totalEmployees = await getTotalEmployees();
+        const totalSanitarios = await getTotalSanitarios();
+        const proximosServicios = await getProximosServices();
+        const serviceStats = await getServicesStats();
+        const resumeService = await getResumeServices();
+        const futuresCleanings = await getFuturesCleanings();
+        const activity = await getRecentActivity();
+        setRecentActivity(activity);
+        setFuturesCleanings(futuresCleanings);
+        setresumeService(resumeService);
+        setServicesStats(serviceStats);
+        setProximosServicios(proximosServicios);
+        setTotalEmployees(totalEmployees);
+        setTotalSanitarios(totalSanitarios);
+        setTotalVehicles(totalVehicles);
+      } catch (error) {
+        console.error("Error fetching total vehicles:", error);
+      }
+    };
+
+    fetchData();
+  }, []);
 
   const recentActivity = [
     {
@@ -110,13 +185,6 @@ const DashboardComponent = () => {
       maintenance: "Reparación de válvula",
       priority: "Alta",
     },
-  ];
-
-  const servicesByType = [
-    { type: "INSTALACIÓN", count: 25, percentage: 36 },
-    { type: "LIMPIEZA", count: 32, percentage: 46 },
-    { type: "RETIRO", count: 10, percentage: 14 },
-    { type: "REPARACIÓN", count: 3, percentage: 4 },
   ];
 
   const todayServices = [
@@ -201,6 +269,35 @@ const DashboardComponent = () => {
     }
   };
 
+  const servicesByType = servicesStats
+    ? [
+        {
+          type: "INSTALACIÓN",
+          count: servicesStats.totalInstalacion,
+          percentage:
+            Math.round(
+              (servicesStats.totalInstalacion / servicesStats.total) * 100
+            ) || 0,
+        },
+        {
+          type: "LIMPIEZA",
+          count: servicesStats.totalLimpieza,
+          percentage:
+            Math.round(
+              (servicesStats.totalLimpieza / servicesStats.total) * 100
+            ) || 0,
+        },
+        {
+          type: "RETIRO",
+          count: servicesStats.totalRetiro,
+          percentage:
+            Math.round(
+              (servicesStats.totalRetiro / servicesStats.total) * 100
+            ) || 0,
+        },
+      ]
+    : [];
+
   return (
     <div className="container mx-auto p-4">
       <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-8">
@@ -237,7 +334,7 @@ const DashboardComponent = () => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {resources.vehicles.available}/{resources.vehicles.total}
+              {totalVehicles?.totalDisponibles}/{totalVehicles?.total}
             </div>
             <p className="text-xs text-muted-foreground">
               Vehículos disponibles
@@ -246,9 +343,10 @@ const DashboardComponent = () => {
               <div className="flex items-center justify-between text-xs">
                 <span>Disponibles</span>
                 <span className="font-semibold">
-                  {resources.vehicles.available} (
+                  {totalVehicles?.totalDisponibles} (
                   {Math.round(
-                    (resources.vehicles.available / resources.vehicles.total) *
+                    ((totalVehicles?.totalDisponibles || 0) /
+                      (totalVehicles?.total || 1)) *
                       100
                   )}
                   %)
@@ -256,17 +354,18 @@ const DashboardComponent = () => {
               </div>
               <Progress
                 value={
-                  (resources.vehicles.available / resources.vehicles.total) *
+                  ((totalVehicles?.totalDisponibles || 0) /
+                    (totalVehicles?.total || 1)) *
                   100
                 }
                 className="h-1"
               />
               <div className="flex justify-between text-xs mt-2">
                 <Badge variant="outline" className="bg-blue-50">
-                  Asignados: {resources.vehicles.assigned}
+                  Asignados: {totalVehicles?.totalAsignado}
                 </Badge>
                 <Badge variant="outline" className="bg-amber-50">
-                  En mant.: {resources.vehicles.maintenance}
+                  En mant.: {totalVehicles?.totalMantenimiento}
                 </Badge>
               </div>
             </div>
@@ -280,7 +379,7 @@ const DashboardComponent = () => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {resources.employees.available}/{resources.employees.total}
+              {totalEmployees?.totalDisponibles}/{totalEmployees?.total}
             </div>
             <p className="text-xs text-muted-foreground">
               Empleados disponibles
@@ -289,10 +388,10 @@ const DashboardComponent = () => {
               <div className="flex items-center justify-between text-xs">
                 <span>Disponibles</span>
                 <span className="font-semibold">
-                  {resources.employees.available} (
+                  {totalEmployees?.totalDisponibles} (
                   {Math.round(
-                    (resources.employees.available /
-                      resources.employees.total) *
+                    ((totalEmployees?.totalDisponibles || 0) /
+                      (totalEmployees?.total || 1)) *
                       100
                   )}
                   %)
@@ -300,17 +399,14 @@ const DashboardComponent = () => {
               </div>
               <Progress
                 value={
-                  (resources.employees.available / resources.employees.total) *
-                  100
+                  (totalEmployees?.totalDisponibles ||
+                    0 / (totalEmployees?.total || 1)) * 100
                 }
                 className="h-1"
               />
               <div className="flex justify-between text-xs mt-2">
-                <Badge variant="outline" className="bg-blue-50">
-                  Asignados: {resources.employees.assigned}
-                </Badge>
                 <Badge variant="outline" className="bg-red-50">
-                  Inactivos: {resources.employees.unavailable}
+                  Inactivos: {totalEmployees?.totalInactivos}
                 </Badge>
               </div>
             </div>
@@ -324,33 +420,34 @@ const DashboardComponent = () => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {resources.toilets.available}/{resources.toilets.total}
+              {totalSanitarios?.totalDisponibles}/{totalSanitarios?.total}
             </div>
             <p className="text-xs text-muted-foreground">Baños disponibles</p>
             <div className="mt-4 space-y-1.5">
               <div className="flex items-center justify-between text-xs">
                 <span>Disponibles</span>
                 <span className="font-semibold">
-                  {resources.toilets.available} (
+                  {totalSanitarios?.totalDisponibles} (
                   {Math.round(
-                    (resources.toilets.available / resources.toilets.total) *
-                      100
+                    (totalSanitarios?.totalDisponibles ||
+                      0 / (totalSanitarios?.total || 1)) * 10
                   )}
                   %)
                 </span>
               </div>
               <Progress
                 value={
-                  (resources.toilets.available / resources.toilets.total) * 100
+                  (totalSanitarios?.totalDisponibles ||
+                    0 / (totalSanitarios?.total || 1)) * 10
                 }
                 className="h-1"
               />
               <div className="flex justify-between text-xs mt-2">
                 <Badge variant="outline" className="bg-blue-50">
-                  Asignados: {resources.toilets.assigned}
+                  Asignados: {totalSanitarios?.totalAsignado}
                 </Badge>
                 <Badge variant="outline" className="bg-amber-50">
-                  En mant.: {resources.toilets.maintenance}
+                  En mant.: {totalSanitarios?.totalMantenimiento}
                 </Badge>
               </div>
             </div>
@@ -364,11 +461,11 @@ const DashboardComponent = () => {
           <Card className="h-full">
             <CardHeader>
               <div className="flex items-center justify-between">
-                <CardTitle>Servicios de hoy</CardTitle>
+                <CardTitle>Servicios proximos</CardTitle>
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={() => router.push("/dashboard/servicios/listado")}
+                  onClick={() => router.push("/dashboard/servicios/activos")}
                 >
                   Ver todos
                 </Button>
@@ -376,35 +473,49 @@ const DashboardComponent = () => {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {todayServices.map((service) => (
-                  <div
-                    key={service.id}
-                    className="flex items-center p-3 border rounded-md"
-                  >
-                    <div className="w-14 h-14 rounded-full bg-gray-100 flex items-center justify-center">
-                      <span className="font-semibold text-lg">
-                        {service.time}
-                      </span>
-                    </div>
-                    <div className="ml-4 flex-1">
-                      <div className="font-medium">{service.client}</div>
-                      <div className="text-sm text-muted-foreground">
-                        {service.address}
+                {proximosServicios && proximosServicios.length > 0 ? (
+                  proximosServicios.map((servicio) => (
+                    <div
+                      key={servicio.id}
+                      className="flex items-center p-3 border rounded-md"
+                    >
+                      <div className="w-14 h-14 rounded-full bg-gray-100 flex items-center justify-center">
+                        <span className="font-semibold text-lg">
+                          {new Date(servicio.fechaProgramada)
+                            .getHours()
+                            .toString()
+                            .padStart(2, "0")}
+                          :
+                          {new Date(servicio.fechaProgramada)
+                            .getMinutes()
+                            .toString()
+                            .padStart(2, "0")}
+                        </span>
+                      </div>
+                      <div className="ml-4 flex-1">
+                        <div className="font-medium">
+                          {servicio.cliente?.nombre ||
+                            `Cliente ID: ${servicio.clienteId}`}
+                        </div>
+                        <div className="text-sm text-muted-foreground">
+                          {servicio.ubicacion}
+                        </div>
+                      </div>
+                      <div className="flex flex-col items-end">
+                        <Badge variant="secondary">
+                          {servicio.tipoServicio}
+                        </Badge>
+                        <span
+                          className={`mt-1 text-xs px-2 py-1 rounded ${getStatusColor(
+                            servicio.estado
+                          )}`}
+                        >
+                          {servicio.estado.replace("_", " ")}
+                        </span>
                       </div>
                     </div>
-                    <div className="flex flex-col items-end">
-                      <Badge variant="secondary">{service.type}</Badge>
-                      <span
-                        className={`mt-1 text-xs px-2 py-1 rounded ${getStatusColor(
-                          service.status
-                        )}`}
-                      >
-                        {service.status.replace("_", " ")}
-                      </span>
-                    </div>
-                  </div>
-                ))}
-                {todayServices.length === 0 && (
+                  ))
+                ) : (
                   <div className="text-center py-8 text-gray-500">
                     No hay servicios programados para hoy
                   </div>
@@ -423,7 +534,7 @@ const DashboardComponent = () => {
               <div className="flex items-center mb-6">
                 <div className="w-16 h-16 rounded-full bg-blue-100 flex items-center justify-center">
                   <span className="font-bold text-xl text-blue-700">
-                    {pendingServices}
+                    {resumeService?.pendientes}
                   </span>
                 </div>
                 <div className="ml-4">
@@ -437,7 +548,7 @@ const DashboardComponent = () => {
               <div className="flex items-center mb-6">
                 <div className="w-16 h-16 rounded-full bg-green-100 flex items-center justify-center">
                   <span className="font-bold text-xl text-green-700">
-                    {completedServices}
+                    {resumeService?.completados}
                   </span>
                 </div>
                 <div className="ml-4">
@@ -486,38 +597,53 @@ const DashboardComponent = () => {
           <TabsContent value="maintenance">
             <Card>
               <CardHeader>
-                <CardTitle>Próximos Mantenimientos</CardTitle>
+                <div className="flex items-center justify-between">
+                  <CardTitle>Próximas Limpiezas</CardTitle>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() =>
+                      router.push("/dashboard/servicios/limpiezas")
+                    }
+                  >
+                    Ver todas
+                  </Button>
+                </div>
               </CardHeader>
               <CardContent>
-                {upcomingMaintenance.length > 0 ? (
+                {futuresCleanings &&
+                futuresCleanings.items &&
+                futuresCleanings.items.length > 0 ? (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {upcomingMaintenance.map((item) => (
+                    {futuresCleanings.items.slice(0, 4).map((item: any) => (
                       <div
                         key={item.id}
                         className="border rounded-md p-4 relative"
                       >
                         <div className="flex items-center justify-between mb-2">
                           <Badge variant="outline" className="bg-gray-50">
-                            {item.type}
+                            Limpieza
                           </Badge>
-                          <Badge className={getPriorityColor(item.priority)}>
-                            {item.priority}
+                          <Badge className="bg-blue-100 text-blue-800">
+                            #{item.numero_de_limpieza}
                           </Badge>
                         </div>
-                        <h3 className="font-medium">{item.resource}</h3>
+                        <h3 className="font-medium">{item.cliente?.nombre}</h3>
                         <p className="text-sm text-gray-600">
-                          {item.maintenance}
+                          Servicio ID: {item.servicio?.id}
                         </p>
                         <div className="flex items-center mt-2 text-xs text-gray-500">
                           <CalendarDays className="h-3 w-3 mr-1" />
-                          {new Date(item.date).toLocaleDateString()}
+                          {new Date(
+                            item.fecha_de_limpieza
+                          ).toLocaleDateString()}
                         </div>
                       </div>
                     ))}
                   </div>
                 ) : (
                   <div className="text-center py-8 text-gray-500">
-                    No hay mantenimientos programados próximamente
+                    No hay limpiezas programadas próximamente
                   </div>
                 )}
               </CardContent>
@@ -531,39 +657,215 @@ const DashboardComponent = () => {
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  {recentActivity.map((activity, idx) => (
-                    <div
-                      key={idx}
-                      className="flex items-start pb-4 border-b last:border-0"
-                    >
-                      <div className="w-10 h-10 rounded bg-gray-100 flex items-center justify-center">
-                        {activity.type === "SERVICIO" && (
-                          <TruckIcon className="h-5 w-5" />
-                        )}
-                        {activity.type === "MANTENIMIENTO" && (
-                          <Clock className="h-5 w-5" />
-                        )}
-                        {activity.type === "BAÑO" && (
-                          <Toilet className="h-5 w-5" />
-                        )}
-                        {activity.type === "CLIENTE" && (
-                          <User2Icon className="h-5 w-5" />
-                        )}
-                      </div>
-                      <div className="ml-4 flex-1">
-                        <div className="flex items-center">
-                          <span className="font-medium">{activity.action}</span>
-                          <span className="ml-2 text-xs text-gray-500">
-                            {activity.time}
-                          </span>
+                  {activityRecent && (
+                    <>
+                      {/* Servicio completado */}
+                      {activityRecent.latestCompletedService && (
+                        <div className="flex items-start pb-4 border-b">
+                          <div className="w-10 h-10 rounded bg-gray-100 flex items-center justify-center">
+                            <TruckIcon className="h-5 w-5" />
+                          </div>
+                          <div className="ml-4 flex-1">
+                            <div className="flex items-center">
+                              <span className="font-medium">COMPLETADO</span>
+                              <span className="ml-2 text-xs text-gray-500">
+                                {activityRecent?.timestamp
+                                  ? new Date(
+                                      activityRecent.timestamp
+                                    ).toLocaleString()
+                                  : "-"}
+                              </span>
+                            </div>
+                            <p className="text-sm">
+                              {
+                                activityRecent.latestCompletedService
+                                  .tipoServicio
+                              }{" "}
+                              para{" "}
+                              {
+                                activityRecent.latestCompletedService.cliente
+                                  ?.nombre
+                              }
+                            </p>
+                            <p className="text-xs text-gray-500 mt-1">
+                              Ubicación:{" "}
+                              {activityRecent.latestCompletedService.ubicacion}
+                            </p>
+                          </div>
                         </div>
-                        <p className="text-sm">{activity.description}</p>
-                        <p className="text-xs text-gray-500 mt-1">
-                          Por: {activity.user}
-                        </p>
-                      </div>
+                      )}
+
+                      {/* Servicio programado */}
+                      {activityRecent.latestScheduledService && (
+                        <div className="flex items-start pb-4 border-b">
+                          <div className="w-10 h-10 rounded bg-gray-100 flex items-center justify-center">
+                            <TruckIcon className="h-5 w-5" />
+                          </div>
+                          <div className="ml-4 flex-1">
+                            <div className="flex items-center">
+                              <span className="font-medium">PROGRAMADO</span>
+                              <span className="ml-2 text-xs text-gray-500">
+                                {new Date(
+                                  activityRecent.timestamp
+                                ).toLocaleString()}
+                              </span>
+                            </div>
+                            <p className="text-sm">
+                              {
+                                activityRecent.latestScheduledService
+                                  .tipoServicio
+                              }{" "}
+                              para{" "}
+                              {
+                                activityRecent.latestScheduledService.cliente
+                                  ?.nombre
+                              }
+                            </p>
+                            <p className="text-xs text-gray-500 mt-1">
+                              Ubicación:{" "}
+                              {activityRecent.latestScheduledService.ubicacion}
+                            </p>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Cliente nuevo */}
+                      {activityRecent.latestClient && (
+                        <div className="flex items-start pb-4 border-b">
+                          <div className="w-10 h-10 rounded bg-gray-100 flex items-center justify-center">
+                            <User2Icon className="h-5 w-5" />
+                          </div>
+                          <div className="ml-4 flex-1">
+                            <div className="flex items-center">
+                              <span className="font-medium">NUEVO CLIENTE</span>
+                              <span className="ml-2 text-xs text-gray-500">
+                                {new Date(
+                                  activityRecent.timestamp
+                                ).toLocaleString()}
+                              </span>
+                            </div>
+                            <p className="text-sm">
+                              {activityRecent.latestClient.nombre}
+                            </p>
+                            <p className="text-xs text-gray-500 mt-1">
+                              Contacto:{" "}
+                              {activityRecent.latestClient.contacto_principal}
+                            </p>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Baño nuevo/actualizado */}
+                      {activityRecent.latestToilet && (
+                        <div className="flex items-start pb-4 border-b">
+                          <div className="w-10 h-10 rounded bg-gray-100 flex items-center justify-center">
+                            <Toilet className="h-5 w-5" />
+                          </div>
+                          <div className="ml-4 flex-1">
+                            <div className="flex items-center">
+                              <span className="font-medium">
+                                BAÑO REGISTRADO
+                              </span>
+                              <span className="ml-2 text-xs text-gray-500">
+                                {new Date(
+                                  activityRecent.timestamp
+                                ).toLocaleString()}
+                              </span>
+                            </div>
+                            <p className="text-sm">
+                              Baño {activityRecent.latestToilet.codigo_interno}{" "}
+                              - {activityRecent.latestToilet.modelo}
+                            </p>
+                            <p className="text-xs text-gray-500 mt-1">
+                              Estado: {activityRecent.latestToilet.estado}
+                            </p>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Mantenimiento */}
+                      {activityRecent.latestMaintenance && (
+                        <div className="flex items-start pb-4 border-b">
+                          <div className="w-10 h-10 rounded bg-gray-100 flex items-center justify-center">
+                            <Clock className="h-5 w-5" />
+                          </div>
+                          <div className="ml-4 flex-1">
+                            <div className="flex items-center">
+                              <span className="font-medium">
+                                MANTENIMIENTO{" "}
+                                {activityRecent.latestMaintenance.completado
+                                  ? "COMPLETADO"
+                                  : "PROGRAMADO"}
+                              </span>
+                              <span className="ml-2 text-xs text-gray-500">
+                                {new Date(
+                                  activityRecent.latestMaintenance.completado
+                                    ? activityRecent.latestMaintenance
+                                        .fechaCompletado
+                                    : activityRecent.latestMaintenance.createdAt
+                                ).toLocaleString()}
+                              </span>
+                            </div>
+                            <p className="text-sm">
+                              {
+                                activityRecent.latestMaintenance
+                                  .tipo_mantenimiento
+                              }{" "}
+                              - {activityRecent.latestMaintenance.descripcion}
+                            </p>
+                            <p className="text-xs text-gray-500 mt-1">
+                              Baño:{" "}
+                              {
+                                activityRecent.latestMaintenance.toilet
+                                  .codigo_interno
+                              }{" "}
+                              | Técnico:{" "}
+                              {
+                                activityRecent.latestMaintenance
+                                  .tecnico_responsable
+                              }
+                            </p>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Vehículo nuevo */}
+                      {activityRecent.latestVehicle && (
+                        <div className="flex items-start pb-4 border-b last:border-0">
+                          <div className="w-10 h-10 rounded bg-gray-100 flex items-center justify-center">
+                            <TruckIcon className="h-5 w-5" />
+                          </div>
+                          <div className="ml-4 flex-1">
+                            <div className="flex items-center">
+                              <span className="font-medium">
+                                VEHÍCULO REGISTRADO
+                              </span>
+                              <span className="ml-2 text-xs text-gray-500">
+                                {new Date(
+                                  activityRecent.timestamp
+                                ).toLocaleString()}
+                              </span>
+                            </div>
+                            <p className="text-sm">
+                              {activityRecent.latestVehicle.marca}{" "}
+                              {activityRecent.latestVehicle.modelo} (
+                              {activityRecent.latestVehicle.placa})
+                            </p>
+                            <p className="text-xs text-gray-500 mt-1">
+                              Estado: {activityRecent.latestVehicle.estado}
+                            </p>
+                          </div>
+                        </div>
+                      )}
+                    </>
+                  )}
+
+                  {(!activityRecent ||
+                    Object.keys(activityRecent).length === 0) && (
+                    <div className="text-center py-8 text-gray-500">
+                      No hay actividad reciente para mostrar
                     </div>
-                  ))}
+                  )}
                 </div>
               </CardContent>
             </Card>
@@ -572,7 +874,7 @@ const DashboardComponent = () => {
       </div>
 
       {/* Alerts and notifications */}
-      {pendingContractRenewals.length > 0 && (
+      {/* {pendingContractRenewals.length > 0 && (
         <div className="mb-8">
           <Card className="border-red-200 bg-red-50">
             <CardHeader>
@@ -608,7 +910,7 @@ const DashboardComponent = () => {
             </CardContent>
           </Card>
         </div>
-      )}
+      )} */}
     </div>
   );
 };
