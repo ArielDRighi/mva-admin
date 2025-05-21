@@ -35,7 +35,7 @@ export type CreateEmployeeLeaveDto = {
   fechaFin: Date;
   tipoLicencia: LeaveType;
   notas?: string;
-  aprobado?: boolean;
+  status?: "PENDIENTE" | "APROBADO" | "RECHAZADO";
 };
 
 export class UpdateEmployeeLeaveDto {
@@ -45,14 +45,17 @@ export class UpdateEmployeeLeaveDto {
   tipoLicencia?: LeaveType;
   notas?: string;
   aprobado?: boolean;
+  status?: "PENDIENTE" | "APROBADO" | "RECHAZADO";
 }
 
 export enum LeaveType {
   VACACIONES = "VACACIONES",
-  LICENCIA_MEDICA = "LICENCIA_MEDICA",
-  LICENCIA_PERSONAL = "LICENCIA_PERSONAL",
+  ENFERMEDAD = "ENFERMEDAD",
+  ORDINARIA = "ORDINARIA",
+  FALLECIMIENTO_FAMILIAR = "FALLECIMIENTO_FAMILIAR",
+  CASAMIENTO = "CASAMIENTO",
+  NACIMIENTO = "NACIMIENTO",
   CAPACITACION = "CAPACITACION",
-  OTRO = "OTRO",
 }
 
 export type UpdateVehicleMaintenance = {
@@ -178,6 +181,9 @@ export type EmpleadoFormulario = {
   email: string;
   cargo: string;
   estado: StatusEmployee;
+  numero_legajo: number;
+  cuil: string;
+  cbu: string;
 };
 
 export type StatusEmployee = {
@@ -202,6 +208,9 @@ export type Empleado = {
   fecha_nacimiento?: string | Date;
   fecha_contratacion: string | Date;
   cargo: string;
+  numero_legajo: number;
+  cuil: string;
+  cbu: string;
   estado:
     | "DISPONIBLE"
     | "ASIGNADO"

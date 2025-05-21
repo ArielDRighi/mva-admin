@@ -21,7 +21,18 @@ import Loader from "@/components/ui/local/Loader";
 import { Cliente } from "@/types/types";
 import { getClients } from "@/app/actions/clientes";
 import { Input } from "@/components/ui/input";
-import { Search } from "lucide-react";
+import {
+  Search,
+  FileText,
+  Calendar,
+  Clock,
+  DollarSign,
+  Tag,
+  ChevronLeft,
+  ChevronRight,
+  Save,
+} from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 
 // Define el esquema de validación para cada paso
 const clienteSchema = z.object({
@@ -247,33 +258,57 @@ export default function CrearCondicionContractualComponent() {
   };
 
   return (
-    <Card className="w-full max-w-4xl mx-auto">
-      <CardHeader>
-        <CardTitle>Crear Condición Contractual</CardTitle>
-        <CardDescription>
-          {step === 1 && "Selecciona el cliente para el nuevo contrato"}
-          {step === 2 && "Define el tipo y período del contrato"}
-          {step === 3 && "Establece los detalles financieros y condiciones"}
-        </CardDescription>
+    <Card className="w-full shadow-md">
+      <CardHeader className="bg-slate-50 dark:bg-slate-900 border-b">
+        <div className="flex items-center justify-between">
+          <div>
+            <CardTitle className="text-2xl font-bold">
+              Crear Condición Contractual
+            </CardTitle>
+            <CardDescription className="text-muted-foreground mt-1">
+              {step === 1 && "Selecciona el cliente para el nuevo contrato"}
+              {step === 2 && "Define el tipo y período del contrato"}
+              {step === 3 && "Establece los detalles financieros y condiciones"}
+            </CardDescription>
+          </div>
+          <Badge
+            variant="outline"
+            className="bg-slate-100 text-slate-700 text-base px-3 py-1"
+          >
+            Paso {step} de 3
+          </Badge>
+        </div>
       </CardHeader>
 
-      <CardContent>
+      <CardContent className="p-6">
         {/* Indicador de progreso */}
         <div className="mb-8">
           <div className="flex justify-between mb-2">
-            <span className={`font-medium ${step >= 1 ? "text-blue-600" : ""}`}>
-              Cliente
+            <span
+              className={`font-medium flex items-center gap-1 ${
+                step >= 1 ? "text-indigo-600" : "text-slate-500"
+              }`}
+            >
+              <FileText className="h-4 w-4" /> Cliente
             </span>
-            <span className={`font-medium ${step >= 2 ? "text-blue-600" : ""}`}>
-              Período
+            <span
+              className={`font-medium flex items-center gap-1 ${
+                step >= 2 ? "text-indigo-600" : "text-slate-500"
+              }`}
+            >
+              <Calendar className="h-4 w-4" /> Período
             </span>
-            <span className={`font-medium ${step >= 3 ? "text-blue-600" : ""}`}>
-              Detalles
+            <span
+              className={`font-medium flex items-center gap-1 ${
+                step >= 3 ? "text-indigo-600" : "text-slate-500"
+              }`}
+            >
+              <DollarSign className="h-4 w-4" /> Detalles
             </span>
           </div>
-          <div className="w-full bg-gray-200 rounded-full h-2.5">
+          <div className="w-full bg-slate-200 rounded-full h-2.5">
             <div
-              className="bg-blue-600 h-2.5 rounded-full"
+              className="bg-indigo-600 h-2.5 rounded-full"
               style={{ width: `${(step / 3) * 100}%` }}
             ></div>
           </div>
@@ -290,49 +325,56 @@ export default function CrearCondicionContractualComponent() {
                   <label className="block text-sm font-medium mb-1">
                     Cliente
                   </label>
-                  <div className="relative">
+                  <div className="relative mb-3">
                     <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-                      <Search className="h-5 w-5 text-gray-400" />
+                      <Search className="h-5 w-5 text-slate-400" />
                     </div>
                     <Input
                       type="text"
                       placeholder="Buscar clientes por nombre, CUIT o email..."
-                      className="pl-10 mb-2"
+                      className="pl-10 border-slate-300 focus:border-indigo-500 focus:ring-indigo-500"
                       value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}
                     />
                   </div>
 
                   {isLoading ? (
-                    <div className="flex justify-center items-center py-4">
-                      <Loader />
+                    <div className="flex justify-center items-center py-8 border rounded-md bg-slate-50">
+                      <Loader className="text-indigo-600" />
                     </div>
                   ) : (
-                    <div className="max-h-60 overflow-y-auto border rounded-md">
+                    <div className="max-h-[400px] overflow-y-auto border rounded-md border-slate-200">
                       {filteredClientes.length > 0 ? (
                         filteredClientes.map((cliente) => (
                           <div
                             key={cliente.clienteId}
-                            className={`px-4 py-3 cursor-pointer hover:bg-gray-100 ${
+                            className={`px-4 py-3 cursor-pointer hover:bg-slate-50 ${
                               field.value === cliente.clienteId
-                                ? "bg-blue-50 border-l-4 border-blue-500"
-                                : ""
+                                ? "bg-indigo-50 border-l-4 border-indigo-500"
+                                : "border-l-4 border-transparent"
                             }`}
                             onClick={() => field.onChange(cliente.clienteId)}
                           >
                             <div className="font-medium">{cliente.nombre}</div>
-                            <div className="text-sm text-gray-600">
-                              CUIT: {cliente.cuit} | Email: {cliente.email}
+                            <div className="text-sm text-slate-600 flex flex-col sm:flex-row sm:gap-3 mt-1">
+                              <span className="flex items-center gap-1">
+                                <Tag className="h-3.5 w-3.5 text-slate-400" />{" "}
+                                {cliente.cuit}
+                              </span>
+                              <span className="flex items-center gap-1">
+                                <Search className="h-3.5 w-3.5 text-slate-400" />{" "}
+                                {cliente.email}
+                              </span>
                             </div>
                           </div>
                         ))
                       ) : searchTerm.length > 0 ? (
-                        <div className="p-4 text-center text-gray-500">
+                        <div className="p-8 text-center text-slate-500">
                           No se encontraron clientes con ese criterio de
                           búsqueda.
                         </div>
                       ) : (
-                        <div className="p-4 text-center text-gray-500">
+                        <div className="p-8 text-center text-slate-500">
                           No hay clientes disponibles. Por favor, cree un
                           cliente primero.
                         </div>
@@ -373,7 +415,7 @@ export default function CrearCondicionContractualComponent() {
               )}
             />
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <Controller
                 name="fecha_inicio"
                 control={control}
@@ -406,6 +448,13 @@ export default function CrearCondicionContractualComponent() {
                 />
               )}
             </div>
+
+            {watch("tipo_de_contrato") === "Permanente" && (
+              <div className="mt-2 p-3 bg-blue-50 border border-blue-200 rounded-md text-blue-700 text-sm">
+                Los contratos permanentes no requieren una fecha de finalización
+                específica.
+              </div>
+            )}
           </div>
         )}
 
@@ -428,7 +477,7 @@ export default function CrearCondicionContractualComponent() {
               )}
             />
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <Controller
                 name="tarifa"
                 control={control}
@@ -475,18 +524,38 @@ export default function CrearCondicionContractualComponent() {
               name="estado"
               control={control}
               render={({ field, fieldState }) => (
-                <FormField
-                  label="Estado"
-                  name="estado"
-                  fieldType="select"
-                  value={field.value as string}
-                  onChange={(value: string) => field.onChange(value)}
-                  options={[
-                    { label: "Activo", value: "Activo" },
-                    { label: "Inactivo", value: "Inactivo" },
-                  ]}
-                  error={fieldState.error?.message}
-                />
+                <div>
+                  <label className="block text-sm font-medium mb-1">
+                    Estado
+                  </label>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div
+                      className={`border rounded-md p-3 cursor-pointer flex items-center justify-center ${
+                        field.value === "Activo"
+                          ? "bg-green-100 border-green-300 text-green-800"
+                          : "bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100"
+                      }`}
+                      onClick={() => field.onChange("Activo")}
+                    >
+                      Activo
+                    </div>
+                    <div
+                      className={`border rounded-md p-3 cursor-pointer flex items-center justify-center ${
+                        field.value === "Inactivo"
+                          ? "bg-slate-200 border-slate-300 text-slate-800"
+                          : "bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100"
+                      }`}
+                      onClick={() => field.onChange("Inactivo")}
+                    >
+                      Inactivo
+                    </div>
+                  </div>
+                  {fieldState.error?.message && (
+                    <p className="text-sm text-red-500 mt-1">
+                      {fieldState.error.message}
+                    </p>
+                  )}
+                </div>
               )}
             />
           </div>
@@ -499,22 +568,36 @@ export default function CrearCondicionContractualComponent() {
               variant="outline"
               onClick={handleBack}
               disabled={isSubmitting}
+              className="border-slate-200 hover:bg-slate-50 hover:text-slate-900"
             >
-              Anterior
+              <ChevronLeft className="mr-2 h-4 w-4" /> Anterior
             </Button>
           )}
 
-          <div className="ml-auto">
-            {step < 3 && <Button onClick={handleNext}>Siguiente</Button>}
+          <div className={step > 1 ? "ml-auto" : ""}>
+            {step < 3 && (
+              <Button
+                onClick={handleNext}
+                className="bg-indigo-600 hover:bg-indigo-700"
+              >
+                Siguiente <ChevronRight className="ml-2 h-4 w-4" />
+              </Button>
+            )}
 
             {step === 3 && (
-              <Button onClick={handleSubmit(onSubmit)} disabled={isSubmitting}>
+              <Button
+                onClick={handleSubmit(onSubmit)}
+                disabled={isSubmitting}
+                className="bg-indigo-600 hover:bg-indigo-700"
+              >
                 {isSubmitting ? (
                   <>
                     <Loader className="mr-2 h-4 w-4" /> Guardando...
                   </>
                 ) : (
-                  "Guardar Contrato"
+                  <>
+                    <Save className="mr-2 h-4 w-4" /> Guardar Contrato
+                  </>
                 )}
               </Button>
             )}

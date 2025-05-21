@@ -25,6 +25,26 @@ import { Button } from "../ui/button";
 import { FormDialog } from "../ui/local/FormDialog";
 import { FormField } from "../ui/local/FormField";
 import { VehiculoSelector } from "../ui/local/SearchSelector/Selectors/VehiculoSelector";
+import {
+  Wrench,
+  Calendar,
+  PlusCircle,
+  Edit2,
+  Trash2,
+  CheckCircle,
+  PauseCircle,
+  Car,
+  Tag,
+  DollarSign,
+} from "lucide-react";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const MantenimientoVehiculosComponent = ({
   data,
@@ -48,6 +68,7 @@ const MantenimientoVehiculosComponent = ({
   const [selectedMantenimiento, setSelectedMantenimiento] =
     useState<VehicleMaintenance | null>(null);
   const [isCreating, setIsCreating] = useState(false);
+  const [activeTab, setActiveTab] = useState("todos");
 
   const mantenimientoSchema = z.object({
     vehiculoId: z.number({
@@ -98,6 +119,11 @@ const MantenimientoVehiculosComponent = ({
     params.set("search", search);
     params.set("page", "1");
     router.replace(`?${params.toString()}`);
+  };
+
+  const handleTabChange = (value: string) => {
+    setActiveTab(value);
+    // Implementar filtrado por estado de completado
   };
 
   const handleEditClick = (mantenimiento: VehicleMaintenance) => {
@@ -228,6 +254,13 @@ const MantenimientoVehiculosComponent = ({
     fetchMantenimientos();
   }, [fetchMantenimientos]);
 
+  const filteredMantenimientos =
+    activeTab === "todos"
+      ? mantenimientos
+      : activeTab === "completados"
+      ? mantenimientos.filter((mant) => mant.completado)
+      : mantenimientos.filter((mant) => !mant.completado);
+
   if (loading) {
     return (
       <div className="w-full h-screen flex justify-center items-center">
@@ -237,112 +270,191 @@ const MantenimientoVehiculosComponent = ({
   }
 
   return (
-    <>
-      <ListadoTabla
-        title="Listado de Mantenimientos de Vehículos"
-        data={mantenimientos}
-        itemsPerPage={itemsPerPage}
-        searchableKeys={["tipoMantenimiento", "descripcion", "vehiculoId"]}
-        remotePagination
-        totalItems={total}
-        currentPage={page}
-        onPageChange={handlePageChange}
-        onSearchChange={handleSearchChange}
-        columns={[
-          { title: "ID", key: "id" },
-          { title: "Vehículo ID", key: "vehiculoId" },
-          { title: "Fecha de mantenimiento", key: "fechaMantenimiento" },
-          { title: "Tipo de mantenimiento", key: "tipoMantenimiento" },
-          { title: "Descripción", key: "descripcion" },
-          { title: "Costo", key: "costo" },
-          { title: "Próximo mantenimiento", key: "proximoMantenimiento" },
-          { title: "Completado", key: "completado" },
-          { title: "Fecha completado", key: "fechaCompletado" },
-          { title: "Acciones", key: "acciones" },
-        ]}
-        renderRow={(mantenimiento) => (
-          <>
-            <TableCell className="font-medium">{mantenimiento.id}</TableCell>
-            <TableCell>{mantenimiento.vehiculoId}</TableCell>
-            <TableCell>
-              {mantenimiento.fechaMantenimiento &&
-                new Date(mantenimiento.fechaMantenimiento).toLocaleDateString(
-                  "es-AR"
-                )}
-            </TableCell>
-            <TableCell>
-              <Badge
-                variant={
-                  mantenimiento.tipoMantenimiento === "Preventivo"
-                    ? "default"
-                    : "outline"
-                }
-              >
-                {mantenimiento.tipoMantenimiento}
-              </Badge>
-            </TableCell>
-            <TableCell>{mantenimiento.descripcion}</TableCell>
-            <TableCell>${mantenimiento.costo}</TableCell>
-            <TableCell>
-              {mantenimiento.proximoMantenimiento &&
-                new Date(mantenimiento.proximoMantenimiento).toLocaleDateString(
-                  "es-AR"
-                )}
-            </TableCell>
-            <TableCell>
-              <Badge
-                variant={mantenimiento.completado ? "default" : "secondary"}
-                className={
-                  mantenimiento.completado
-                    ? "bg-green-500 hover:bg-green-600"
-                    : ""
-                }
-              >
-                {mantenimiento.completado ? "Completado" : "Pendiente"}
-              </Badge>
-            </TableCell>
-            <TableCell>
-              {mantenimiento.fechaCompletado &&
-                new Date(mantenimiento.fechaCompletado).toLocaleDateString(
-                  "es-AR"
-                )}
-            </TableCell>
-            <TableCell className="flex gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => handleEditClick(mantenimiento)}
-                className="cursor-pointer"
-              >
-                Editar
-              </Button>
-              {!mantenimiento.completado && (
-                <Button
-                  variant="default"
-                  size="sm"
-                  onClick={() => handleCompletarClick(mantenimiento.id)}
-                  className="cursor-pointer"
-                >
-                  Completar
-                </Button>
-              )}
-              <Button
-                variant="destructive"
-                size="sm"
-                onClick={() => handleDeleteClick(mantenimiento.id)}
-                className="cursor-pointer"
-              >
-                Eliminar
-              </Button>
-            </TableCell>
-          </>
-        )}
-        addButton={
-          <Button onClick={handleCreateClick} className="cursor-pointer">
+    <Card className="w-full shadow-md">
+      <CardHeader className="bg-slate-50 dark:bg-slate-900 border-b">
+        <div className="flex items-center justify-between">
+          <div>
+            <CardTitle className="text-2xl font-bold">
+              Mantenimiento de Vehículos
+            </CardTitle>
+            <CardDescription className="text-muted-foreground mt-1">
+              Gestión y programación de mantenimientos para los vehículos
+            </CardDescription>
+          </div>
+          <Button
+            onClick={handleCreateClick}
+            className="cursor-pointer bg-indigo-600 hover:bg-indigo-700"
+          >
+            <PlusCircle className="mr-2 h-4 w-4" />
             Programar Mantenimiento
           </Button>
-        }
-      />
+        </div>
+
+        <div className="mt-4">
+          <Tabs
+            defaultValue="todos"
+            value={activeTab}
+            onValueChange={handleTabChange}
+          >
+            <TabsList className="grid grid-cols-3 w-[400px]">
+              <TabsTrigger value="todos" className="flex items-center">
+                <Wrench className="mr-2 h-4 w-4" />
+                Todos
+              </TabsTrigger>
+              <TabsTrigger value="pendientes" className="flex items-center">
+                <PauseCircle className="mr-2 h-4 w-4" />
+                Pendientes
+              </TabsTrigger>
+              <TabsTrigger value="completados" className="flex items-center">
+                <CheckCircle className="mr-2 h-4 w-4" />
+                Completados
+              </TabsTrigger>
+            </TabsList>
+          </Tabs>
+        </div>
+      </CardHeader>
+
+      <CardContent className="p-6">
+        <div className="rounded-md border">
+          <ListadoTabla
+            title=""
+            data={filteredMantenimientos}
+            itemsPerPage={itemsPerPage}
+            searchableKeys={["tipoMantenimiento", "descripcion", "vehiculoId"]}
+            remotePagination
+            totalItems={total}
+            currentPage={page}
+            onPageChange={handlePageChange}
+            onSearchChange={handleSearchChange}
+            columns={[
+              { title: "Vehículo", key: "vehiculo" },
+              { title: "Detalles", key: "detalles" },
+              { title: "Tipo", key: "tipo" },
+              { title: "Estado", key: "estado" },
+              { title: "Acciones", key: "acciones" },
+            ]}
+            renderRow={(mantenimiento) => (
+              <>
+                <TableCell className="min-w-[200px]">
+                  <div className="flex items-center gap-3">
+                    <div className="h-10 w-10 rounded-full bg-slate-100 flex items-center justify-center">
+                      <Car className="h-5 w-5 text-slate-600" />
+                    </div>
+                    <div>
+                      <div className="font-medium">
+                        ID Vehículo: {mantenimiento.vehiculoId}
+                      </div>
+                      <div className="text-sm text-muted-foreground">
+                        <Tag className="h-3.5 w-3.5 mr-1" />#{mantenimiento.id}
+                      </div>
+                    </div>
+                  </div>
+                </TableCell>
+
+                <TableCell className="min-w-[250px]">
+                  <div className="space-y-1">
+                    <div className="flex items-center text-sm">
+                      <Calendar className="h-3.5 w-3.5 mr-2 text-muted-foreground" />
+                      <span>
+                        {mantenimiento.fechaMantenimiento &&
+                          new Date(
+                            mantenimiento.fechaMantenimiento
+                          ).toLocaleDateString("es-AR")}
+                      </span>
+                    </div>
+                    <div className="flex items-center text-sm">
+                      <DollarSign className="h-3.5 w-3.5 mr-2 text-muted-foreground" />
+                      <span>${mantenimiento.costo}</span>
+                    </div>
+                  </div>
+                </TableCell>
+
+                <TableCell>
+                  <Badge
+                    variant={
+                      mantenimiento.tipoMantenimiento === "Preventivo"
+                        ? "default"
+                        : "outline"
+                    }
+                    className={
+                      mantenimiento.tipoMantenimiento === "Preventivo"
+                        ? "bg-blue-100 text-blue-800 hover:bg-blue-100"
+                        : "bg-amber-100 text-amber-800 hover:bg-amber-100"
+                    }
+                  >
+                    {mantenimiento.tipoMantenimiento}
+                  </Badge>
+                  <div className="mt-2 text-xs text-gray-500">
+                    {mantenimiento.descripcion}
+                  </div>
+                </TableCell>
+
+                <TableCell>
+                  <Badge
+                    variant={mantenimiento.completado ? "default" : "outline"}
+                    className={
+                      mantenimiento.completado
+                        ? "bg-green-100 text-green-800 hover:bg-green-100"
+                        : "bg-yellow-100 text-yellow-800 hover:bg-yellow-100"
+                    }
+                  >
+                    {mantenimiento.completado ? "Completado" : "Pendiente"}
+                  </Badge>
+                  <div className="mt-2 text-xs">
+                    {mantenimiento.proximoMantenimiento && (
+                      <div className="flex items-center">
+                        <Calendar className="h-3.5 w-3.5 mr-1 text-muted-foreground" />
+                        <span>
+                          Próximo:{" "}
+                          {new Date(
+                            mantenimiento.proximoMantenimiento
+                          ).toLocaleDateString("es-AR")}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                </TableCell>
+
+                <TableCell className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleEditClick(mantenimiento)}
+                    className="cursor-pointer border-slate-200 hover:bg-slate-50 hover:text-slate-900"
+                  >
+                    <Edit2 className="h-3.5 w-3.5 mr-1" />
+                    Editar
+                  </Button>
+
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    onClick={() => handleDeleteClick(mantenimiento.id)}
+                    className="cursor-pointer bg-red-100 text-red-700 hover:bg-red-200 hover:text-red-800"
+                  >
+                    <Trash2 className="h-3.5 w-3.5 mr-1" />
+                    Eliminar
+                  </Button>
+
+                  <div className="ml-1">
+                    {!mantenimiento.completado && (
+                      <Button
+                        variant="default"
+                        size="sm"
+                        onClick={() => handleCompletarClick(mantenimiento.id)}
+                        className="cursor-pointer bg-green-100 text-green-700 hover:bg-green-200 hover:text-green-800"
+                      >
+                        <CheckCircle className="h-3.5 w-3.5 mr-1" />
+                        Completar
+                      </Button>
+                    )}
+                  </div>
+                </TableCell>
+              </>
+            )}
+          />
+        </div>
+      </CardContent>
 
       <FormDialog
         open={isCreating || selectedMantenimiento !== null}
@@ -357,9 +469,14 @@ const MantenimientoVehiculosComponent = ({
             ? "Editar Mantenimiento"
             : "Programar Nuevo Mantenimiento"
         }
+        description={
+          selectedMantenimiento
+            ? "Modificar información del mantenimiento en el sistema."
+            : "Completa el formulario para programar un nuevo mantenimiento."
+        }
         onSubmit={handleSubmit(onSubmit)}
       >
-        <>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
           <Controller
             name="vehiculoId"
             control={control}
@@ -411,21 +528,6 @@ const MantenimientoVehiculosComponent = ({
           />
 
           <Controller
-            name="descripcion"
-            control={control}
-            render={({ field, fieldState }) => (
-              <FormField
-                label="Descripción"
-                name="descripcion"
-                type="textarea"
-                value={field.value}
-                onChange={field.onChange}
-                error={fieldState.error?.message}
-              />
-            )}
-          />
-
-          <Controller
             name="costo"
             control={control}
             render={({ field, fieldState }) => (
@@ -436,6 +538,24 @@ const MantenimientoVehiculosComponent = ({
                 value={String(field.value)}
                 onChange={(value) => field.onChange(Number(value))}
                 error={fieldState.error?.message}
+                placeholder="$0.00"
+              />
+            )}
+          />
+
+          <Controller
+            name="descripcion"
+            control={control}
+            render={({ field, fieldState }) => (
+              <FormField
+                label="Descripción"
+                name="descripcion"
+                type="textarea"
+                className="col-span-2"
+                value={field.value}
+                onChange={field.onChange}
+                error={fieldState.error?.message}
+                placeholder="Describa el mantenimiento a realizar"
               />
             )}
           />
@@ -454,9 +574,9 @@ const MantenimientoVehiculosComponent = ({
               />
             )}
           />
-        </>
+        </div>
       </FormDialog>
-    </>
+    </Card>
   );
 };
 

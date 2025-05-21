@@ -180,3 +180,36 @@ export async function changeVehicleStatus(id: number, estado: VehiculoStatus) {
 
   return res.status;
 }
+
+// Get total vehicles
+export async function getTotalVehicles() {
+  const cookieStore = await cookies();
+  const token = cookieStore.get("token")?.value;
+
+  if (!token) throw new Error("Token no encontrado");
+
+  try {
+    const response = await fetch(
+      `${process.env.NEXT_PUBLIC_API_URL}/api/vehicles/total_vehicles`,
+      {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        cache: "no-store",
+      }
+    );
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(
+        errorData.message || "Error al obtener el total de vehículos"
+      );
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error("Error fetching total vehicles:", error);
+    throw new Error("Error al obtener el total de vehículos");
+  }
+}

@@ -20,6 +20,32 @@ import Loader from "../ui/local/Loader";
 import { z } from "zod";
 import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import {
+  UserCheck,
+  Search,
+  RefreshCcw,
+  UserPlus,
+  Edit2,
+  Trash2,
+  CheckCircle,
+  XCircle,
+  Mail,
+  Phone,
+  Briefcase,
+  Calendar,
+  Building,
+  CreditCard,
+  MapPin,
+  User2,
+} from "lucide-react";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export default function ListadoClientesComponent({
   data,
@@ -35,12 +61,17 @@ export default function ListadoClientesComponent({
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  const [clients, setClients] = useState<Cliente[]>(data);
+  // Asegurarnos de que data siempre sea un array
+  const safeData = Array.isArray(data) ? data : [];
+
+  const [clients, setClients] = useState<Cliente[]>(safeData);
   const [total, setTotal] = useState<number>(totalItems);
   const [page, setPage] = useState<number>(currentPage);
   const [loading, setLoading] = useState<boolean>(false);
   const [selectedClient, setSelectedClient] = useState<Cliente | null>(null);
   const [isCreating, setIsCreating] = useState(false);
+  const [activeTab, setActiveTab] = useState("todos");
+  const [isFirstLoad, setIsFirstLoad] = useState(true);
 
   const createClientSchema = z.object({
     nombre: z.string().min(1, "El nombre es obligatorio"),
@@ -149,10 +180,15 @@ export default function ListadoClientesComponent({
     }
   };
 
+  const handleTabChange = (value: string) => {
+    setActiveTab(value);
+    // Aquí podrías implementar filtrado por estado al cambiar de pestaña
+  };
+
   const onSubmit = async (data: z.infer<typeof createClientSchema>) => {
     try {
       if (selectedClient && selectedClient.clienteId) {
-        await editClient(selectedClient.clienteId, data);
+        await editClient(selectedClient.clienteId.toString(), data);
         toast.success("Cliente actualizado", {
           description: "Los cambios se han guardado correctamente.",
         });
@@ -197,9 +233,18 @@ export default function ListadoClientesComponent({
     }
   }, [searchParams, itemsPerPage]);
 
+  const filteredClients =
+    activeTab === "todos"
+      ? clients
+      : clients.filter((client) => client.estado === activeTab.toUpperCase());
+
   useEffect(() => {
-    fetchClients();
-  }, [fetchClients]);
+    if (isFirstLoad) {
+      setIsFirstLoad(false);
+    } else {
+      fetchClients();
+    }
+  }, [fetchClients, isFirstLoad]);
 
   if (loading) {
     return (
@@ -210,75 +255,169 @@ export default function ListadoClientesComponent({
   }
 
   return (
-    <>
-      <ListadoTabla
-        title="Listado de Clientes"
-        data={clients}
-        itemsPerPage={itemsPerPage}
-        searchableKeys={["nombre", "cuit", "email"]}
-        remotePagination
-        totalItems={total}
-        currentPage={page}
-        onPageChange={handlePageChange}
-        onSearchChange={handleSearchChange}
-        columns={[
-          { title: "Nombre", key: "nombre" },
-          { title: "CUIT", key: "cuit" },
-          { title: "Dirección", key: "direccion" },
-          { title: "Teléfono", key: "telefono" },
-          { title: "Email", key: "email" },
-          { title: "Contacto", key: "contacto_principal" },
-          { title: "Registro", key: "fecha_registro" },
-          { title: "Estado", key: "estado" },
-          { title: "Acciones", key: "acciones" },
-        ]}
-        renderRow={(cliente) => (
-          <>
-            <TableCell className="font-medium">{cliente.nombre}</TableCell>
-            <TableCell>{cliente.cuit}</TableCell>
-            <TableCell>{cliente.direccion}</TableCell>
-            <TableCell>{cliente.telefono}</TableCell>
-            <TableCell>{cliente.email}</TableCell>
-            <TableCell>{cliente.contacto_principal}</TableCell>
-            <TableCell>
-              {cliente.fecha_registro &&
-                new Date(cliente.fecha_registro).toLocaleDateString("es-AR")}
-            </TableCell>
-            <TableCell>
-              <Badge
-                variant={cliente.estado === "ACTIVO" ? "default" : "outline"}
-              >
-                {cliente.estado}
-              </Badge>
-            </TableCell>
-            <TableCell className="flex gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => handleEditClick(cliente)}
-                className="cursor-pointer"
-              >
-                Editar
-              </Button>
-              <Button
-                variant="destructive"
-                size="sm"
-                onClick={() =>
-                  cliente.clienteId && handleDeleteClick(cliente.clienteId)
-                }
-                className="cursor-pointer"
-              >
-                Eliminar
-              </Button>
-            </TableCell>
-          </>
-        )}
-        addButton={
-          <Button onClick={handleCreateClick} className="cursor-pointer">
-            Agregar cliente
+    <Card className="w-full shadow-md">
+      <CardHeader className="bg-slate-50 dark:bg-slate-900 border-b">
+        <div className="flex items-center justify-between">
+          <div>
+            <CardTitle className="text-2xl font-bold">
+              Gestión de Clientes
+            </CardTitle>
+            <CardDescription className="text-muted-foreground mt-1">
+              Administra la información de clientes de la empresa
+            </CardDescription>
+          </div>
+          <Button
+            onClick={handleCreateClick}
+            className="cursor-pointer bg-indigo-600 hover:bg-indigo-700"
+          >
+            <UserPlus className="mr-2 h-4 w-4" />
+            Nuevo Cliente
           </Button>
-        }
-      />
+        </div>
+
+        <div className="mt-4">
+          <Tabs
+            defaultValue="todos"
+            value={activeTab}
+            onValueChange={handleTabChange}
+          >
+            <TabsList className="grid grid-cols-3 w-[400px]">
+              <TabsTrigger value="todos" className="flex items-center">
+                <UserCheck className="mr-2 h-4 w-4" />
+                Todos
+              </TabsTrigger>
+              <TabsTrigger value="activo" className="flex items-center">
+                <CheckCircle className="mr-2 h-4 w-4" />
+                Activos
+              </TabsTrigger>
+              <TabsTrigger value="inactivo" className="flex items-center">
+                <XCircle className="mr-2 h-4 w-4" />
+                Inactivos
+              </TabsTrigger>
+            </TabsList>
+          </Tabs>
+        </div>
+      </CardHeader>
+
+      <CardContent className="p-6">
+        <div className="rounded-md border">
+          <ListadoTabla
+            title=""
+            data={filteredClients}
+            itemsPerPage={itemsPerPage}
+            searchableKeys={["nombre", "cuit", "email"]}
+            remotePagination
+            totalItems={total}
+            currentPage={page}
+            onPageChange={handlePageChange}
+            onSearchChange={handleSearchChange}
+            columns={[
+              { title: "Cliente", key: "cliente" },
+              { title: "Contacto", key: "contacto" },
+              { title: "Información", key: "informacion" },
+              { title: "Estado", key: "estado" },
+              { title: "Acciones", key: "acciones" },
+            ]}
+            renderRow={(cliente) => (
+              <>
+                <TableCell className="min-w-[250px]">
+                  <div className="flex items-center gap-3">
+                    <div className="h-10 w-10 rounded-full bg-slate-100 flex items-center justify-center">
+                      <Building className="h-5 w-5 text-slate-600" />
+                    </div>
+                    <div>
+                      <div className="font-medium">{cliente.nombre}</div>
+                      <div className="text-sm text-muted-foreground">
+                        <span className="flex items-center">
+                          <CreditCard className="h-3.5 w-3.5 mr-1 text-muted-foreground" />
+                          {cliente.cuit}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </TableCell>
+
+                <TableCell className="min-w-[220px]">
+                  <div className="space-y-1">
+                    <div className="flex items-center text-sm">
+                      <Mail className="h-3.5 w-3.5 mr-2 text-muted-foreground" />
+                      <span>{cliente.email}</span>
+                    </div>
+                    <div className="flex items-center text-sm">
+                      <Phone className="h-3.5 w-3.5 mr-2 text-muted-foreground" />
+                      <span>{cliente.telefono}</span>
+                    </div>
+                  </div>
+                </TableCell>
+
+                <TableCell className="min-w-[200px]">
+                  <div className="space-y-1">
+                    <div className="flex items-center text-sm">
+                      <User2 className="h-3.5 w-3.5 mr-2 text-muted-foreground" />
+                      <span>{cliente.contacto_principal}</span>
+                    </div>
+                    <div className="flex items-center text-sm">
+                      <MapPin className="h-3.5 w-3.5 mr-2 text-muted-foreground" />
+                      <span className="truncate max-w-[180px]">
+                        {cliente.direccion}
+                      </span>
+                    </div>
+                    <div className="flex items-center text-sm">
+                      <Calendar className="h-3.5 w-3.5 mr-2 text-muted-foreground" />
+                      <span>
+                        {cliente.fecha_registro &&
+                          new Date(cliente.fecha_registro).toLocaleDateString(
+                            "es-AR"
+                          )}
+                      </span>
+                    </div>
+                  </div>
+                </TableCell>
+
+                <TableCell>
+                  <Badge
+                    variant={
+                      cliente.estado === "ACTIVO" ? "default" : "outline"
+                    }
+                    className={
+                      cliente.estado === "ACTIVO"
+                        ? "bg-green-100 text-green-800 hover:bg-green-100"
+                        : "bg-gray-100 text-gray-800 hover:bg-gray-100"
+                    }
+                  >
+                    {cliente.estado}
+                  </Badge>
+                </TableCell>
+
+                <TableCell className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleEditClick(cliente)}
+                    className="cursor-pointer border-slate-200 hover:bg-slate-50 hover:text-slate-900"
+                  >
+                    <Edit2 className="h-3.5 w-3.5 mr-1" />
+                    Editar
+                  </Button>
+
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    onClick={() =>
+                      cliente.clienteId &&
+                      handleDeleteClick(cliente.clienteId.toString())
+                    }
+                    className="cursor-pointer bg-red-100 text-red-700 hover:bg-red-200 hover:text-red-800"
+                  >
+                    <Trash2 className="h-3.5 w-3.5 mr-1" />
+                    Eliminar
+                  </Button>
+                </TableCell>
+              </>
+            )}
+          />
+        </div>
+      </CardContent>
 
       <FormDialog
         open={isCreating || selectedClient !== null}
@@ -289,36 +428,104 @@ export default function ListadoClientesComponent({
           }
         }}
         title={selectedClient ? "Editar Cliente" : "Crear Cliente"}
+        description={
+          selectedClient
+            ? "Modificar información del cliente en el sistema."
+            : "Completa el formulario para registrar un nuevo cliente."
+        }
         onSubmit={handleSubmit(onSubmit)}
       >
-        <>
-          {(
-            [
-              ["nombre", "Nombre"],
-              ["cuit", "CUIT"],
-              ["direccion", "Dirección"],
-              ["telefono", "Teléfono"],
-              ["email", "Email"],
-              ["contacto_principal", "Contacto Principal"],
-            ] as const
-          ).map(([name, label]) => (
-            <Controller
-              key={name}
-              name={name}
-              control={control}
-              render={({ field, fieldState }) => (
-                <FormField
-                  label={label}
-                  name={name}
-                  value={field.value}
-                  onChange={field.onChange}
-                  error={fieldState.error?.message}
-                />
-              )}
-            />
-          ))}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
+          <Controller
+            name="nombre"
+            control={control}
+            render={({ field, fieldState }) => (
+              <FormField
+                label="Nombre"
+                name="nombre"
+                value={field.value?.toString() || ""}
+                onChange={field.onChange}
+                error={fieldState.error?.message}
+                placeholder="Nombre de la empresa"
+              />
+            )}
+          />
 
-          {/* Campo para el estado */}
+          <Controller
+            name="cuit"
+            control={control}
+            render={({ field, fieldState }) => (
+              <FormField
+                label="CUIT"
+                name="cuit"
+                value={field.value?.toString() || ""}
+                onChange={field.onChange}
+                error={fieldState.error?.message}
+                placeholder="xx-xxxxxxxx-x"
+              />
+            )}
+          />
+
+          <Controller
+            name="direccion"
+            control={control}
+            render={({ field, fieldState }) => (
+              <FormField
+                label="Dirección"
+                name="direccion"
+                value={field.value?.toString() || ""}
+                onChange={field.onChange}
+                error={fieldState.error?.message}
+                placeholder="Dirección completa"
+              />
+            )}
+          />
+
+          <Controller
+            name="telefono"
+            control={control}
+            render={({ field, fieldState }) => (
+              <FormField
+                label="Teléfono"
+                name="telefono"
+                value={field.value?.toString() || ""}
+                onChange={field.onChange}
+                error={fieldState.error?.message}
+                placeholder="Ej: 123-4567-8901"
+              />
+            )}
+          />
+
+          <Controller
+            name="email"
+            control={control}
+            render={({ field, fieldState }) => (
+              <FormField
+                label="Email"
+                name="email"
+                value={field.value?.toString() || ""}
+                onChange={field.onChange}
+                error={fieldState.error?.message}
+                placeholder="correo@ejemplo.com"
+              />
+            )}
+          />
+
+          <Controller
+            name="contacto_principal"
+            control={control}
+            render={({ field, fieldState }) => (
+              <FormField
+                label="Contacto Principal"
+                name="contacto_principal"
+                value={field.value?.toString() || ""}
+                onChange={field.onChange}
+                error={fieldState.error?.message}
+                placeholder="Nombre del contacto"
+              />
+            )}
+          />
+
           <Controller
             name="estado"
             control={control}
@@ -327,20 +534,20 @@ export default function ListadoClientesComponent({
                 label="Estado"
                 name="estado"
                 fieldType="select"
-                value={field.value || ""} // Asegúrate de que sea un valor primitivo (cadena o número)
+                value={field.value || ""}
                 onChange={(selectedValue: string) =>
                   field.onChange(selectedValue)
-                } // Solo pasa el valor, no el objeto
+                }
                 options={[
-                  { label: "ACTIVO", value: "ACTIVO" },
-                  { label: "INACTIVO", value: "INACTIVO" },
+                  { label: "Activo", value: "ACTIVO" },
+                  { label: "Inactivo", value: "INACTIVO" },
                 ]}
-                error={fieldState.error?.message} // Manejo de errores
+                error={fieldState.error?.message}
               />
             )}
           />
-        </>
+        </div>
       </FormDialog>
-    </>
+    </Card>
   );
 }

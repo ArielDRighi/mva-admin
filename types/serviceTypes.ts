@@ -162,3 +162,64 @@ export type FilterServicesDto = {
   fechaDesde?: string;
   fechaHasta?: string;
 };
+
+export type TipoServicio =
+  | "INSTALACION"
+  | "MANTENIMIENTO"
+  | "RETIRO"
+  | "LIMPIEZA";
+
+export type EstadoServicio =
+  | "PROGRAMADO"
+  | "EN_PROGRESO"
+  | "COMPLETADO"
+  | "CANCELADO"
+  | "PENDIENTE";
+
+export interface Cliente {
+  clienteId: number;
+  nombre: string;
+  email: string;
+  cuit: string;
+  direccion: string;
+  // Otros campos del cliente
+}
+
+export interface Asignacion {
+  // Definir propiedades de asignaciones según necesidad
+  id: number;
+  // Otros campos relevantes
+}
+
+export interface BanoInstalado {
+  // Definir propiedades de baños instalados según necesidad
+  id: number;
+  // Otros campos relevantes
+}
+
+export interface Servicio {
+  id: number;
+  clienteId: number;
+  cliente: Cliente;
+  tipoServicio: TipoServicio;
+  estado: EstadoServicio;
+  ubicacion: string;
+  fechaCreacion: string;
+  fechaProgramada: string;
+  fechaInicio: string;
+  fechaFin: string;
+  fechaFinAsignacion: string;
+  cantidadBanos: number;
+  cantidadEmpleados: number;
+  cantidadVehiculos: number;
+  asignacionAutomatica: boolean;
+  empleadoAId: number | null;
+  empleadoBId: number | null;
+  condicionContractualId: number;
+  notas: string;
+  comentarioIncompleto: string | null;
+  asignaciones: Asignacion[];
+  banosInstalados: BanoInstalado[];
+}
+
+export type ProximosServicios = Servicio[];
