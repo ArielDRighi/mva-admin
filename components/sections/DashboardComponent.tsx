@@ -23,6 +23,7 @@ import { getTotalEmployees } from "@/app/actions/empleados";
 import { getTotalSanitarios } from "@/app/actions/sanitarios";
 import {
   getProximosServices,
+  getRecentActivity,
   getResumeServices,
   getServicesStats,
 } from "@/app/actions/services";
@@ -81,7 +82,8 @@ const DashboardComponent = () => {
     limit: 10,
     totalPages: 0,
   });
-  console.log("futuresCleanings", futuresCleanings);
+  const [activityRecent, setRecentActivity] = useState<any>(null);
+  console.log("activityRecent", activityRecent);
 
   const router = useRouter();
 
@@ -95,6 +97,8 @@ const DashboardComponent = () => {
         const serviceStats = await getServicesStats();
         const resumeService = await getResumeServices();
         const futuresCleanings = await getFuturesCleanings();
+        const activity = await getRecentActivity();
+        setRecentActivity(activity);
         setFuturesCleanings(futuresCleanings);
         setresumeService(resumeService);
         setServicesStats(serviceStats);
@@ -611,7 +615,7 @@ const DashboardComponent = () => {
                 futuresCleanings.items &&
                 futuresCleanings.items.length > 0 ? (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {futuresCleanings.items.slice(0, 4).map((item) => (
+                    {futuresCleanings.items.slice(0, 4).map((item: any) => (
                       <div
                         key={item.id}
                         className="border rounded-md p-4 relative"
@@ -653,39 +657,215 @@ const DashboardComponent = () => {
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  {recentActivity.map((activity, idx) => (
-                    <div
-                      key={idx}
-                      className="flex items-start pb-4 border-b last:border-0"
-                    >
-                      <div className="w-10 h-10 rounded bg-gray-100 flex items-center justify-center">
-                        {activity.type === "SERVICIO" && (
-                          <TruckIcon className="h-5 w-5" />
-                        )}
-                        {activity.type === "MANTENIMIENTO" && (
-                          <Clock className="h-5 w-5" />
-                        )}
-                        {activity.type === "BAÑO" && (
-                          <Toilet className="h-5 w-5" />
-                        )}
-                        {activity.type === "CLIENTE" && (
-                          <User2Icon className="h-5 w-5" />
-                        )}
-                      </div>
-                      <div className="ml-4 flex-1">
-                        <div className="flex items-center">
-                          <span className="font-medium">{activity.action}</span>
-                          <span className="ml-2 text-xs text-gray-500">
-                            {activity.time}
-                          </span>
+                  {activityRecent && (
+                    <>
+                      {/* Servicio completado */}
+                      {activityRecent.latestCompletedService && (
+                        <div className="flex items-start pb-4 border-b">
+                          <div className="w-10 h-10 rounded bg-gray-100 flex items-center justify-center">
+                            <TruckIcon className="h-5 w-5" />
+                          </div>
+                          <div className="ml-4 flex-1">
+                            <div className="flex items-center">
+                              <span className="font-medium">COMPLETADO</span>
+                              <span className="ml-2 text-xs text-gray-500">
+                                {activityRecent?.timestamp
+                                  ? new Date(
+                                      activityRecent.timestamp
+                                    ).toLocaleString()
+                                  : "-"}
+                              </span>
+                            </div>
+                            <p className="text-sm">
+                              {
+                                activityRecent.latestCompletedService
+                                  .tipoServicio
+                              }{" "}
+                              para{" "}
+                              {
+                                activityRecent.latestCompletedService.cliente
+                                  ?.nombre
+                              }
+                            </p>
+                            <p className="text-xs text-gray-500 mt-1">
+                              Ubicación:{" "}
+                              {activityRecent.latestCompletedService.ubicacion}
+                            </p>
+                          </div>
                         </div>
-                        <p className="text-sm">{activity.description}</p>
-                        <p className="text-xs text-gray-500 mt-1">
-                          Por: {activity.user}
-                        </p>
-                      </div>
+                      )}
+
+                      {/* Servicio programado */}
+                      {activityRecent.latestScheduledService && (
+                        <div className="flex items-start pb-4 border-b">
+                          <div className="w-10 h-10 rounded bg-gray-100 flex items-center justify-center">
+                            <TruckIcon className="h-5 w-5" />
+                          </div>
+                          <div className="ml-4 flex-1">
+                            <div className="flex items-center">
+                              <span className="font-medium">PROGRAMADO</span>
+                              <span className="ml-2 text-xs text-gray-500">
+                                {new Date(
+                                  activityRecent.timestamp
+                                ).toLocaleString()}
+                              </span>
+                            </div>
+                            <p className="text-sm">
+                              {
+                                activityRecent.latestScheduledService
+                                  .tipoServicio
+                              }{" "}
+                              para{" "}
+                              {
+                                activityRecent.latestScheduledService.cliente
+                                  ?.nombre
+                              }
+                            </p>
+                            <p className="text-xs text-gray-500 mt-1">
+                              Ubicación:{" "}
+                              {activityRecent.latestScheduledService.ubicacion}
+                            </p>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Cliente nuevo */}
+                      {activityRecent.latestClient && (
+                        <div className="flex items-start pb-4 border-b">
+                          <div className="w-10 h-10 rounded bg-gray-100 flex items-center justify-center">
+                            <User2Icon className="h-5 w-5" />
+                          </div>
+                          <div className="ml-4 flex-1">
+                            <div className="flex items-center">
+                              <span className="font-medium">NUEVO CLIENTE</span>
+                              <span className="ml-2 text-xs text-gray-500">
+                                {new Date(
+                                  activityRecent.timestamp
+                                ).toLocaleString()}
+                              </span>
+                            </div>
+                            <p className="text-sm">
+                              {activityRecent.latestClient.nombre}
+                            </p>
+                            <p className="text-xs text-gray-500 mt-1">
+                              Contacto:{" "}
+                              {activityRecent.latestClient.contacto_principal}
+                            </p>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Baño nuevo/actualizado */}
+                      {activityRecent.latestToilet && (
+                        <div className="flex items-start pb-4 border-b">
+                          <div className="w-10 h-10 rounded bg-gray-100 flex items-center justify-center">
+                            <Toilet className="h-5 w-5" />
+                          </div>
+                          <div className="ml-4 flex-1">
+                            <div className="flex items-center">
+                              <span className="font-medium">
+                                BAÑO REGISTRADO
+                              </span>
+                              <span className="ml-2 text-xs text-gray-500">
+                                {new Date(
+                                  activityRecent.timestamp
+                                ).toLocaleString()}
+                              </span>
+                            </div>
+                            <p className="text-sm">
+                              Baño {activityRecent.latestToilet.codigo_interno}{" "}
+                              - {activityRecent.latestToilet.modelo}
+                            </p>
+                            <p className="text-xs text-gray-500 mt-1">
+                              Estado: {activityRecent.latestToilet.estado}
+                            </p>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Mantenimiento */}
+                      {activityRecent.latestMaintenance && (
+                        <div className="flex items-start pb-4 border-b">
+                          <div className="w-10 h-10 rounded bg-gray-100 flex items-center justify-center">
+                            <Clock className="h-5 w-5" />
+                          </div>
+                          <div className="ml-4 flex-1">
+                            <div className="flex items-center">
+                              <span className="font-medium">
+                                MANTENIMIENTO{" "}
+                                {activityRecent.latestMaintenance.completado
+                                  ? "COMPLETADO"
+                                  : "PROGRAMADO"}
+                              </span>
+                              <span className="ml-2 text-xs text-gray-500">
+                                {new Date(
+                                  activityRecent.latestMaintenance.completado
+                                    ? activityRecent.latestMaintenance
+                                        .fechaCompletado
+                                    : activityRecent.latestMaintenance.createdAt
+                                ).toLocaleString()}
+                              </span>
+                            </div>
+                            <p className="text-sm">
+                              {
+                                activityRecent.latestMaintenance
+                                  .tipo_mantenimiento
+                              }{" "}
+                              - {activityRecent.latestMaintenance.descripcion}
+                            </p>
+                            <p className="text-xs text-gray-500 mt-1">
+                              Baño:{" "}
+                              {
+                                activityRecent.latestMaintenance.toilet
+                                  .codigo_interno
+                              }{" "}
+                              | Técnico:{" "}
+                              {
+                                activityRecent.latestMaintenance
+                                  .tecnico_responsable
+                              }
+                            </p>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Vehículo nuevo */}
+                      {activityRecent.latestVehicle && (
+                        <div className="flex items-start pb-4 border-b last:border-0">
+                          <div className="w-10 h-10 rounded bg-gray-100 flex items-center justify-center">
+                            <TruckIcon className="h-5 w-5" />
+                          </div>
+                          <div className="ml-4 flex-1">
+                            <div className="flex items-center">
+                              <span className="font-medium">
+                                VEHÍCULO REGISTRADO
+                              </span>
+                              <span className="ml-2 text-xs text-gray-500">
+                                {new Date(
+                                  activityRecent.timestamp
+                                ).toLocaleString()}
+                              </span>
+                            </div>
+                            <p className="text-sm">
+                              {activityRecent.latestVehicle.marca}{" "}
+                              {activityRecent.latestVehicle.modelo} (
+                              {activityRecent.latestVehicle.placa})
+                            </p>
+                            <p className="text-xs text-gray-500 mt-1">
+                              Estado: {activityRecent.latestVehicle.estado}
+                            </p>
+                          </div>
+                        </div>
+                      )}
+                    </>
+                  )}
+
+                  {(!activityRecent ||
+                    Object.keys(activityRecent).length === 0) && (
+                    <div className="text-center py-8 text-gray-500">
+                      No hay actividad reciente para mostrar
                     </div>
-                  ))}
+                  )}
                 </div>
               </CardContent>
             </Card>

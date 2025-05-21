@@ -1,6 +1,5 @@
 import React from "react";
 import DashboardComponent from "../sections/DashboardComponent";
-// import { SectionCards } from "../sections/SectionCards";
 
 const DashboardPage = () => {
   return (

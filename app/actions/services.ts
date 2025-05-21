@@ -438,3 +438,24 @@ export async function getFuturesCleanings() {
 
   return await res.json();
 }
+
+export async function getRecentActivity() {
+  const cookieStore = await cookies();
+  const token = cookieStore.get("token")?.value;
+
+  if (!token) throw new Error("Token no encontrado");
+
+  const res = await fetch(
+    `${process.env.NEXT_PUBLIC_API_URL}/api/recent_activity/global`,
+    {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+      cache: "no-store",
+    }
+  );
+
+  if (!res.ok) throw new Error("Error al obtener actividades recientes");
+
+  return await res.json();
+}
