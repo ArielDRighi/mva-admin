@@ -27,7 +27,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Truck,
   Search,
@@ -79,9 +79,6 @@ const ListadoVehiculosComponent = ({
       .number()
       .min(1900, "El año debe ser mayor a 1900")
       .max(new Date().getFullYear() + 1, "El año no puede ser futuro"),
-    capacidadCarga: z.coerce
-      .number()
-      .min(1, "La capacidad de carga debe ser mayor a 0"),
     estado: z.enum(
       ["DISPONIBLE", "ASIGNADO", "MANTENIMIENTO", "INACTIVO", "BAJA"],
       {
@@ -99,7 +96,6 @@ const ListadoVehiculosComponent = ({
       marca: "",
       modelo: "",
       anio: new Date().getFullYear(),
-      capacidadCarga: 0,
       estado: "DISPONIBLE",
     },
   });
@@ -128,7 +124,6 @@ const ListadoVehiculosComponent = ({
       "marca",
       "modelo",
       "anio",
-      "capacidadCarga",
       "estado",
     ];
 
@@ -141,7 +136,6 @@ const ListadoVehiculosComponent = ({
       marca: "",
       modelo: "",
       anio: new Date().getFullYear(),
-      capacidadCarga: 0,
       estado: "DISPONIBLE",
     });
     setSelectedVehiculo(null);
@@ -512,22 +506,6 @@ const ListadoVehiculosComponent = ({
                 onChange={(value) => field.onChange(Number(value))}
                 error={fieldState.error?.message}
                 placeholder="Ej: 2023"
-              />
-            )}
-          />
-
-          <Controller
-            name="capacidadCarga"
-            control={control}
-            render={({ field, fieldState }) => (
-              <FormField
-                label="Capacidad de Carga (kg)"
-                name="capacidadCarga"
-                type="number"
-                value={field.value?.toString() || ""}
-                onChange={(value) => field.onChange(Number(value))}
-                error={fieldState.error?.message}
-                placeholder="Ej: 1000"
               />
             )}
           />

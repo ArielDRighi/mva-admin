@@ -1,5 +1,5 @@
 // middleware.ts
-import { NextResponse } from "next/server";
+import { NextResponse, userAgent } from "next/server";
 import type { NextRequest } from "next/server";
 
 export function middleware(request: NextRequest) {
@@ -15,7 +15,7 @@ export function middleware(request: NextRequest) {
 
   // Si está autenticado y entra a /login → mandarlo al dashboard
   if (isAuth && isLoginPage) {
-    return NextResponse.redirect(new URL("/dashboard", request.url));
+    return NextResponse.redirect(new URL("admin/dashboard", request.url));
   }
 
   return NextResponse.next();

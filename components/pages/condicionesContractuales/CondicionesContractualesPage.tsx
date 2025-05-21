@@ -10,14 +10,14 @@ const CondicionesContractualesPage = () => {
           Condiciones Contractuales
         </h2>
         <InfoCard
-          href="/dashboard/condiciones-contractuales/listado"
+          href="/admin/dashboard/condiciones-contractuales/listado"
           imgSrc={CondicionesContractualesPageImg}
           imgAlt="Icono de Condiciones Contractuales"
           title="Listado de Condiciones Contractuales"
           description="Consultá el listado completo de condiciones contractuales disponibles y gestioná su información."
         />
         <InfoCard
-          href="/dashboard/condiciones-contractuales/crear"
+          href="/admin/dashboard/condiciones-contractuales/crear"
           imgSrc={CondicionesContractualesPageImg}
           imgAlt="Icono de Condiciones Contractuales"
           title="Crear de Condiciones Contractuales"

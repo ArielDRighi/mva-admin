@@ -242,7 +242,7 @@ export default function CrearCondicionContractualComponent() {
       });
 
       setTimeout(() => {
-        router.push("/dashboard/condiciones-contractuales");
+        router.push("/admin/dashboard/condiciones-contractuales");
       }, 2000);
     } catch (error) {
       console.error("Error al crear la condición contractual:", error);
