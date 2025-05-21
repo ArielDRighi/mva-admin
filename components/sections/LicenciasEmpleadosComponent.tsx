@@ -16,6 +16,7 @@ import {
   updateEmployeeLeave,
   deleteEmployeeLeave,
   approveEmployeeLeave,
+  rejectEmployeeLeave,
 } from "@/app/actions/LicenciasEmpleados";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
@@ -72,8 +73,10 @@ export default function LicenciasEmpleadosComponent({
   const [empleados, setEmpleados] = useState<any[]>([]);
   const [isFirstLoad, setIsFirstLoad] = useState(true);
   const [activeTab, setActiveTab] = useState("todos");
+  console.log(licencias);
 
   // Esquema para validación de formulario
+
   const createLicenciaSchema = z.object({
     employeeId: z.number({
       required_error: "El empleado es obligatorio",
@@ -84,10 +87,12 @@ export default function LicenciasEmpleadosComponent({
     tipoLicencia: z.enum(
       [
         LeaveType.VACACIONES,
-        LeaveType.LICENCIA_MEDICA,
-        LeaveType.LICENCIA_PERSONAL,
+        LeaveType.CASAMIENTO,
+        LeaveType.ENFERMEDAD,
+        LeaveType.FALLECIMIENTO_FAMILIAR,
+        LeaveType.NACIMIENTO,
+        LeaveType.ORDINARIA,
         LeaveType.CAPACITACION,
-        LeaveType.OTRO,
       ],
       {
         errorMap: () => ({ message: "El tipo de licencia es obligatorio" }),
@@ -137,7 +142,8 @@ export default function LicenciasEmpleadosComponent({
       fechaFin: licencia.end_date || licencia.fechaFin,
       tipoLicencia: licencia.type || licencia.tipoLicencia,
       notas: licencia.observations || licencia.reason || licencia.notas || "",
-      aprobado: licencia.status === "APPROVED" || licencia.aprobado === true,
+      // Map the new status field to a boolean for the form
+      aprobado: licencia.status === "APROBADO",
     };
 
     // Establecer todos los valores en el formulario
@@ -202,6 +208,19 @@ export default function LicenciasEmpleadosComponent({
     }
   };
 
+  const handleRejectClick = async (id: number) => {
+    try {
+      await rejectEmployeeLeave(id);
+      toast.success("Licencia rechazada", {
+        description: "La licencia ha sido rechazada.",
+      });
+      await fetchLicencias();
+    } catch (error) {
+      console.error("Error al rechazar la licencia:", error);
+      toast.error("Error", { description: "No se pudo rechazar la licencia." });
+    }
+  };
+
   const onSubmit = async (data: z.infer<typeof createLicenciaSchema>) => {
     try {
       if (selectedLicencia && selectedLicencia.id) {
@@ -211,7 +230,8 @@ export default function LicenciasEmpleadosComponent({
           fechaFin: new Date(data.fechaFin),
           tipoLicencia: data.tipoLicencia,
           notas: data.notas,
-          aprobado: data.aprobado,
+          // Convert the boolean to the corresponding status string if needed by your API
+          status: data.aprobado ? "APROBADO" : "PENDIENTE",
         };
         await updateEmployeeLeave(selectedLicencia.id, updateData);
         toast.success("Licencia actualizada", {
@@ -224,7 +244,8 @@ export default function LicenciasEmpleadosComponent({
           fechaFin: new Date(data.fechaFin),
           tipoLicencia: data.tipoLicencia,
           notas: data.notas,
-          aprobado: data.aprobado,
+          // For new leaves, use PENDIENTE as default status
+          status: "PENDIENTE",
         };
         await createEmployeeLeave(createData);
         toast.success("Licencia creada", {
@@ -257,7 +278,15 @@ export default function LicenciasEmpleadosComponent({
         search
       );
 
-      if (fetchedLicencias.data && Array.isArray(fetchedLicencias.data)) {
+      if (Array.isArray(fetchedLicencias)) {
+        // Handle case where response is directly an array
+        setLicencias(fetchedLicencias);
+        setTotal(fetchedLicencias.length); // You might need a better way to get total count
+        setPage(currentPage);
+      } else if (
+        fetchedLicencias.data &&
+        Array.isArray(fetchedLicencias.data)
+      ) {
         setLicencias(fetchedLicencias.data);
         setTotal(fetchedLicencias.totalItems || 0);
         setPage(fetchedLicencias.currentPage || 1);
@@ -311,6 +340,31 @@ export default function LicenciasEmpleadosComponent({
     setActiveTab(value);
   };
 
+  // Move these function definitions BEFORE they are used
+  const getApprovalStatus = (licencia: any) => {
+    // Check for direct status field first
+    if (licencia.status) {
+      if (licencia.status === "APROBADO") return "APPROVED";
+      if (licencia.status === "RECHAZADO") return "REJECTED";
+      if (licencia.status === "PENDIENTE") return "PENDING";
+    }
+
+    // Fall back to the old aprobado boolean field if status isn't present
+    if (licencia.aprobado === true) return "APPROVED";
+    if (licencia.aprobado === false && licencia.status === "REJECTED")
+      return "REJECTED";
+    return "PENDING";
+  };
+
+  const getStatusBadgeVariant = (status: string) => {
+    const variants: Record<string, "default" | "outline" | "destructive"> = {
+      PENDING: "outline",
+      APPROVED: "default",
+      REJECTED: "destructive",
+    };
+    return variants[status] || "outline";
+  };
+
   const filteredLicencias =
     activeTab === "todos"
       ? licencias
@@ -326,23 +380,6 @@ export default function LicenciasEmpleadosComponent({
       </div>
     );
   }
-
-  // Mapea el estado de aprobación a los valores de visualización
-  const getApprovalStatus = (licencia: any) => {
-    if (licencia.aprobado === true) return "APPROVED";
-    if (licencia.aprobado === false && licencia.status === "REJECTED")
-      return "REJECTED";
-    return "PENDING";
-  };
-
-  const getStatusBadgeVariant = (status: string) => {
-    const variants: Record<string, "default" | "outline" | "destructive"> = {
-      PENDING: "outline",
-      APPROVED: "default",
-      REJECTED: "destructive",
-    };
-    return variants[status] || "outline";
-  };
 
   return (
     <Card className="w-full shadow-md">
@@ -506,17 +543,31 @@ export default function LicenciasEmpleadosComponent({
                   </Button>
 
                   {getApprovalStatus(licencia) === "PENDING" && (
-                    <Button
-                      variant="default"
-                      size="sm"
-                      onClick={() =>
-                        licencia.id && handleApproveClick(licencia.id)
-                      }
-                      className="cursor-pointer bg-green-100 text-green-700 hover:bg-green-200 hover:text-green-800"
-                    >
-                      <CheckCircle className="h-3.5 w-3.5 mr-1" />
-                      Aprobar
-                    </Button>
+                    <>
+                      <Button
+                        variant="default"
+                        size="sm"
+                        onClick={() =>
+                          licencia.id && handleApproveClick(licencia.id)
+                        }
+                        className="cursor-pointer bg-green-100 text-green-700 hover:bg-green-200 hover:text-green-800"
+                      >
+                        <CheckCircle className="h-3.5 w-3.5 mr-1" />
+                        Aprobar
+                      </Button>
+
+                      <Button
+                        variant="destructive"
+                        size="sm"
+                        onClick={() =>
+                          licencia.id && handleRejectClick(licencia.id)
+                        }
+                        className="cursor-pointer bg-red-100 text-red-700 hover:bg-red-200 hover:text-red-800"
+                      >
+                        <PauseCircle className="h-3.5 w-3.5 mr-1" />
+                        Rechazar
+                      </Button>
+                    </>
                   )}
 
                   <Button
@@ -591,14 +642,19 @@ export default function LicenciasEmpleadosComponent({
                   { label: "Vacaciones", value: LeaveType.VACACIONES },
                   {
                     label: "Licencia Médica",
-                    value: LeaveType.LICENCIA_MEDICA,
+                    value: LeaveType.ENFERMEDAD,
                   },
                   {
                     label: "Licencia Personal",
-                    value: LeaveType.LICENCIA_PERSONAL,
+                    value: LeaveType.ORDINARIA,
                   },
-                  { label: "Capacitación", value: LeaveType.CAPACITACION },
-                  { label: "Otros", value: LeaveType.OTRO },
+                  {
+                    label: "Fallecimiento Familiar",
+                    value: LeaveType.FALLECIMIENTO_FAMILIAR,
+                  },
+                  { label: "Casamiento", value: LeaveType.CASAMIENTO },
+                  { label: "Nacimiento", value: LeaveType.NACIMIENTO },
+                  { label: "Capacitacion", value: LeaveType.CAPACITACION },
                 ]}
                 error={fieldState.error?.message}
               />
