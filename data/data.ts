@@ -6,7 +6,6 @@ import {
   UserCheck,
   Hammer,
   Wrench,
-  User,
 } from "lucide-react"; // Quité CloudSun, agregué Wrench
 
 const dataSideBar = {
@@ -17,12 +16,6 @@ const dataSideBar = {
   },
 
   navMain: [
-    {
-      title: "Usuarios",
-      url: "/dashboard/usuarios",
-      icon: User,
-      items: [{ title: "Listado", url: "/dashboard/usuarios/listado" }],
-    },
     {
       title: "Vehículos",
       url: "/dashboard/vehiculos",
