@@ -1,22 +1,14 @@
 import { LogoMVA } from "@/assets/ImgDatabase";
-import { Car, Users, Toilet, UserCheck, Hammer, Wrench, User } from "lucide-react"; // Quité CloudSun, agregué Wrench
+import { Car, Users, Toilet, UserCheck, Hammer, Wrench } from "lucide-react"; // Quité CloudSun, agregué Wrench
 
 const dataSideBar = {
   team: {
     name: "MVA SRL",
     logo: LogoMVA,
-    plan: "Empresa",
+    plan: "Sistema de Gestión",
   },
 
   navMain: [
-    {
-      title: "Usuarios",
-      url: "/dashboard/usuarios",
-      icon: User,
-      items: [
-        { title: "Listado", url: "/dashboard/usuarios/listado" },
-      ],
-    },    
     {
       title: "Vehículos",
       url: "/dashboard/vehiculos",
@@ -34,17 +26,17 @@ const dataSideBar = {
         { title: "Listado", url: "/dashboard/empleados/listado" },
         {
           title: "Licencias de empleado",
-          url: "/dashboard/empleados/licencias-de-empleado",
+          url: "/dashboard/empleados/licencias",
         },
       ],
     },
     {
-      title: "Baños",
-      url: "/dashboard/banos",
+      title: "Sanitarios",
+      url: "/dashboard/sanitarios",
       icon: Toilet,
       items: [
-        { title: "Listado", url: "/dashboard/baños/listado" },
-        { title: "Mantenimiento", url: "/dashboard/baños/mantenimiento" },
+        { title: "Listado", url: "/dashboard/sanitarios/listado" },
+        { title: "Mantenimiento", url: "/dashboard/sanitarios/mantenimiento" },
       ],
     },
     {
@@ -58,8 +50,9 @@ const dataSideBar = {
       url: "/dashboard/servicios",
       icon: Hammer,
       items: [
-        { title: "Listado", url: "/dashboard/servicios/listado" },
         { title: "Crear Servicio", url: "/dashboard/servicios/crear" },
+        { title: "Historial", url: "/dashboard/servicios/historial" },
+        { title: "Servicios Activos", url: "/dashboard/servicios/activos" },
       ],
     },
     {
@@ -70,6 +63,10 @@ const dataSideBar = {
         {
           title: "Listado",
           url: "/dashboard/condiciones-contractuales/listado",
+        },
+        {
+          title: "Crear Condición",
+          url: "/dashboard/condiciones-contractuales/crear",
         },
       ],
     },

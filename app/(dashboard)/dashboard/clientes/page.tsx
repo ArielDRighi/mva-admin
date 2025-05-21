@@ -1,4 +1,4 @@
-import ClientesPage from "@/components/pages/ClientesPage";
+import ClientesPage from "@/components/pages/clientes/ClientesPage";
 import React from "react";
 
 const Clientes = () => {

@@ -1,9 +1,7 @@
-import React from 'react'
-
+import React from "react";
+import ListadoVehiculosPage from "@/components/pages/vehiculos/ListadoVehiculosPage";
 const ListadoVehiculos = () => {
-  return (
-    <div>ListadoVehiculos</div>
-  )
-}
+  return <ListadoVehiculosPage />;
+};
 
-export default ListadoVehiculos
+export default ListadoVehiculos;

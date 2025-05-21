@@ -1,9 +1,8 @@
-import React from 'react'
+import HistorialServiciosPage from "@/components/pages/services/serviciosHistorialPage";
+import React from "react";
 
 const HistorialServicios = () => {
-  return (
-    <div>HistorialServicios</div>
-  )
-}
+  return <HistorialServiciosPage />;
+};
 
-export default HistorialServicios
+export default HistorialServicios;
