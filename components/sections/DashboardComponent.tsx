@@ -114,122 +114,6 @@ const DashboardComponent = () => {
     fetchData();
   }, []);
 
-  const recentActivity = [
-    {
-      type: "SERVICIO",
-      action: "COMPLETADO",
-      description: "Instalación para Cliente ABC",
-      time: "Hace 1 hora",
-      user: "Carlos Ramírez",
-    },
-    {
-      type: "MANTENIMIENTO",
-      action: "PROGRAMADO",
-      description: "Vehículo Ford F-150 (ABC123)",
-      time: "Hace 2 horas",
-      user: "Laura González",
-    },
-    {
-      type: "SERVICIO",
-      action: "ASIGNADO",
-      description: "Limpieza para Cliente XYZ",
-      time: "Hace 3 horas",
-      user: "Juan Pérez",
-    },
-    {
-      type: "BAÑO",
-      action: "MANTENIMIENTO",
-      description: "Baño #12 en reparación",
-      time: "Hace 5 horas",
-      user: "Sistema",
-    },
-    {
-      type: "CLIENTE",
-      action: "NUEVO",
-      description: "Eventos Premium SA",
-      time: "Hace 6 horas",
-      user: "Ana Martínez",
-    },
-  ];
-
-  const upcomingMaintenance = [
-    {
-      id: 1,
-      type: "Vehículo",
-      resource: "Ford F-150 (ABC123)",
-      date: "2025-05-17",
-      maintenance: "Cambio de aceite y filtros",
-      priority: "Alta",
-    },
-    {
-      id: 2,
-      type: "Baño",
-      resource: "Baño #08",
-      date: "2025-05-18",
-      maintenance: "Revisión general",
-      priority: "Media",
-    },
-    {
-      id: 3,
-      type: "Vehículo",
-      resource: "Mercedes Sprinter (XYZ789)",
-      date: "2025-05-20",
-      maintenance: "Mantenimiento preventivo",
-      priority: "Baja",
-    },
-    {
-      id: 4,
-      type: "Baño",
-      resource: "Baño #15",
-      date: "2025-05-22",
-      maintenance: "Reparación de válvula",
-      priority: "Alta",
-    },
-  ];
-
-  const todayServices = [
-    {
-      id: 1,
-      client: "Constructora Norte SA",
-      type: "INSTALACIÓN",
-      status: "PROGRAMADO",
-      time: "09:30",
-      address: "Av. Santa Fe 1234",
-    },
-    {
-      id: 2,
-      client: "Eventos Exclusivos",
-      type: "RETIRO",
-      status: "EN_PROGRESO",
-      time: "10:15",
-      address: "Ruta 2 km 50",
-    },
-    {
-      id: 3,
-      client: "Parque Industrial Este",
-      type: "LIMPIEZA",
-      status: "PROGRAMADO",
-      time: "13:00",
-      address: "Calle Industrial 500",
-    },
-    {
-      id: 4,
-      client: "Centro Cultural Recoleta",
-      type: "MANTENIMIENTO",
-      status: "COMPLETADO",
-      time: "08:45",
-      address: "Junín 1930",
-    },
-  ];
-
-  const pendingServices = 12;
-  const completedServices = 8;
-
-  const pendingContractRenewals = [
-    { client: "Constructora Norte SA", expiration: "2025-05-25" },
-    { client: "Eventos Exclusivos", expiration: "2025-06-01" },
-  ];
-
   useEffect(() => {
     const userCookie = getCookie("user");
 
@@ -311,7 +195,7 @@ const DashboardComponent = () => {
         </div>
         <div className="mt-4 md:mt-0 flex space-x-2">
           <Button
-            onClick={() => router.push("/dashboard/servicios/crear")}
+            onClick={() => router.push("/admin/dashboard/servicios/crear")}
             className="bg-primary hover:bg-primary/90"
           >
             Nuevo Servicio
@@ -459,7 +343,9 @@ const DashboardComponent = () => {
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={() => router.push("/dashboard/servicios/activos")}
+                  onClick={() =>
+                    router.push("/admin/dashboard/servicios/activos")
+                  }
                 >
                   Ver todos
                 </Button>
@@ -597,7 +483,7 @@ const DashboardComponent = () => {
                     variant="ghost"
                     size="sm"
                     onClick={() =>
-                      router.push("/dashboard/servicios/limpiezas")
+                      router.push("/admin/dashboard/servicios/limpiezas")
                     }
                   >
                     Ver todas

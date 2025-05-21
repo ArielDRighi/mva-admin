@@ -10,14 +10,14 @@ const SanitariosPage = () => {
           Sanitarios
         </h2>
         <InfoCard
-          href="/dashboard/sanitarios/listado"
+          href="/admin/dashboard/sanitarios/listado"
           imgSrc={ClientsImg}
           imgAlt="Icono de sanitarios"
           title="Gestión de Sanitarios"
           description="Consultá el listado completo de sanitarios disponibles y gestioná su información."
         />
         <InfoCard
-          href="/dashboard/sanitarios/mantenimiento"
+          href="/admin/dashboard/sanitarios/mantenimiento"
           imgSrc={ClientsImg}
           imgAlt="Icono de sanitarios en mantenimiento"
           title="Gestión de Sanitarios en Mantenimiento"

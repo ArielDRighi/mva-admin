@@ -10,7 +10,7 @@ const ClientesPage = () => {
           Clientes
         </h2>
         <InfoCard
-          href="/dashboard/clientes/listado"
+          href="/admin/dashboard/clientes/listado"
           imgSrc={ClientsImg}
           imgAlt="Icono de clientes"
           title="Gestión de Clientes"

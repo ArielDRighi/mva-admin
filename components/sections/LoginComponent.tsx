@@ -46,7 +46,11 @@ const LoginComponent = () => {
       const data = await loginUser(values.email, values.password);
       setCookie("token", data.access_token);
       setCookie("user", JSON.stringify(data.user));
-      router.push("/dashboard");
+      if (data.user.role === "admin") {
+        router.push("/admin/dashboard");
+      } else {
+        router.push("/empleado/dashboard");
+      }
     } catch (err) {
       setFormError("Usuario o contraseña incorrectos");
       console.log(err);

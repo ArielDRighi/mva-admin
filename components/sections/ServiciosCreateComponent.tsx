@@ -182,7 +182,7 @@ const ServiciosCreateComponent = () => {
       });
 
       // Redirigir a la lista de servicios después de crearlo
-      router.push("/dashboard/servicios/listado");
+      router.push("/admin/dashboard/servicios/listado");
     } catch (error) {
       console.error("Error al crear el servicio:", error);
       toast.error("Error", {
@@ -218,7 +218,7 @@ const ServiciosCreateComponent = () => {
             </CardDescription>
           </div>
           <Button
-            onClick={() => router.push("/dashboard/servicios/listado")}
+            onClick={() => router.push("/admin/dashboard/servicios/listado")}
             className="cursor-pointer border-slate-200 hover:bg-slate-50 hover:text-slate-900"
             variant="outline"
           >
@@ -454,7 +454,7 @@ const ServiciosCreateComponent = () => {
             <Button
               type="button"
               variant="outline"
-              onClick={() => router.push("/dashboard/servicios/listado")}
+              onClick={() => router.push("/admin/dashboard/servicios/listado")}
               className="cursor-pointer border-slate-200 hover:bg-slate-50 hover:text-slate-900"
             >
               Cancelar

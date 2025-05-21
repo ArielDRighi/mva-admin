@@ -35,7 +35,7 @@ export type CreateEmployeeLeaveDto = {
   fechaFin: Date;
   tipoLicencia: LeaveType;
   notas?: string;
-  status?: "PENDIENTE" | "APROBADO" | "RECHAZADO";
+  // status?: "PENDIENTE" | "APROBADO" | "RECHAZADO";
 };
 
 export class UpdateEmployeeLeaveDto {
@@ -121,7 +121,6 @@ export type CreateVehiculo = {
   marca: string;
   modelo: string;
   anio: number;
-  capacidadCarga: number;
   estado?:
     | "DISPONIBLE"
     | "ASIGNADO"

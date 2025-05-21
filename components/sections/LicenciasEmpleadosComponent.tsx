@@ -245,7 +245,6 @@ export default function LicenciasEmpleadosComponent({
           tipoLicencia: data.tipoLicencia,
           notas: data.notas,
           // For new leaves, use PENDIENTE as default status
-          status: "PENDIENTE",
         };
         await createEmployeeLeave(createData);
         toast.success("Licencia creada", {

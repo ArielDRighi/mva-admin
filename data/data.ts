@@ -11,62 +11,71 @@ const dataSideBar = {
   navMain: [
     {
       title: "Vehículos",
-      url: "/dashboard/vehiculos",
+      url: "/admin/dashboard/vehiculos",
       icon: Car,
       items: [
-        { title: "Listado", url: "/dashboard/vehiculos/listado" },
-        { title: "Mantenimiento", url: "/dashboard/vehiculos/mantenimiento" },
+        { title: "Listado", url: "/admin/dashboard/vehiculos/listado" },
+        {
+          title: "Mantenimiento",
+          url: "/admin/dashboard/vehiculos/mantenimiento",
+        },
       ],
     },
     {
       title: "Empleados",
-      url: "/dashboard/empleados",
+      url: "/admin/dashboard/empleados",
       icon: Users,
       items: [
-        { title: "Listado", url: "/dashboard/empleados/listado" },
+        { title: "Listado", url: "/admin/dashboard/empleados/listado" },
         {
           title: "Licencias de empleado",
-          url: "/dashboard/empleados/licencias",
+          url: "/admin/dashboard/empleados/licencias",
         },
       ],
     },
     {
       title: "Sanitarios",
-      url: "/dashboard/sanitarios",
+      url: "/admin/dashboard/sanitarios",
       icon: Toilet,
       items: [
-        { title: "Listado", url: "/dashboard/sanitarios/listado" },
-        { title: "Mantenimiento", url: "/dashboard/sanitarios/mantenimiento" },
+        { title: "Listado", url: "/admin/dashboard/sanitarios/listado" },
+        {
+          title: "Mantenimiento",
+          url: "/admin/dashboard/sanitarios/mantenimiento",
+        },
       ],
     },
     {
       title: "Clientes",
-      url: "/dashboard/clientes",
+      url: "/admin/dashboard/clientes",
       icon: UserCheck,
-      items: [{ title: "Listado", url: "/dashboard/clientes/listado" }],
+      items: [{ title: "Listado", url: "/admin/dashboard/clientes/listado" }],
     },
     {
       title: "Servicios",
       url: "/dashboard/servicios",
       icon: Hammer,
       items: [
-        { title: "Crear Servicio", url: "/dashboard/servicios/crear" },
-        { title: "Historial", url: "/dashboard/servicios/historial" },
-        { title: "Servicios Activos", url: "/dashboard/servicios/activos" },
+        { title: "Crear Servicio", url: "/admin/dashboard/servicios/crear" },
+        { title: "Historial", url: "/admin/dashboard/servicios/historial" },
+        {
+          title: "Servicios Activos",
+          url: "/admin/dashboard/servicios/activos",
+        },
       ],
     },
     {
       title: "Condiciones contractuales",
-      url: "/dashboard/condiciones-contractuales",
+      url: "/admin/dashboard/condiciones-contractuales",
       icon: Wrench,
       items: [
         {
           title: "Listado",
-          url: "/dashboard/condiciones-contractuales/listado",
+          url: "/admin/dashboard/condiciones-contractuales/listado",
         },
         {
           title: "Crear Condición",
-          url: "/dashboard/condiciones-contractuales/crear",
+          url: "/admin/dashboard/condiciones-contractuales/crear",
         },
       ],
     },
