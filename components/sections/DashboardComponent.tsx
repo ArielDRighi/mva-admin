@@ -316,12 +316,6 @@ const DashboardComponent = () => {
           >
             Nuevo Servicio
           </Button>
-          <Button
-            variant="outline"
-            onClick={() => router.push("/dashboard/reportes")}
-          >
-            Ver Reportes
-          </Button>
         </div>
       </div>
 

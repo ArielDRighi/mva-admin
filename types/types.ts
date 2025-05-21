@@ -178,6 +178,9 @@ export type EmpleadoFormulario = {
   email: string;
   cargo: string;
   estado: StatusEmployee;
+  numero_legajo: number;
+  cuil: string;
+  cbu: string;
 };
 
 export type StatusEmployee = {
@@ -202,6 +205,9 @@ export type Empleado = {
   fecha_nacimiento?: string | Date;
   fecha_contratacion: string | Date;
   cargo: string;
+  numero_legajo: number;
+  cuil: string;
+  cbu: string;
   estado:
     | "DISPONIBLE"
     | "ASIGNADO"
