@@ -3,7 +3,6 @@
 import {
   CreateVehiculo,
   UpdateVehiculo,
-  Vehiculo,
   VehiculoStatus,
 } from "@/types/types";
 import { cookies } from "next/headers";

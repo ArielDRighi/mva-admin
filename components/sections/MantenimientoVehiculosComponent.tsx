@@ -24,6 +24,7 @@ import { Badge } from "../ui/badge";
 import { Button } from "../ui/button";
 import { FormDialog } from "../ui/local/FormDialog";
 import { FormField } from "../ui/local/FormField";
+import { VehiculoSelector } from "../ui/local/SearchSelector/Selectors/VehiculoSelector";
 
 const MantenimientoVehiculosComponent = ({
   data,
@@ -210,12 +211,7 @@ const MantenimientoVehiculosComponent = ({
         itemsPerPage,
         search
       );
-      console.log(
-        "Datos obtenidos de getMantenimientosVehiculos:",
-        fetchedMantenimientos
-      );
       setMantenimientos(fetchedMantenimientos.data);
-      console.log("Mantenimientos:", mantenimientos);
       setTotal(fetchedMantenimientos.totalItems);
       setPage(fetchedMantenimientos.currentPage);
     } catch (error) {
@@ -368,12 +364,11 @@ const MantenimientoVehiculosComponent = ({
             name="vehiculoId"
             control={control}
             render={({ field, fieldState }) => (
-              <FormField
-                label="ID del Vehículo"
+              <VehiculoSelector
+                label="Vehículo"
                 name="vehiculoId"
-                type="number"
-                value={String(field.value)}
-                onChange={(value) => field.onChange(Number(value))}
+                value={field.value}
+                onChange={field.onChange}
                 error={fieldState.error?.message}
               />
             )}
