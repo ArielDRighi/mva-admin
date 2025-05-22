@@ -19,12 +19,13 @@ import {
   UserRound,
   Bell,
   FileSpreadsheet,
+  LogOut,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import Link from "next/link";
 import { User } from "@/components/sections/DashboardComponent";
-import { getCookie } from "cookies-next";
+import { deleteCookie, getCookie } from "cookies-next";
 import {
   getEmployeeById,
   getLastServicesByUserId,
@@ -155,39 +156,6 @@ interface CompletedService {
   banosInstalados?: Array<any>;
 }
 
-const completedServices = [
-  {
-    id: 101,
-    clientName: "Festival Musical Primavera",
-    serviceType: "INSTALACION",
-    completedDate: "2025-05-10T11:30:00",
-    location: "Parque Sarmiento",
-    bathCount: 10,
-    vehicleId: 3,
-    vehicleModel: "Iveco Daily",
-  },
-  {
-    id: 102,
-    clientName: "Empresa Desarrollo Software",
-    serviceType: "LIMPIEZA",
-    completedDate: "2025-05-15T09:45:00",
-    location: "Edificio Torre Norte, Puerto Madero",
-    bathCount: 2,
-    vehicleId: 2,
-    vehicleModel: "Ford F-150",
-  },
-  {
-    id: 103,
-    clientName: "Constructora ABC",
-    serviceType: "RETIRO",
-    completedDate: "2025-05-18T16:20:00",
-    location: "Av. Libertador 1200, CABA",
-    bathCount: 3,
-    vehicleId: 1,
-    vehicleModel: "Mercedes Sprinter",
-  },
-];
-
 const availableLeaveTypes = [
   { value: "VACACIONES", label: "Vacaciones" },
   { value: "ENFERMEDAD", label: "Licencia por enfermedad" },
@@ -263,7 +231,6 @@ const DashboardEmployeeComponent = () => {
   const userId = user?.id || 0;
   const [inProgressServices, setInProgressServices] =
     useState<ProximoServicio[]>();
-  console.log("inProgressServices", inProgressServices);
 
   const [selectedCompletedService, setSelectedCompletedService] =
     useState<CompletedService | null>(null);
@@ -459,9 +426,22 @@ const DashboardEmployeeComponent = () => {
               </Badge>
             </p>
           </div>
-          <Button className="bg-white text-blue-700 hover:bg-blue-50" asChild>
-            <Link href="/empleado/perfil">Ver mi perfil</Link>
-          </Button>
+          <div className="flex gap-2">
+            <Button className="bg-white text-blue-700 hover:bg-blue-50" asChild>
+              <Link href="/empleado/perfil">Ver mi perfil</Link>
+            </Button>
+            <Button
+              variant="outline"
+              className="bg-red-500 text-white hover:bg-red-600 border-none"
+              onClick={() => {
+                deleteCookie("user");
+                deleteCookie("token");
+                window.location.href = "/login";
+              }}
+            >
+              <LogOut className="h-4 w-4 mr-2" /> Cerrar sesión
+            </Button>
+          </div>
         </div>
       </div>
 
@@ -550,100 +530,7 @@ const DashboardEmployeeComponent = () => {
           </CardContent>
         </Card>
 
-        {/* InProgress services card */}
-        <Card className="lg:col-span-2 shadow-md hover:shadow-lg transition-shadow">
-          <CardHeader className="bg-gradient-to-r from-green-50 to-teal-50 dark:from-green-950 dark:to-teal-950 border-b">
-            <CardTitle className="text-green-800 dark:text-green-300">
-              Mis servicios en progreso
-            </CardTitle>
-            <CardDescription>
-              Servicios que están actualmente en ejecución
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="p-4 sm:p-6 space-y-4 sm:space-y-6">
-            {loading ? (
-              <div className="text-center py-8 text-muted-foreground">
-                Cargando servicios...
-              </div>
-            ) : !inProgressServices || inProgressServices.length === 0 ? (
-              <div className="text-center py-8 text-muted-foreground">
-                No tienes servicios en progreso
-              </div>
-            ) : (
-              inProgressServices.map((service) => (
-                <div
-                  key={service.id}
-                  className="flex flex-col md:flex-row gap-4 p-3 sm:p-4 border border-green-200 rounded-lg bg-green-50/50 hover:bg-green-100/60 dark:hover:bg-green-900/30 transition-colors cursor-pointer"
-                  onClick={() => {
-                    setSelectedService(service);
-                    setIsModalOpen(true);
-                  }}
-                >
-                  <div className="flex-1">
-                    <div className="flex flex-wrap items-center gap-2 mb-2">
-                      <Badge
-                        className={getServiceTypeBadge(service.tipoServicio)}
-                      >
-                        {service.tipoServicio}
-                      </Badge>
-                      <Badge className="bg-green-100 text-green-800 hover:bg-green-200">
-                        EN PROGRESO
-                      </Badge>
-                      <h3 className="font-medium">
-                        {service.cliente?.nombre ||
-                          `Cliente ID: ${service.clienteId}`}
-                      </h3>
-                    </div>
-                    <div className="space-y-1 text-sm">
-                      <div className="flex items-center gap-2">
-                        <Calendar className="h-4 w-4 text-blue-500" />
-                        <span>
-                          {formatDate(service.fechaProgramada)} -{" "}
-                          {formatTime(service.fechaProgramada)}
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <MapPin className="h-4 w-4 text-red-500" />
-                        <span className="break-words">{service.ubicacion}</span>
-                      </div>
-                      {service.vehiculo && (
-                        <div className="flex items-center gap-2">
-                          <Truck className="h-4 w-4 text-green-500" />
-                          <span>
-                            Vehículo: {service.vehiculo.modelo} (ID:{" "}
-                            {service.vehiculo.id})
-                          </span>
-                        </div>
-                      )}
-                      {service.cantidadBanos !== undefined &&
-                        service.cantidadBanos > 0 && (
-                          <div className="flex items-center gap-2">
-                            <FileText className="h-4 w-4 text-blue-500" />
-                            <span>Baños: {service.cantidadBanos}</span>
-                          </div>
-                        )}
-                    </div>
-                  </div>
-                  <div className="flex items-center justify-end mt-3 md:mt-0">
-                    <Button
-                      variant="default"
-                      size="sm"
-                      className="w-full md:w-auto bg-green-600 hover:bg-green-700"
-                      onClick={() => {
-                        setSelectedService(service);
-                        setIsModalOpen(true);
-                      }}
-                    >
-                      Ver detalles
-                    </Button>
-                  </div>
-                </div>
-              ))
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Leave management card */}
+        {/* Leave management card - Moved here */}
         <Card className="shadow-md hover:shadow-lg transition-shadow">
           <CardHeader className="bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-950 dark:to-pink-950 border-b">
             <div className="flex justify-between items-center">
@@ -750,6 +637,99 @@ const DashboardEmployeeComponent = () => {
                 </div>
               </TabsContent>
             </Tabs>
+          </CardContent>
+        </Card>
+
+        {/* InProgress services card - Now spans the full width */}
+        <Card className="lg:col-span-3 shadow-md hover:shadow-lg transition-shadow">
+          <CardHeader className="bg-gradient-to-r from-green-50 to-teal-50 dark:from-green-950 dark:to-teal-950 border-b">
+            <CardTitle className="text-green-800 dark:text-green-300">
+              Mis servicios en progreso
+            </CardTitle>
+            <CardDescription>
+              Servicios que están actualmente en ejecución
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="p-4 sm:p-6 space-y-4 sm:space-y-6">
+            {loading ? (
+              <div className="text-center py-8 text-muted-foreground">
+                Cargando servicios...
+              </div>
+            ) : !inProgressServices || inProgressServices.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">
+                No tienes servicios en progreso
+              </div>
+            ) : (
+              inProgressServices.map((service) => (
+                <div
+                  key={service.id}
+                  className="flex flex-col md:flex-row gap-4 p-3 sm:p-4 border border-green-200 rounded-lg bg-green-50/50 hover:bg-green-100/60 dark:hover:bg-green-900/30 transition-colors cursor-pointer"
+                  onClick={() => {
+                    setSelectedService(service);
+                    setIsModalOpen(true);
+                  }}
+                >
+                  <div className="flex-1">
+                    <div className="flex flex-wrap items-center gap-2 mb-2">
+                      <Badge
+                        className={getServiceTypeBadge(service.tipoServicio)}
+                      >
+                        {service.tipoServicio}
+                      </Badge>
+                      <Badge className="bg-green-100 text-green-800 hover:bg-green-200">
+                        EN PROGRESO
+                      </Badge>
+                      <h3 className="font-medium">
+                        {service.cliente?.nombre ||
+                          `Cliente ID: ${service.clienteId}`}
+                      </h3>
+                    </div>
+                    <div className="space-y-1 text-sm">
+                      <div className="flex items-center gap-2">
+                        <Calendar className="h-4 w-4 text-blue-500" />
+                        <span>
+                          {formatDate(service.fechaProgramada)} -{" "}
+                          {formatTime(service.fechaProgramada)}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <MapPin className="h-4 w-4 text-red-500" />
+                        <span className="break-words">{service.ubicacion}</span>
+                      </div>
+                      {service.vehiculo && (
+                        <div className="flex items-center gap-2">
+                          <Truck className="h-4 w-4 text-green-500" />
+                          <span>
+                            Vehículo: {service.vehiculo.modelo} (ID:{" "}
+                            {service.vehiculo.id})
+                          </span>
+                        </div>
+                      )}
+                      {service.cantidadBanos !== undefined &&
+                        service.cantidadBanos > 0 && (
+                          <div className="flex items-center gap-2">
+                            <FileText className="h-4 w-4 text-blue-500" />
+                            <span>Baños: {service.cantidadBanos}</span>
+                          </div>
+                        )}
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-end mt-3 md:mt-0">
+                    <Button
+                      variant="default"
+                      size="sm"
+                      className="w-full md:w-auto bg-green-600 hover:bg-green-700"
+                      onClick={() => {
+                        setSelectedService(service);
+                        setIsModalOpen(true);
+                      }}
+                    >
+                      Ver detalles
+                    </Button>
+                  </div>
+                </div>
+              ))
+            )}
           </CardContent>
         </Card>
       </div>
@@ -867,9 +847,9 @@ const DashboardEmployeeComponent = () => {
                 className="justify-start hover:bg-amber-50 dark:hover:bg-amber-950"
                 asChild
               >
-                <Link href="#">
+                <Link href="/empleado/contactos_emergencia">
                   <Calendar className="mr-2 h-4 w-4 text-amber-600" />
-                  Mi horario semanal
+                  Mis contactos de emergencia
                 </Link>
               </Button>
               <Button
@@ -877,9 +857,9 @@ const DashboardEmployeeComponent = () => {
                 className="justify-start hover:bg-amber-50 dark:hover:bg-amber-950"
                 asChild
               >
-                <Link href="#">
+                <Link href="/empleado/vestimenta">
                   <UserRound className="mr-2 h-4 w-4 text-amber-600" />
-                  Ver equipo de trabajo
+                  Mis talles de ropa
                 </Link>
               </Button>
               <Button
@@ -887,41 +867,9 @@ const DashboardEmployeeComponent = () => {
                 className="justify-start hover:bg-amber-50 dark:hover:bg-amber-950"
                 asChild
               >
-                <Link href="#">
+                <Link href="/empleado/licencia_conducir">
                   <Truck className="mr-2 h-4 w-4 text-amber-600" />
-                  Vehículos asignados
-                </Link>
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="shadow-md hover:shadow-lg transition-shadow">
-          <CardHeader className="bg-gradient-to-r from-sky-50 to-cyan-50 dark:from-sky-950 dark:to-cyan-950 border-b pb-3">
-            <CardTitle className="text-sky-800 dark:text-sky-300 text-sm">
-              Herramientas
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="p-4">
-            <div className="grid grid-cols-1 gap-2">
-              <Button
-                variant="outline"
-                className="justify-start hover:bg-sky-50 dark:hover:bg-sky-950"
-                asChild
-              >
-                <Link href="#">
-                  <FileSpreadsheet className="mr-2 h-4 w-4 text-sky-600" />
-                  Mis reportes
-                </Link>
-              </Button>
-              <Button
-                variant="outline"
-                className="justify-start hover:bg-sky-50 dark:hover:bg-sky-950"
-                asChild
-              >
-                <Link href="#">
-                  <Bell className="mr-2 h-4 w-4 text-sky-600" />
-                  Notificaciones
+                  Mi licencia de conducir
                 </Link>
               </Button>
             </div>
