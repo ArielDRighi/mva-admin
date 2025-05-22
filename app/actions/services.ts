@@ -401,6 +401,8 @@ export async function updateStatusService(id: number, estado: serviceStatus) {
 
   return await res.json();
 }
+
+// UTILIZAMOS TODO DE ACA PARA ABAJO
 export interface CreateCapacitacionDto {
   tipoServicio: "CAPACITACION";
   fechaProgramada: string;
@@ -452,6 +454,46 @@ export async function getCapacitaciones() {
   );
 
   if (!res.ok) throw new Error("Error al obtener capacitaciones");
+
+  return await res.json();
+}
+
+export interface CreateInstalacionDto {
+  condicionContractualId: number;
+  fechaProgramada: string;
+  cantidadVehiculos: number;
+  ubicacion: string;
+  empleadoAId?: number;
+  empleadoBId?: number;
+  asignacionAutomatica: boolean;
+  asignacionesManual: {
+    empleadoId: number;
+    vehiculoId: number;
+    banosIds: number[];
+  }[];
+  notas?: string;
+}
+
+export async function createServiceInstalacion(data: CreateInstalacionDto) {
+  const cookieStore = await cookies();
+  const token = cookieStore.get("token")?.value;
+
+  if (!token) throw new Error("Token no encontrado");
+
+  const res = await fetch(
+    `${process.env.NEXT_PUBLIC_API_URL}/api/services/instalacion`,
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(data),
+      cache: "no-store",
+    }
+  );
+
+  if (!res.ok) throw new Error("Error al crear el servicio de instalacion");
 
   return await res.json();
 }

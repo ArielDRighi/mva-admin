@@ -65,8 +65,8 @@ const dataSideBar = {
           url: "/admin/dashboard/capacitaciones/listado",
         },
         {
-          title: "Servicios Activos",
-          url: "/admin/dashboard/servicios/activos",
+          title: "Crear Instalacion",
+          url: "/admin/dashboard/servicios/instalacion/crear",
         },
       ],
     },
