@@ -459,3 +459,32 @@ export async function getRecentActivity() {
 
   return await res.json();
 }
+enum serviceStatus {
+  EN_PROGRESO = "EN_PROGRESO",
+  COMPLETADO = "COMPLETADO",
+  CANCELADO = "CANCELADO",
+  SUSPENDIDO = "SUSPENDIDO",
+}
+export async function updateStatusService(id: number, estado: serviceStatus) {
+  const cookieStore = await cookies();
+  const token = cookieStore.get("token")?.value;
+
+  if (!token) throw new Error("Token no encontrado");
+
+  const res = await fetch(
+    `${process.env.NEXT_PUBLIC_API_URL}/api/services/${id}/estado`,
+    {
+      method: "PATCH",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ estado }),
+      cache: "no-store",
+    }
+  );
+
+  if (!res.ok) throw new Error("Error al cambiar el estado del servicio");
+
+  return await res.json();
+}

@@ -73,7 +73,6 @@ export default function LicenciasEmpleadosComponent({
   const [empleados, setEmpleados] = useState<any[]>([]);
   const [isFirstLoad, setIsFirstLoad] = useState(true);
   const [activeTab, setActiveTab] = useState("todos");
-  console.log(licencias);
 
   // Esquema para validación de formulario
 
