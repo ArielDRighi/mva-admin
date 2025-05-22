@@ -5,9 +5,9 @@ import {
   deleteSanitarioEnMantenimiento,
   editSanitarioEnMantenimiento,
   getSanitariosEnMantenimiento,
-  getToiletsList,
 } from "@/app/actions/sanitarios";
-import { MantenimientoSanitarioForm, ChemicalToilet } from "@/types/types";
+import { SanitarioSelector } from "@/components/ui/local/SearchSelector/Selectors/SanitarioSelector";
+import { MantenimientoSanitarioForm } from "@/types/types";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter, useSearchParams } from "next/navigation";
 import React, { useCallback, useEffect, useState } from "react";
@@ -61,14 +61,12 @@ const MantenimientoSanitariosComponent = ({
   const [selectedMantenimientoSanitario, setSelectedMantenimientoSanitario] =
     useState<MantenimientoSanitarioForm | null>(null);
   const [isCreating, setIsCreating] = useState(false);
-  const [toiletsList, setToiletsList] = useState<ChemicalToilet[]>([]);
   const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
   const [mantenimientoToComplete, setMantenimientoToComplete] = useState<
     number | null
   >(null);
   const [activeTab, setActiveTab] = useState("todos");
 
-  // Schema y resto del código existente...
   const createSanitarioSchema = z.object({
     baño_id: z.number({
       required_error: "El baño es obligatorio",
@@ -112,7 +110,6 @@ const MantenimientoSanitariosComponent = ({
 
   const { handleSubmit, setValue, control, reset } = form;
 
-  // Funciones existentes
   const handlePageChange = (page: number) => {
     const params = new URLSearchParams(searchParams.toString());
     params.set("page", String(page));
@@ -246,7 +243,6 @@ const MantenimientoSanitariosComponent = ({
       });
     }
   };
-
   const fetchSanitariosMantenimiento = useCallback(async () => {
     const currentPage = Number(searchParams.get("page")) || 1;
     const search = searchParams.get("search") || "";
@@ -267,22 +263,8 @@ const MantenimientoSanitariosComponent = ({
       setLoading(false);
     }
   }, [searchParams, itemsPerPage]);
-
-  const fetchToiletsList = async () => {
-    try {
-      const toilets = await getToiletsList();
-      setToiletsList(toilets);
-    } catch (error) {
-      console.error("Error al cargar la lista de sanitarios:", error);
-      toast.error("Error", {
-        description: "No se pudo cargar la lista de sanitarios.",
-      });
-    }
-  };
-
   useEffect(() => {
     fetchSanitariosMantenimiento();
-    fetchToiletsList();
   }, [fetchSanitariosMantenimiento]);
 
   if (loading) {
@@ -519,28 +501,26 @@ const MantenimientoSanitariosComponent = ({
         }
         onSubmit={handleSubmit(onSubmit)}
       >
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
+        <div className="grid grid-cols-1 gap-x-6 gap-y-4">
           <Controller
             name="baño_id"
             control={control}
             render={({ field, fieldState }) => (
-              <FormField
-                label="Sanitario"
-                name="baño_id"
-                fieldType="select"
-                value={String(field.value)}
-                onChange={(selectedValue: string) =>
-                  field.onChange(parseInt(selectedValue, 10))
-                }
-                options={toiletsList.map((toilet) => ({
-                  label: `${toilet.codigo_interno} - ${toilet.modelo}`,
-                  value: String(toilet.baño_id),
-                }))}
-                error={fieldState.error?.message}
-              />
+              <div className="space-y-2">
+                <label htmlFor="baño_id" className="text-sm font-medium">
+                  Sanitario
+                </label>
+                <SanitarioSelector
+                  value={field.value || 0}
+                  onChange={(id) => field.onChange(id)}
+                  name="baño_id"
+                  label=""
+                  error={fieldState.error?.message}
+                  disabled={false}
+                />
+              </div>
             )}
           />
-
           <Controller
             name="fecha_mantenimiento"
             control={control}
@@ -555,7 +535,6 @@ const MantenimientoSanitariosComponent = ({
               />
             )}
           />
-
           <Controller
             name="tipo_mantenimiento"
             control={control}
@@ -574,7 +553,6 @@ const MantenimientoSanitariosComponent = ({
               />
             )}
           />
-
           <Controller
             name="costo"
             control={control}
@@ -589,48 +567,42 @@ const MantenimientoSanitariosComponent = ({
               />
             )}
           />
-
-          <div className="md:col-span-2">
-            <Controller
-              name="tecnico_responsable"
-              control={control}
-              render={({ field, fieldState }) => (
-                <FormField
-                  label="Técnico responsable"
-                  name="tecnico_responsable"
-                  value={field.value}
-                  onChange={field.onChange}
-                  error={fieldState.error?.message}
-                  placeholder="Nombre del técnico"
+          <Controller
+            name="tecnico_responsable"
+            control={control}
+            render={({ field, fieldState }) => (
+              <FormField
+                label="Técnico responsable"
+                name="tecnico_responsable"
+                value={field.value}
+                onChange={field.onChange}
+                error={fieldState.error?.message}
+                placeholder="Nombre del técnico"
+              />
+            )}
+          />
+          <Controller
+            name="descripcion"
+            control={control}
+            render={({ field, fieldState }) => (
+              <div className="space-y-2">
+                <label htmlFor="descripcion" className="text-sm font-medium">
+                  Descripción
+                </label>
+                <textarea
+                  id="descripcion"
+                  className="w-full min-h-[100px] p-2 border rounded-md"
+                  {...field}
+                  placeholder="Detalle el mantenimiento a realizar"
                 />
-              )}
-            />
-          </div>
-
-          <div className="md:col-span-2">
-            <Controller
-              name="descripcion"
-              control={control}
-              render={({ field, fieldState }) => (
-                <div className="space-y-2">
-                  <label htmlFor="descripcion" className="text-sm font-medium">
-                    Descripción
-                  </label>
-                  <textarea
-                    id="descripcion"
-                    className="w-full min-h-[100px] p-2 border rounded-md"
-                    {...field}
-                    placeholder="Detalle el mantenimiento a realizar"
-                  />
-                  {fieldState.error && (
-                    <p className="text-sm text-red-500">
-                      {fieldState.error.message}
-                    </p>
-                  )}
-                </div>
-              )}
-            />
-          </div>
+                {fieldState.error && (
+                  <p className="text-sm text-red-500">
+                    {fieldState.error.message}
+                  </p>
+                )}
+              </div>
+            )}
+          />
         </div>
       </FormDialog>
 

@@ -23,8 +23,6 @@ import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
   UserRound,
-  Search,
-  RefreshCcw,
   UserPlus,
   Edit2,
   Trash2,
@@ -43,7 +41,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export default function ListadoEmpleadosComponent({
   data,
@@ -59,7 +57,6 @@ export default function ListadoEmpleadosComponent({
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  // Asegurarnos de que data siempre sea un array
   const safeData = Array.isArray(data) ? data : [];
 
   const [employees, setEmployees] = useState<Empleado[]>(safeData);
@@ -73,7 +70,6 @@ export default function ListadoEmpleadosComponent({
   const [activeTab, setActiveTab] = useState("todos");
   const [isFirstLoad, setIsFirstLoad] = useState(true);
 
-  // Schema y lógica de formulario existente
   const createEmployeeSchema = z.object({
     nombre: z.string().min(1, "El nombre es obligatorio"),
     apellido: z.string().min(1, "El apellido es obligatorio"),
@@ -133,7 +129,6 @@ export default function ListadoEmpleadosComponent({
 
   const { handleSubmit, setValue, control, reset } = form;
 
-  // Funciones existentes
   const handlePageChange = (page: number) => {
     const params = new URLSearchParams(searchParams.toString());
     params.set("page", String(page));
@@ -293,7 +288,6 @@ export default function ListadoEmpleadosComponent({
 
   const handleTabChange = (value: string) => {
     setActiveTab(value);
-    // Aquí podrías implementar filtrado por estado al cambiar de pestaña
   };
 
   const filteredEmployees =

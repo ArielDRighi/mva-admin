@@ -77,26 +77,35 @@ export type CreateVehicleMaintenance = {
 
 export type Vehiculo = {
   id: number;
+  numeroInterno: string | null;
   placa: string;
   marca: string;
   modelo: string;
   anio: number;
-  capacidadCarga: number;
-  estado:
+  tipoCabina: string;
+  fechaVencimientoVTV: string | null;
+  fechaVencimientoSeguro: string | null;
+  esExterno: boolean;
+  estado: 
     | "DISPONIBLE"
-    | "ASIGNADO"
+    | "ASIGNADO" 
     | "MANTENIMIENTO"
     | "INACTIVO"
     | "BAJA"
     | string;
+  capacidadCarga?: number;
 };
 
 export type UpdateVehiculo = {
+  numeroInterno?: string | null;
   placa?: string;
   marca?: string;
   modelo?: string;
   anio?: number;
-  capacidadCarga?: number;
+  tipoCabina?: string;
+  fechaVencimientoVTV?: string | null;
+  fechaVencimientoSeguro?: string | null;
+  esExterno?: boolean;
   estado?:
     | "DISPONIBLE"
     | "ASIGNADO"
@@ -104,24 +113,31 @@ export type UpdateVehiculo = {
     | "INACTIVO"
     | "BAJA"
     | string;
-};
-
-export type VehiculoStatus = {
-  estado:
-    | "DISPONIBLE"
-    | "ASIGNADO"
-    | "MANTENIMIENTO"
-    | "INACTIVO"
-    | "BAJA"
-    | string;
+  capacidadCarga?: number;
 };
 
 export type CreateVehiculo = {
+  numeroInterno?: string | null;
   placa: string;
   marca: string;
   modelo: string;
   anio: number;
+  tipoCabina: string;
+  fechaVencimientoVTV?: string | null;
+  fechaVencimientoSeguro?: string | null;
+  esExterno: boolean;
   estado?:
+    | "DISPONIBLE"
+    | "ASIGNADO"
+    | "MANTENIMIENTO"
+    | "INACTIVO"
+    | "BAJA"
+    | string;
+  capacidadCarga?: number;
+};
+
+export type VehiculoStatus = {
+  estado:
     | "DISPONIBLE"
     | "ASIGNADO"
     | "MANTENIMIENTO"
