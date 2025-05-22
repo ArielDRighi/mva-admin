@@ -46,9 +46,11 @@ const LoginComponent = () => {
       const data = await loginUser(values.email, values.password);
       setCookie("token", data.access_token);
       setCookie("user", JSON.stringify(data.user));
-      if (data.user.role === "admin") {
+
+      // Check if user has ADMIN role (in the roles array)
+      if (data.user.roles && data.user.roles.includes("ADMIN")) {
         router.push("/admin/dashboard");
-      } else {
+      } else if (data.user.roles && data.user.roles.includes("OPERADOR")) {
         router.push("/empleado/dashboard");
       }
     } catch (err) {
