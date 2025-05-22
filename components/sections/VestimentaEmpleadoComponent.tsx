@@ -52,10 +52,10 @@ export default function VestimentaEmpleadoComponent() {
     useState<VestimentaUsuario | null>(null);
   const [loading, setLoading] = useState(false);
   const [user, setUser] = useState<User | null>(null);
-  const userId = user?.id || 0;
-  const [employeeId, setEmployeeId] = useState(0);
   const [clothing, setClothing] = useState<VestimentaUsuario | null>(null);
   const [dataFetched, setDataFetched] = useState(false);
+  const userId = user?.id || 0;
+  const [employeeId, setEmployeeId] = useState(0);
 
   useEffect(() => {
     const userCookie = getCookie("user");

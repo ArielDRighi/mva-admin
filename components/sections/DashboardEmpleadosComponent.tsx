@@ -875,38 +875,6 @@ const DashboardEmployeeComponent = () => {
             </div>
           </CardContent>
         </Card>
-
-        <Card className="shadow-md hover:shadow-lg transition-shadow">
-          <CardHeader className="bg-gradient-to-r from-sky-50 to-cyan-50 dark:from-sky-950 dark:to-cyan-950 border-b pb-3">
-            <CardTitle className="text-sky-800 dark:text-sky-300 text-sm">
-              Herramientas
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="p-4">
-            <div className="grid grid-cols-1 gap-2">
-              <Button
-                variant="outline"
-                className="justify-start hover:bg-sky-50 dark:hover:bg-sky-950"
-                asChild
-              >
-                <Link href="#">
-                  <FileSpreadsheet className="mr-2 h-4 w-4 text-sky-600" />
-                  Mis reportes
-                </Link>
-              </Button>
-              <Button
-                variant="outline"
-                className="justify-start hover:bg-sky-50 dark:hover:bg-sky-950"
-                asChild
-              >
-                <Link href="#">
-                  <Bell className="mr-2 h-4 w-4 text-sky-600" />
-                  Notificaciones
-                </Link>
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
       </div>
 
       {/* Service Detail Modal */}
