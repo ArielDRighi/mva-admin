@@ -1,3 +1,4 @@
+"use client";
 import React, { useState, useEffect } from "react";
 import {
   Box,
@@ -180,26 +181,38 @@ const LicenciaDeConducirComponent = () => {
   const diasRestantes = calcularDiasRestantes();
 
   return (
-    <Card>
+    <Card
+      sx={{
+        maxWidth: 600,
+        margin: "auto",
+        mt: 4,
+        borderRadius: 4,
+        background: "linear-gradient(to right, #e3f2fd, #bbdefb)",
+        boxShadow: 3,
+        transition: "all 0.3s ease",
+        border: "2px solid #2196f3",
+        "&:hover": {
+          transform: "scale(1.02)",
+          boxShadow: 6,
+        },
+      }}
+    >
       <CardHeader
         title="Licencia de Conducir"
-        subheader="Información de la licencia de conducir del empleado"
-        action={
-          !editMode ? (
-            <Button
-              variant="outlined"
-              color="primary"
-              onClick={() => setEditMode(true)}
-              disabled={loading}
-            >
-              Editar
-            </Button>
-          ) : null
-        }
+        subheader="Carnet del Conductor"
+        sx={{
+          backgroundColor: "#1976d2",
+          color: "white",
+          textAlign: "center",
+          borderTopLeftRadius: 14,
+          borderTopRightRadius: 14,
+          py: 2,
+        }}
       />
+
       <Divider />
 
-      <CardContent>
+      <CardContent sx={{ px: 4, py: 3 }}>
         {loading ? (
           <Typography>Cargando información...</Typography>
         ) : (
@@ -285,7 +298,7 @@ const LicenciaDeConducirComponent = () => {
                         fullWidth: true,
                         error: errors.fecha_vencimiento,
                         helperText: errors.fecha_vencimiento
-                          ? "Fecha de vencimiento inválida o anterior a la fecha de expedición"
+                          ? "Fecha inválida o anterior a la expedición"
                           : "",
                         disabled: !editMode,
                       },
@@ -297,7 +310,12 @@ const LicenciaDeConducirComponent = () => {
               {!editMode && licencia.fecha_expedicion && (
                 <Grid item xs={12}>
                   <Box
-                    sx={{ backgroundColor: "#f5f5f5", p: 2, borderRadius: 1 }}
+                    sx={{
+                      backgroundColor: "#f0f0f0",
+                      p: 2,
+                      borderRadius: 2,
+                      mt: 2,
+                    }}
                   >
                     <Typography variant="body2">
                       <strong>Expedida el:</strong>{" "}
@@ -331,7 +349,7 @@ const LicenciaDeConducirComponent = () => {
                         : diasRestantes < 30
                         ? "Por vencer (menos de 30 días)"
                         : diasRestantes < 60
-                        ? "Por vencer (menos de 60 días)"
+                        ? "Advertencia (menos de 60 días)"
                         : "Vigente"}
                     </Typography>
                   </Box>
@@ -340,13 +358,12 @@ const LicenciaDeConducirComponent = () => {
             </Grid>
 
             {editMode && (
-              <Box sx={{ mt: 3, display: "flex", justifyContent: "flex-end" }}>
+              <Box sx={{ mt: 4, display: "flex", justifyContent: "flex-end" }}>
                 <Button
                   variant="outlined"
                   color="secondary"
+                  sx={{ mr: 2 }}
                   onClick={handleCancel}
-                  sx={{ mr: 1 }}
-                  disabled={loading}
                 >
                   Cancelar
                 </Button>
@@ -354,26 +371,14 @@ const LicenciaDeConducirComponent = () => {
                   variant="contained"
                   color="primary"
                   onClick={handleSubmit}
-                  disabled={loading}
                 >
-                  Guardar cambios
+                  Guardar
                 </Button>
               </Box>
             )}
           </>
         )}
       </CardContent>
-
-      <Snackbar
-        open={snackbar.open}
-        autoHideDuration={6000}
-        onClose={handleCloseSnackbar}
-        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
-      >
-        <Alert onClose={handleCloseSnackbar} severity={snackbar.severity}>
-          {snackbar.message}
-        </Alert>
-      </Snackbar>
     </Card>
   );
 };
