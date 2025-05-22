@@ -5,6 +5,7 @@ import { Vehiculo } from "@/types/types";
 import { Badge } from "@/components/ui/badge";
 import { SearchSelector } from "../SearchSelector";
 import { Calendar, CheckCircle, Truck } from "lucide-react";
+import { toast } from "sonner";
 
 interface VehiculoSelectorProps {
   value: number;
@@ -23,15 +24,25 @@ export function VehiculoSelector({
   error,
   disabled = false,
 }: VehiculoSelectorProps) {
+  // En VehiculoSelector.tsx
   const searchVehiculos = async (term: string) => {
     try {
-      const result = await getVehicles(1, 5, term);
+      console.log("Buscando vehículos con término:", term);
+      console.log("API URL:", process.env.NEXT_PUBLIC_API_URL); // Para depurar
+
+      const result = await getVehicles();
+      console.log("Resultado de búsqueda:", result);
+
       const filteredVehicles = (result.data || []).filter(
         (vehiculo: Vehiculo) => vehiculo.estado !== "EN_MANTENIMIENTO"
       );
       return filteredVehicles;
     } catch (error) {
       console.error("Error al buscar vehículos:", error);
+      // Devolver array vacío en caso de error para evitar que se rompa la UI
+      toast.error("No se pudieron cargar los vehículos", {
+        description: "Intente nuevamente o contacte al administrador.",
+      });
       return [];
     }
   };
