@@ -49,47 +49,6 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 
-// Interfaces
-interface Cliente {
-  clienteId: number;
-  nombre: string;
-  email: string;
-  cuit: string;
-  direccion: string;
-}
-
-interface ServicioAPI {
-  id: number;
-  cliente: Cliente;
-  tipoServicio: string;
-  fechaProgramada: string;
-  fechaCreacion: string;
-  fechaInicio: string;
-  fechaFin: string;
-  fechaFinAsignacion: string;
-  ubicacion: string;
-  estado: string;
-  notas: string;
-  cantidadBanos: number;
-  cantidadEmpleados: number;
-  cantidadVehiculos: number;
-  clienteId: number;
-  condicionContractualId: number;
-  asignacionAutomatica: boolean;
-  empleadoAId: number | null;
-  empleadoBId: number | null;
-  comentarioIncompleto: string | null;
-  asignaciones: any[];
-  banosInstalados: any[];
-}
-
-interface APIResponse {
-  data: ServicioAPI[];
-  totalItems: number;
-  currentPage: number;
-  totalPages: number;
-}
-
 interface ServicioFormateado {
   id: string;
   cliente: string;

@@ -19,6 +19,13 @@ interface FormDialogProps {
   description?: string;
   onSubmit: (event: React.FormEvent<HTMLFormElement>) => void;
   submitButtonText?: string;
+  submitButtonVariant?:
+    | "default"
+    | "destructive"
+    | "outline"
+    | "secondary"
+    | "ghost"
+    | "link";
   children: ReactNode;
 }
 
@@ -29,6 +36,7 @@ export function FormDialog({
   description,
   onSubmit,
   submitButtonText = "Guardar",
+  submitButtonVariant = "default",
   children,
 }: FormDialogProps) {
   return (
@@ -40,10 +48,13 @@ export function FormDialog({
         </DialogHeader>
 
         <form onSubmit={onSubmit} className="space-y-4 mt-4">
-          {children}
-
+          {children}{" "}
           <DialogFooter>
-            <Button type="submit" className="w-full cursor-pointer">
+            <Button
+              type="submit"
+              className="w-full cursor-pointer"
+              variant={submitButtonVariant}
+            >
               {submitButtonText}
             </Button>
           </DialogFooter>
