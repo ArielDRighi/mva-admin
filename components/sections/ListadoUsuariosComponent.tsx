@@ -79,6 +79,7 @@ const ListadoUsuariosComponent: React.FC<ListadoUsuariosComponentProps> = ({
     id: number;
     estado: "ACTIVO" | "INACTIVO";
   } | null>(null);
+  console.log("users", users);
 
   // Configuración del formulario con validación
   const { handleSubmit, setValue, control, reset } = useForm<UserFormValues>({
@@ -186,18 +187,18 @@ const ListadoUsuariosComponent: React.FC<ListadoUsuariosComponentProps> = ({
     try {
       // Preparar datos para envío
       const formData = { ...data };
-      
+
       // Eliminar campos que no son necesarios
       if (formData.empleadoId === null) {
         delete formData.empleadoId;
       }
-      
+
       if (selectedUser && selectedUser.id) {
         // Modo edición
         if (!formData.password || formData.password === "") {
           delete formData.password;
         }
-        
+
         // Convertir roles al tipo correcto para la API
         const apiData: {
           email: string;
@@ -209,11 +210,11 @@ const ListadoUsuariosComponent: React.FC<ListadoUsuariosComponentProps> = ({
           roles: formData.roles as unknown as string[],
           empleadoId: formData.empleadoId as number | undefined,
         };
-        
+
         if (formData.password) {
           apiData.password = formData.password;
         }
-        
+
         await updateUser(selectedUser.id, apiData);
         toast.success("Usuario actualizado", {
           description: "Los cambios se han guardado correctamente.",
@@ -225,7 +226,7 @@ const ListadoUsuariosComponent: React.FC<ListadoUsuariosComponentProps> = ({
             description: "La contraseña es obligatoria para crear un usuario.",
           });
         }
-        
+
         // Convertir roles al tipo correcto para la API
         const apiData = {
           nombre: formData.nombre,
@@ -234,7 +235,7 @@ const ListadoUsuariosComponent: React.FC<ListadoUsuariosComponentProps> = ({
           roles: formData.roles as unknown as string[],
           empleadoId: formData.empleadoId as number | undefined,
         };
-        
+
         await createUser(apiData);
         toast.success("Usuario creado", {
           description: "El usuario se ha registrado correctamente.",
@@ -248,13 +249,15 @@ const ListadoUsuariosComponent: React.FC<ListadoUsuariosComponentProps> = ({
       console.error("Error en el envío del formulario:", error);
       toast.error("Error", {
         description:
-          error instanceof Error ? error.message : 
-          (selectedUser
+          error instanceof Error
+            ? error.message
+            : selectedUser
             ? "No se pudo actualizar el usuario."
-            : "No se pudo crear el usuario."),
+            : "No se pudo crear el usuario.",
       });
     }
-  };  const fetchUsers = useCallback(async () => {
+  };
+  const fetchUsers = useCallback(async () => {
     const currentPage = Number(searchParams.get("page")) || 1;
     const searchQuery = searchParams.get("search") || "";
     setLoading(true);
@@ -325,7 +328,6 @@ const ListadoUsuariosComponent: React.FC<ListadoUsuariosComponentProps> = ({
               { title: "Email", key: "email" },
               { title: "Roles", key: "roles" },
               { title: "Estado", key: "estado" },
-              { title: "Fecha creación", key: "createdAt" },
               { title: "Acciones", key: "acciones" },
             ]}
             renderRow={(user: User) => (
@@ -377,10 +379,6 @@ const ListadoUsuariosComponent: React.FC<ListadoUsuariosComponentProps> = ({
                   >
                     {user.estado}
                   </Badge>
-                </TableCell>
-
-                <TableCell className="min-w-[120px]">
-                  {new Date(user.createdAt).toLocaleDateString("es-AR")}
                 </TableCell>
 
                 <TableCell className="flex gap-2">
@@ -547,7 +545,7 @@ const ListadoUsuariosComponent: React.FC<ListadoUsuariosComponentProps> = ({
               </div>
             )}
           />
-          
+
           <Controller
             name="empleadoId"
             control={control}
@@ -606,7 +604,9 @@ const ListadoUsuariosComponent: React.FC<ListadoUsuariosComponentProps> = ({
         submitButtonText={
           userToChangeStatus?.estado === "ACTIVO" ? "Activar" : "Desactivar"
         }
-        submitButtonVariant={userToChangeStatus?.estado === "ACTIVO" ? "default" : "destructive"}
+        submitButtonVariant={
+          userToChangeStatus?.estado === "ACTIVO" ? "default" : "destructive"
+        }
         onOpenChange={(open) => {
           if (!open) {
             setStatusDialogOpen(false);
@@ -614,7 +614,9 @@ const ListadoUsuariosComponent: React.FC<ListadoUsuariosComponentProps> = ({
           }
         }}
         title={`Confirmar ${
-          userToChangeStatus?.estado === "ACTIVO" ? "activación" : "desactivación"
+          userToChangeStatus?.estado === "ACTIVO"
+            ? "activación"
+            : "desactivación"
         }`}
         onSubmit={(e) => {
           e.preventDefault();

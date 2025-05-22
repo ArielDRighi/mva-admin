@@ -47,6 +47,8 @@ import {
 import { updateStatusService } from "@/app/actions/services";
 import { toast } from "sonner";
 import { CreateEmployeeLeaveDto } from "@/types/types";
+import { logoutUser } from "@/app/actions/logout";
+import { useRouter } from "next/navigation";
 
 enum serviceStatus {
   EN_PROGRESO = "EN_PROGRESO",
@@ -155,39 +157,6 @@ interface CompletedService {
   banosInstalados?: Array<any>;
 }
 
-const completedServices = [
-  {
-    id: 101,
-    clientName: "Festival Musical Primavera",
-    serviceType: "INSTALACION",
-    completedDate: "2025-05-10T11:30:00",
-    location: "Parque Sarmiento",
-    bathCount: 10,
-    vehicleId: 3,
-    vehicleModel: "Iveco Daily",
-  },
-  {
-    id: 102,
-    clientName: "Empresa Desarrollo Software",
-    serviceType: "LIMPIEZA",
-    completedDate: "2025-05-15T09:45:00",
-    location: "Edificio Torre Norte, Puerto Madero",
-    bathCount: 2,
-    vehicleId: 2,
-    vehicleModel: "Ford F-150",
-  },
-  {
-    id: 103,
-    clientName: "Constructora ABC",
-    serviceType: "RETIRO",
-    completedDate: "2025-05-18T16:20:00",
-    location: "Av. Libertador 1200, CABA",
-    bathCount: 3,
-    vehicleId: 1,
-    vehicleModel: "Mercedes Sprinter",
-  },
-];
-
 const availableLeaveTypes = [
   { value: "VACACIONES", label: "Vacaciones" },
   { value: "ENFERMEDAD", label: "Licencia por enfermedad" },
@@ -277,7 +246,12 @@ const DashboardEmployeeComponent = () => {
   const [notesText, setNotesText] = useState("");
   const [isSubmittingLeave, setIsSubmittingLeave] = useState(false);
   const [isLeaveModalOpen, setIsLeaveModalOpen] = useState(false);
+  const router = useRouter();
 
+  const handleLogout = () => {
+    logoutUser();
+    router.push("/login");
+  };
   useEffect(() => {
     const userCookie = getCookie("user");
 
@@ -461,6 +435,13 @@ const DashboardEmployeeComponent = () => {
           </div>
           <Button className="bg-white text-blue-700 hover:bg-blue-50" asChild>
             <Link href="/empleado/perfil">Ver mi perfil</Link>
+          </Button>
+          <Button
+            variant="destructive"
+            onClick={handleLogout}
+            className="bg-red-600 hover:bg-red-700"
+          >
+            Cerrar sesión
           </Button>
         </div>
       </div>
