@@ -22,8 +22,6 @@ import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
   UserCheck,
-  Search,
-  RefreshCcw,
   UserPlus,
   Edit2,
   Trash2,
@@ -31,7 +29,6 @@ import {
   XCircle,
   Mail,
   Phone,
-  Briefcase,
   Calendar,
   Building,
   CreditCard,
@@ -45,7 +42,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export default function ListadoClientesComponent({
   data,
@@ -61,7 +58,6 @@ export default function ListadoClientesComponent({
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  // Asegurarnos de que data siempre sea un array
   const safeData = Array.isArray(data) ? data : [];
 
   const [clients, setClients] = useState<Cliente[]>(safeData);
@@ -182,7 +178,6 @@ export default function ListadoClientesComponent({
 
   const handleTabChange = (value: string) => {
     setActiveTab(value);
-    // Aquí podrías implementar filtrado por estado al cambiar de pestaña
   };
 
   const onSubmit = async (data: z.infer<typeof createClientSchema>) => {

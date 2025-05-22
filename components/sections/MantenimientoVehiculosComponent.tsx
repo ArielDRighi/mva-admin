@@ -24,6 +24,7 @@ import { Badge } from "../ui/badge";
 import { Button } from "../ui/button";
 import { FormDialog } from "../ui/local/FormDialog";
 import { FormField } from "../ui/local/FormField";
+import { VehiculoSelector } from "../ui/local/SearchSelector/Selectors/VehiculoSelector";
 import {
   Wrench,
   Calendar,
@@ -475,19 +476,17 @@ const MantenimientoVehiculosComponent = ({
         }
         onSubmit={handleSubmit(onSubmit)}
       >
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
+        <div className="grid grid-cols-1 gap-x-6 gap-y-4">
           <Controller
             name="vehiculoId"
             control={control}
             render={({ field, fieldState }) => (
-              <FormField
-                label="ID del Vehículo"
+              <VehiculoSelector
+                label="Vehículo"
                 name="vehiculoId"
-                type="number"
-                value={String(field.value)}
-                onChange={(value) => field.onChange(Number(value))}
+                value={field.value}
+                onChange={field.onChange}
                 error={fieldState.error?.message}
-                placeholder="Ingrese el ID del vehículo"
               />
             )}
           />

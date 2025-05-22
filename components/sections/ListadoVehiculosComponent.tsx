@@ -6,7 +6,7 @@ import {
   editVehicle,
   getVehicles,
 } from "@/app/actions/vehiculos";
-import { CreateVehiculo, UpdateVehiculo, Vehiculo } from "@/types/types";
+import { UpdateVehiculo, Vehiculo } from "@/types/types";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter, useSearchParams } from "next/navigation";
 import React, { useCallback, useEffect, useState } from "react";
@@ -30,8 +30,6 @@ import {
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Truck,
-  Search,
-  RefreshCcw,
   PlusCircle,
   Edit2,
   Trash2,
@@ -40,7 +38,6 @@ import {
   BadgeInfo,
   Calendar,
   Tag,
-  Package,
 } from "lucide-react";
 
 const ListadoVehiculosComponent = ({
@@ -57,7 +54,6 @@ const ListadoVehiculosComponent = ({
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  // Asegurarnos de que data siempre sea un array
   const safeData = Array.isArray(data) ? data : [];
 
   const [vehiculos, setVehiculos] = useState<Vehiculo[]>(safeData);
@@ -72,6 +68,7 @@ const ListadoVehiculosComponent = ({
   const [isFirstLoad, setIsFirstLoad] = useState(true);
 
   const vehiculoSchema = z.object({
+    numeroInterno: z.string().nullable(),
     placa: z.string().min(1, "La placa es obligatoria"),
     marca: z.string().min(1, "La marca es obligatoria"),
     modelo: z.string().min(1, "El modelo es obligatorio"),
@@ -79,6 +76,10 @@ const ListadoVehiculosComponent = ({
       .number()
       .min(1900, "El año debe ser mayor a 1900")
       .max(new Date().getFullYear() + 1, "El año no puede ser futuro"),
+    tipoCabina: z.string().min(1, "El tipo de cabina es obligatorio"),
+    fechaVencimientoVTV: z.string().nullable(),
+    fechaVencimientoSeguro: z.string().nullable(),
+    esExterno: z.boolean(),
     estado: z.enum(
       ["DISPONIBLE", "ASIGNADO", "MANTENIMIENTO", "INACTIVO", "BAJA"],
       {
@@ -92,10 +93,15 @@ const ListadoVehiculosComponent = ({
   const form = useForm<z.infer<typeof vehiculoSchema>>({
     resolver: zodResolver(vehiculoSchema),
     defaultValues: {
+      numeroInterno: null,
       placa: "",
       marca: "",
       modelo: "",
       anio: new Date().getFullYear(),
+      tipoCabina: "simple",
+      fechaVencimientoVTV: null,
+      fechaVencimientoSeguro: null,
+      esExterno: false,
       estado: "DISPONIBLE",
     },
   });
@@ -119,15 +125,25 @@ const ListadoVehiculosComponent = ({
     setSelectedVehiculo(vehiculo);
     setIsCreating(false);
 
-    const camposFormulario: (keyof CreateVehiculo)[] = [
+    const camposFormulario = [
+      "numeroInterno",
       "placa",
       "marca",
       "modelo",
       "anio",
+      "tipoCabina",
+      "fechaVencimientoVTV",
+      "fechaVencimientoSeguro",
+      "esExterno",
       "estado",
-    ];
+    ] as const;
 
-    camposFormulario.forEach((key) => setValue(key, vehiculo[key]));
+    camposFormulario.forEach((key) => {
+      if (key in vehiculo) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        setValue(key as any, vehiculo[key as keyof typeof vehiculo]);
+      }
+    });
   };
 
   const handleCreateClick = () => {
@@ -159,7 +175,6 @@ const ListadoVehiculosComponent = ({
 
   const handleChangeStatus = async (id: number, estado: string) => {
     try {
-      // Asumiendo que existe una función para cambiar el estado (crearla si es necesario)
       await editVehicle(id.toString(), { estado } as UpdateVehiculo);
       toast.success("Estado actualizado", {
         description: `El vehículo ahora está ${estado}.`,
@@ -221,7 +236,6 @@ const ListadoVehiculosComponent = ({
 
   const handleTabChange = (value: string) => {
     setActiveTab(value);
-    // Implementar filtrado por estado al cambiar de pestaña
   };
 
   const filteredVehiculos =
@@ -309,10 +323,10 @@ const ListadoVehiculosComponent = ({
             totalItems={total}
             currentPage={page}
             onPageChange={handlePageChange}
-            onSearchChange={handleSearchChange}
-            columns={[
+            onSearchChange={handleSearchChange}            columns={[
               { title: "Vehículo", key: "vehiculo" },
               { title: "Información", key: "informacion" },
+              { title: "Vencimientos", key: "vencimientos" },
               { title: "Estado", key: "estado" },
               { title: "Acciones", key: "acciones" },
             ]}
@@ -324,28 +338,62 @@ const ListadoVehiculosComponent = ({
                       <Truck className="h-5 w-5 text-slate-600" />
                     </div>
                     <div>
-                      <div className="font-medium">{`${vehiculo.marca} ${vehiculo.modelo}`}</div>
-                      <div className="text-sm text-muted-foreground flex items-center">
-                        <Tag className="h-3.5 w-3.5 mr-1" />
+                      <div className="font-medium">
+                        {vehiculo.numeroInterno
+                          ? `#${vehiculo.numeroInterno} - `
+                          : ""}
                         {vehiculo.placa}
                       </div>
+                      <div className="text-sm text-muted-foreground flex items-center">
+                        <Tag className="h-3.5 w-3.5 mr-1" />
+                        {vehiculo.marca} {vehiculo.modelo}
+                      </div>
                     </div>
-                  </div>
-                </TableCell>
-
-                <TableCell className="min-w-[220px]">
+                  </div>                </TableCell>                
+                <TableCell className="min-w-[150px]">
                   <div className="space-y-1">
                     <div className="flex items-center text-sm">
                       <Calendar className="h-3.5 w-3.5 mr-2 text-muted-foreground" />
                       <span>Año: {vehiculo.anio}</span>
                     </div>
                     <div className="flex items-center text-sm">
-                      <Package className="h-3.5 w-3.5 mr-2 text-muted-foreground" />
-                      <span>Capacidad: {vehiculo.capacidadCarga} kg</span>
+                      <Truck className="h-3.5 w-3.5 mr-2 text-muted-foreground" />
+                      <span>
+                        Cabina:{" "}
+                        {vehiculo.tipoCabina.charAt(0).toUpperCase() +
+                          vehiculo.tipoCabina.slice(1)}
+                      </span>
                     </div>
                   </div>
                 </TableCell>
-
+                
+                <TableCell className="min-w-[180px]">
+                  {(vehiculo.fechaVencimientoVTV || vehiculo.fechaVencimientoSeguro) ? (
+                    <div className="flex flex-col gap-1">
+                      {vehiculo.fechaVencimientoVTV && (
+                        <div className="flex items-center text-sm">
+                          <Calendar className="h-3.5 w-3.5 mr-1 text-muted-foreground" />
+                          <span>
+                            VTV: {new Date(vehiculo.fechaVencimientoVTV).toLocaleDateString("es-AR")}
+                          </span>
+                        </div>
+                      )}
+                      {vehiculo.fechaVencimientoSeguro && (
+                        <div className="flex items-center text-sm">
+                          <CheckCircle className="h-3.5 w-3.5 mr-1 text-muted-foreground" />
+                          <span>
+                            Seguro: {new Date(vehiculo.fechaVencimientoSeguro).toLocaleDateString("es-AR")}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <span className="text-sm text-muted-foreground">
+                      No hay vencimientos registrados
+                    </span>
+                  )}
+                </TableCell>
+                
                 <TableCell>
                   <Badge
                     variant={
@@ -369,8 +417,12 @@ const ListadoVehiculosComponent = ({
                   >
                     {vehiculo.estado}
                   </Badge>
+                  <div className="mt-2 text-xs text-gray-500">
+                    {vehiculo.esExterno
+                      ? "Vehículo externo"
+                      : "Vehículo propio"}
+                  </div>
                 </TableCell>
-
                 <TableCell className="flex gap-2">
                   <Button
                     variant="outline"
@@ -448,7 +500,21 @@ const ListadoVehiculosComponent = ({
         }
         onSubmit={handleSubmit(onSubmit)}
       >
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
+        <div className="grid grid-cols-1 gap-x-6 gap-y-4">
+          <Controller
+            name="numeroInterno"
+            control={control}
+            render={({ field, fieldState }) => (
+              <FormField
+                label="Número Interno (Opcional)"
+                name="numeroInterno"
+                value={field.value?.toString() || ""}
+                onChange={field.onChange}
+                error={fieldState.error?.message}
+                placeholder="Número identificatorio interno"
+              />
+            )}
+          />
           <Controller
             name="placa"
             control={control}
@@ -463,7 +529,6 @@ const ListadoVehiculosComponent = ({
               />
             )}
           />
-
           <Controller
             name="marca"
             control={control}
@@ -478,7 +543,6 @@ const ListadoVehiculosComponent = ({
               />
             )}
           />
-
           <Controller
             name="modelo"
             control={control}
@@ -493,7 +557,6 @@ const ListadoVehiculosComponent = ({
               />
             )}
           />
-
           <Controller
             name="anio"
             control={control}
@@ -508,8 +571,92 @@ const ListadoVehiculosComponent = ({
                 placeholder="Ej: 2023"
               />
             )}
-          />
+          />{" "}
+          <Controller
+            name="tipoCabina"
+            control={control}
+            render={({ field, fieldState }) => {
+              const capitalizeFirstLetter = (string: string) => {
+                return string.charAt(0).toUpperCase() + string.slice(1);
+              };
+              const displayValue = field.value
+                ? capitalizeFirstLetter(field.value)
+                : "";
 
+              return (
+                <FormField
+                  label="Tipo de Cabina"
+                  name="tipoCabina"
+                  fieldType="select"
+                  value={displayValue || "Simple"}
+                  onChange={(value) => {
+                    field.onChange(value.toLowerCase());
+                  }}
+                  options={[
+                    { label: "Simple", value: "Simple" },
+                    { label: "Doble", value: "Doble" },
+                    { label: "Extendida", value: "Extendida" },
+                  ]}
+                  error={fieldState.error?.message}
+                />
+              );
+            }}
+          />
+          <Controller
+            name="fechaVencimientoVTV"
+            control={control}
+            render={({ field, fieldState }) => (
+              <FormField
+                label="Vencimiento VTV (Opcional)"
+                name="fechaVencimientoVTV"
+                type="date"
+                value={field.value || ""}
+                onChange={field.onChange}
+                error={fieldState.error?.message}
+              />
+            )}
+          />
+          <Controller
+            name="fechaVencimientoSeguro"
+            control={control}
+            render={({ field, fieldState }) => (
+              <FormField
+                label="Vencimiento Seguro (Opcional)"
+                name="fechaVencimientoSeguro"
+                type="date"
+                value={field.value || ""}
+                onChange={field.onChange}
+                error={fieldState.error?.message}
+              />
+            )}
+          />{" "}
+          <Controller
+            name="esExterno"
+            control={control}
+            render={({ field, fieldState }) => {
+              const currentLabel =
+                field.value === true ? "Vehículo externo" : "Vehículo propio";
+
+              return (
+                <FormField
+                  label="Tipo de Vehículo"
+                  name="esExterno"
+                  fieldType="select"
+                  value={
+                    field.value === undefined ? "Vehículo propio" : currentLabel
+                  }
+                  onChange={(value) => {
+                    field.onChange(value === "Vehículo externo");
+                  }}
+                  options={[
+                    { label: "Vehículo propio", value: "Vehículo propio" },
+                    { label: "Vehículo externo", value: "Vehículo externo" },
+                  ]}
+                  error={fieldState.error?.message}
+                />
+              );
+            }}
+          />
           <Controller
             name="estado"
             control={control}
@@ -518,10 +665,8 @@ const ListadoVehiculosComponent = ({
                 label="Estado"
                 name="estado"
                 fieldType="select"
-                value={field.value || ""}
-                onChange={(selectedValue: string) =>
-                  field.onChange(selectedValue)
-                }
+                value={field.value}
+                onChange={field.onChange}
                 options={[
                   { label: "Disponible", value: "DISPONIBLE" },
                   { label: "Asignado", value: "ASIGNADO" },
