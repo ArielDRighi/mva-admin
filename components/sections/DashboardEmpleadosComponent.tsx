@@ -48,6 +48,8 @@ import {
 import { updateStatusService } from "@/app/actions/services";
 import { toast } from "sonner";
 import { CreateEmployeeLeaveDto } from "@/types/types";
+import { logoutUser } from "@/app/actions/logout";
+import { useRouter } from "next/navigation";
 
 enum serviceStatus {
   EN_PROGRESO = "EN_PROGRESO",
@@ -244,7 +246,12 @@ const DashboardEmployeeComponent = () => {
   const [notesText, setNotesText] = useState("");
   const [isSubmittingLeave, setIsSubmittingLeave] = useState(false);
   const [isLeaveModalOpen, setIsLeaveModalOpen] = useState(false);
+  const router = useRouter();
 
+  const handleLogout = () => {
+    logoutUser();
+    router.push("/login");
+  };
   useEffect(() => {
     const userCookie = getCookie("user");
 

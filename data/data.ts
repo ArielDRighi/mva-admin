@@ -1,5 +1,13 @@
 import { LogoMVA } from "@/assets/ImgDatabase";
-import { Car, Users, Toilet, UserCheck, Hammer, Wrench } from "lucide-react"; // Quité CloudSun, agregué Wrench
+import {
+  Car,
+  Users,
+  Toilet,
+  UserCheck,
+  Hammer,
+  Wrench,
+  UserCog,
+} from "lucide-react"; // Quité CloudSun, agregué Wrench y UserCog
 
 const dataSideBar = {
   team: {
@@ -76,6 +84,17 @@ const dataSideBar = {
         {
           title: "Crear Condición",
           url: "/admin/dashboard/condiciones-contractuales/crear",
+        },
+      ],
+    },
+    {
+      title: "Usuarios",
+      url: "/admin/dashboard/usuarios",
+      icon: UserCog,
+      items: [
+        {
+          title: "Listado",
+          url: "/admin/dashboard/usuarios/listado",
         },
       ],
     },

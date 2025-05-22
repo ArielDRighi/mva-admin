@@ -86,9 +86,9 @@ export type Vehiculo = {
   fechaVencimientoVTV: string | null;
   fechaVencimientoSeguro: string | null;
   esExterno: boolean;
-  estado: 
+  estado:
     | "DISPONIBLE"
-    | "ASIGNADO" 
+    | "ASIGNADO"
     | "MANTENIMIENTO"
     | "INACTIVO"
     | "BAJA"
@@ -344,3 +344,27 @@ export type ChemicalToilet = {
   fecha_adquisicion: string;
   estado: string;
 };
+
+export interface User {
+  id: number;
+  nombre: string;
+  email: string;
+  password?: string;
+  estado: "ACTIVO" | "INACTIVO";
+  roles: Role[];
+  empleadoId?: number;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+/**
+ * Roles de usuario disponibles en el sistema
+ * - ADMIN: Acceso completo a todas las funcionalidades
+ * - SUPERVISOR: Monitoreo y gestión de operaciones sin acceso administrativo
+ * - OPERARIO: Acceso limitado a operaciones específicas
+ */
+export enum Role {
+  ADMIN = "ADMIN",
+  SUPERVISOR = "SUPERVISOR",
+  OPERARIO = "OPERARIO",
+}
