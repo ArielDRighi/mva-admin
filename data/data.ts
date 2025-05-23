@@ -40,6 +40,10 @@ const dataSideBar = {
           title: "Licencias de empleado",
           url: "/admin/dashboard/empleados/licencias",
         },
+        {
+          title: "Licencias de conducir",
+          url: "/admin/dashboard/empleados/licencias_conducir",
+        },
       ],
     },
     {
@@ -117,17 +121,6 @@ const dataSideBar = {
         {
           title: "Listado",
           url: "/admin/dashboard/talles-de-empleados/listado",
-        },
-      ],
-    },
-    {
-      title: "Licencias de conducir",
-      url: "#",
-      icon: Users,
-      items: [
-        {
-          title: "Listado",
-          url: "/admin/dashboard/empleados/licencias",
         },
       ],
     },
