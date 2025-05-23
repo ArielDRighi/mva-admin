@@ -588,3 +588,24 @@ export async function createServicioGenerico(data: CreateLimpiezaDto) {
     throw error;
   }
 }
+
+export async function getServiciosGenericos(page: number) {
+  const cookieStore = await cookies();
+  const token = cookieStore.get("token")?.value;
+
+  if (!token) throw new Error("Token no encontrado");
+
+  const res = await fetch(
+    `${process.env.NEXT_PUBLIC_API_URL}/api/services/generico?page=${page}`,
+    {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+      cache: "no-store",
+    }
+  );
+
+  if (!res.ok) throw new Error("Error al obtener servicios genericos");
+
+  return await res.json();
+}

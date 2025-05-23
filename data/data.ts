@@ -86,8 +86,12 @@ const dataSideBar = {
           url: "/admin/dashboard/servicios/instalacion/listado",
         },
         {
-          title: "Crear Generico",
-          url: "/admin/dashboard/servicios/genericos",
+          title: "Crear Servicio Generico",
+          url: "/admin/dashboard/servicios/genericos/crear",
+        },
+        {
+          title: "Listado Servicios Genericos",
+          url: "/admin/dashboard/servicios/genericos/listado",
         },
       ],
     },
