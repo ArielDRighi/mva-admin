@@ -37,44 +37,10 @@ import {
   Check,
 } from "lucide-react";
 import DatePicker from "react-datepicker";
+import "react-datepicker/dist/react-datepicker.css";
 import { getEmployees } from "@/app/actions/empleados";
 import { getVehicles } from "@/app/actions/vehiculos";
 import { getSanitarios } from "@/app/actions/sanitarios";
-
-// Validation schema for each step
-const clienteSchema = z.object({
-  clienteId: z.number().min(1, "Debe seleccionar un cliente"),
-});
-
-// Update the condicionContractualSchema
-const condicionContractualSchema = z.object({
-  condicionContractualId: z
-    .number()
-    .min(1, "Debe seleccionar una condición contractual")
-    .refine(
-      (value) => value > 0,
-      "Debe seleccionar una condición contractual válida"
-    ),
-});
-
-const programacionSchema = z.object({
-  fechaProgramada: z.date({
-    required_error: "La fecha programada es obligatoria",
-  }),
-  cantidadVehiculos: z.number().min(1, "Debe especificar al menos 1 vehículo"),
-  ubicacion: z.string().min(3, "La ubicación debe tener al menos 3 caracteres"),
-  notas: z.string().optional(),
-});
-
-const recursosSchema = z.object({
-  empleadosIds: z
-    .array(z.number())
-    .min(1, "Debe seleccionar al menos un empleado"),
-  vehiculosIds: z
-    .array(z.number())
-    .min(1, "Debe seleccionar al menos un vehículo"),
-  banosIds: z.array(z.number()).optional(),
-});
 
 // Combined schema
 const formSchema = z.object({
@@ -134,7 +100,6 @@ export default function CrearInstalacionComponent() {
   const [selectedCondicionContractualId, setSelectedCondicionContractualId] =
     useState<number>(0);
 
-  // Data for each step
   const [clientes, setClientes] = useState<Cliente[]>([]);
   const [filteredClientes, setFilteredClientes] = useState<Cliente[]>([]);
   const [searchTermCliente, setSearchTermCliente] = useState<string>("");
@@ -154,7 +119,6 @@ export default function CrearInstalacionComponent() {
 
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
-  // Form handling
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -188,7 +152,6 @@ export default function CrearInstalacionComponent() {
   const selectedCondicionId = watch("condicionContractualId");
   const selectedFechaProgramada = watch("fechaProgramada");
 
-  // Load clients on component mount
   useEffect(() => {
     const fetchClientes = async () => {
       try {
@@ -210,7 +173,6 @@ export default function CrearInstalacionComponent() {
     fetchClientes();
   }, []);
 
-  // Filter clients based on search term
   useEffect(() => {
     if (searchTermCliente.trim() === "") {
       setFilteredClientes(clientes);
@@ -226,7 +188,6 @@ export default function CrearInstalacionComponent() {
     }
   }, [searchTermCliente, clientes]);
 
-  // Load contractual conditions when client is selected
   useEffect(() => {
     const fetchCondicionesContractuales = async () => {
       if (selectedClientId && selectedClientId > 0) {
@@ -237,7 +198,6 @@ export default function CrearInstalacionComponent() {
           );
           setCondicionesContractuales(condicionesData || []);
 
-          // Reset selection when client changes
           setValue("condicionContractualId", 0);
           setCantidadBanosRequired(0);
         } catch (error) {
@@ -260,31 +220,25 @@ export default function CrearInstalacionComponent() {
     }
   }, [selectedClientId, step, setValue]);
 
-  // Load available resources when date is selected
   useEffect(() => {
     const fetchResources = async () => {
       if (selectedFechaProgramada && step >= 4) {
         try {
           setIsLoading(true);
 
-          // Obtener todos los recursos
           const [empleadosResponse, vehiculosResponse, sanitariosResponse] =
             await Promise.all([getEmployees(), getVehicles(), getSanitarios()]);
 
-          // Los recursos ya vienen con su estado de disponibilidad
-          // Filtrar empleados disponibles
           const empleadosDisp =
             empleadosResponse?.data?.filter(
               (empleado: Empleado) => empleado.estado === "DISPONIBLE"
             ) || [];
 
-          // Filtrar vehículos disponibles
           const vehiculosDisp =
             vehiculosResponse?.data?.filter(
               (vehiculo: Vehiculo) => vehiculo.estado === "DISPONIBLE"
             ) || [];
 
-          // Filtrar sanitarios disponibles
           const sanitariosDisp =
             sanitariosResponse?.items?.filter(
               (sanitario: Sanitario) => sanitario.estado === "DISPONIBLE"
@@ -294,7 +248,6 @@ export default function CrearInstalacionComponent() {
           setVehiculosDisponibles(vehiculosDisp);
           setBanosDisponibles(sanitariosDisp);
 
-          // Reset selections when date changes
           setValue("empleadosIds", []);
           setValue("vehiculosIds", []);
           setValue("banosIds", []);
@@ -314,7 +267,6 @@ export default function CrearInstalacionComponent() {
     }
   }, [selectedFechaProgramada, step, setValue]);
 
-  // Update required toilets when contractual condition is selected
   useEffect(() => {
     if (selectedCondicionId && selectedCondicionId > 0) {
       const selectedCondicion = condicionesContractuales.find(
@@ -326,8 +278,6 @@ export default function CrearInstalacionComponent() {
         setCantidadBanosRequired(cantidadBanos);
         setValue("cantidadBanos", cantidadBanos);
 
-        // Ensure we're updating the form state properly
-        // This is the critical part:
         setValue("condicionContractualId", selectedCondicionId, {
           shouldValidate: true,
           shouldDirty: true,
@@ -337,7 +287,6 @@ export default function CrearInstalacionComponent() {
     }
   }, [selectedCondicionId, condicionesContractuales, setValue]);
 
-  // Add this function near the top of your component
   const validateStep = (currentStep: number): boolean => {
     switch (currentStep) {
       case 1:
@@ -360,50 +309,38 @@ export default function CrearInstalacionComponent() {
     }
   };
 
-  // Handle next step navigation
   const handleNext = async () => {
     let isValid = false;
 
     switch (step) {
-      case 1: // Validate client selection
+      case 1:
         isValid = await trigger("clienteId");
         break;
-      case 2: // Validate contractual condition selection
-        // Force a direct check of condicionContractualId first
+      case 2:
         if (getValues().condicionContractualId === 0) {
           toast.error("Error de validación", {
             description: "Debes seleccionar una condición contractual válida",
           });
-          return; // Return early to prevent proceeding
+          return;
         }
 
-        // If that passes, run the regular validation
         isValid = await trigger("condicionContractualId");
         break;
-      case 3: // Validate scheduling information
+      case 3:
         isValid = await trigger([
           "fechaProgramada",
           "cantidadVehiculos",
           "ubicacion",
         ]);
         break;
-      case 4: // Final validation before submission
-        console.log("🔍 Validating final step");
-        console.log("Current resources:", {
-          empleadosIds: watch("empleadosIds"),
-          vehiculosIds: watch("vehiculosIds"),
-          banosIds: watch("banosIds"),
-        });
+      case 4:
         isValid = await trigger(["empleadosIds", "vehiculosIds", "banosIds"]);
-        console.log("Validation result:", isValid);
+
         break;
     }
 
-    // Special check for step 2
     if (step === 2) {
-      // Check if condicionContractualId is valid before proceeding
       const currentCondicionId = getValues().condicionContractualId;
-      console.log("Current condition ID before next step:", currentCondicionId);
 
       if (!currentCondicionId || currentCondicionId === 0) {
         toast.error("Error de validación", {
@@ -418,18 +355,13 @@ export default function CrearInstalacionComponent() {
     }
   };
 
-  // Handle previous step navigation
   const handleBack = () => {
     setStep(step - 1);
   };
-
-  // Form submission
   const onSubmit = async (data: FormData) => {
-    console.log("⭐ onSubmit triggered with data:", data);
     setIsSubmitting(true);
 
     try {
-      // Double-check the condicionContractualId before proceeding
       const effectiveCondicionId =
         data.condicionContractualId || selectedCondicionContractualId;
 
@@ -437,46 +369,59 @@ export default function CrearInstalacionComponent() {
         throw new Error("La condición contractual es requerida");
       }
 
-      console.log("🔍 Using condicionContractualId:", effectiveCondicionId);
+      const empleadosSeleccionados = data.empleadosIds;
 
-      // Transform empleadosIds array into empleadoAId and empleadoBId
-      const [empleadoAId, empleadoBId] = data.empleadosIds;
-
-      // Format date properly
       const date = new Date(data.fechaProgramada);
-      const formattedDate = date.toLocaleDateString("en-CA"); // This formats as YYYY-MM-DD
+      // Formato YYYY-MM-DD
+      const formattedDate = date.toISOString().split("T")[0];
 
-      // Prepare service data with the required format
+      // Crear las asignaciones manuales según el formato requerido para CreateInstalacionDto
+      // El DTO espera exactamente 2 elementos en un formato específico
+      const firstEmployeeId =
+        empleadosSeleccionados.length > 0
+          ? empleadosSeleccionados[0]
+          : undefined;
+      const secondEmployeeId =
+        empleadosSeleccionados.length > 1
+          ? empleadosSeleccionados[1]
+          : undefined;
+
+      // Siempre debe tener exactamente 2 elementos en este formato específico
+      // Asegurar que asignacionesManual cumpla con el tipo esperado [{ empleadoId?, vehiculoId, banosIds }, { empleadoId? }]
+      const asignacionesManual: [
+        { empleadoId?: number; vehiculoId: number; banosIds: number[] },
+        { empleadoId?: number }
+      ] = [
+        {
+          // Primer elemento debe tener vehiculoId y banosIds
+          empleadoId: firstEmployeeId,
+          vehiculoId: data.vehiculosIds.length > 0 ? data.vehiculosIds[0] : 0,
+          banosIds: data.banosIds || [],
+        },
+        {
+          // Segundo elemento solo necesita empleadoId opcional
+          empleadoId: secondEmployeeId,
+        },
+      ];
+
       const serviceData = {
         condicionContractualId: effectiveCondicionId,
         fechaProgramada: formattedDate,
         cantidadVehiculos: data.cantidadVehiculos,
         ubicacion: data.ubicacion,
-        empleadoAId: empleadoAId,
-        empleadoBId: empleadoBId || undefined, // Changed from null to undefined
         asignacionAutomatica: false,
-        asignacionesManual: [
-          {
-            vehiculoId: data.vehiculosIds[0],
-            banosIds: data.banosIds || [],
-          },
-        ],
+        asignacionesManual: asignacionesManual,
         notas: data.notas || "",
       };
 
-      console.log("📤 Sending service data to backend:", serviceData);
-
       try {
         const response = await createServiceInstalacion(serviceData);
-        console.log("📥 Response from backend:", response);
 
         toast.success("¡Servicio creado correctamente!", {
           description: "El servicio ha sido programado con éxito.",
         });
 
-        // Redirect after success
         setTimeout(() => {
-          console.log("🔄 Redirecting to service list...");
           router.push("/admin/dashboard/servicios");
         }, 2000);
       } catch (apiError) {
@@ -496,7 +441,6 @@ export default function CrearInstalacionComponent() {
     }
   };
 
-  // Helper to toggle resource selection
   const toggleResourceSelection = (
     resourceType: "empleadosIds" | "vehiculosIds" | "banosIds",
     id: number
@@ -683,17 +627,10 @@ export default function CrearInstalacionComponent() {
                                 : "border-l-4 border-transparent"
                             }`}
                             onClick={() => {
-                              // More explicit log to debug
-                              console.log(
-                                `Selecting condition: ${condicion.condicionContractualId}, ${condicion.tipo_de_contrato}`
-                              );
-
-                              // Update both the form and local state
                               setSelectedCondicionContractualId(
                                 condicion.condicionContractualId
                               );
 
-                              // Use setValue with full options to ensure validation and persistence
                               setValue(
                                 "condicionContractualId",
                                 condicion.condicionContractualId,
@@ -790,6 +727,11 @@ export default function CrearInstalacionComponent() {
                       onSelect={field.onChange}
                       disabled={isSubmitting}
                       minDate={new Date()}
+                      showTimeSelect
+                      dateFormat="yyyy-MM-dd HH:mm"
+                      className="w-full p-2 border border-slate-200 rounded-md focus:ring-2 focus:ring-slate-200 focus:border-slate-300"
+                      placeholderText="Selecciona fecha y hora de inicio"
+                      wrapperClassName="w-full"
                     />
                     {fieldState.error?.message && (
                       <p className="text-sm text-red-500 mt-1">
@@ -1108,24 +1050,13 @@ export default function CrearInstalacionComponent() {
             {step === 4 && (
               <Button
                 onClick={() => {
-                  console.log("🔘 Submit button clicked");
-
-                  // Get the latest value directly from the form state
                   const formValues = getValues();
-                  console.log("Current form state:", formValues);
 
-                  // Use the persisted state value if the form value is 0
                   if (
                     !formValues.condicionContractualId ||
                     formValues.condicionContractualId === 0
                   ) {
-                    console.log(
-                      "Attempting to recover condicionContractualId from persisted state:",
-                      selectedCondicionContractualId
-                    );
-
                     if (selectedCondicionContractualId > 0) {
-                      // Set it forcefully right before submission
                       setValue(
                         "condicionContractualId",
                         selectedCondicionContractualId,
@@ -1147,12 +1078,7 @@ export default function CrearInstalacionComponent() {
                     }
                   }
 
-                  // Verify it was set correctly
                   const updatedValues = getValues();
-                  console.log(
-                    "Updated form values before submit:",
-                    updatedValues
-                  );
 
                   if (
                     !updatedValues.condicionContractualId ||
@@ -1168,15 +1094,13 @@ export default function CrearInstalacionComponent() {
                     return;
                   }
 
-                  // Continue with validation and submission
                   trigger().then((isValid) => {
                     if (!isValid) {
                       console.error("⛔ Form validation failed");
-                      // Toast message is already shown by the form validation
+
                       return;
                     }
 
-                    // Check if required number of toilets are selected
                     const banosIds = getValues().banosIds || [];
                     if (
                       cantidadBanosRequired > 0 &&
@@ -1191,10 +1115,6 @@ export default function CrearInstalacionComponent() {
                       return;
                     }
 
-                    // If all checks pass, submit the form
-                    console.log(
-                      "✅ Intentando enviar el formulario después de verificación completa"
-                    );
                     handleSubmit(onSubmit)();
                   });
                 }}
@@ -1218,8 +1138,3 @@ export default function CrearInstalacionComponent() {
     </Card>
   );
 }
-
-// Eliminar esta función que causa el error
-// function Disponibles(arg0: { cantidadBanosRequired: any }, requeridos: any) {
-//   throw new Error("Function not implemented.");
-// }

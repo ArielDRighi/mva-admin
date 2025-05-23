@@ -463,13 +463,17 @@ export interface CreateInstalacionDto {
   fechaProgramada: string;
   cantidadVehiculos: number;
   ubicacion: string;
-  empleadoAId?: number;
-  empleadoBId?: number;
   asignacionAutomatica: boolean;
-  asignacionesManual: {
-    vehiculoId: number;
-    banosIds: number[];
-  }[];
+  asignacionesManual: [
+    {
+      empleadoId?: number;
+      vehiculoId: number;
+      banosIds: number[];
+    },
+    {
+      empleadoId?: number;
+    }
+  ];
   notas?: string;
 }
 
@@ -497,14 +501,14 @@ export async function createServiceInstalacion(data: CreateInstalacionDto) {
   return await res.json();
 }
 
-export async function getInstalaciones() {
+export async function getInstalaciones(page: number) {
   const cookieStore = await cookies();
   const token = cookieStore.get("token")?.value;
 
   if (!token) throw new Error("Token no encontrado");
 
   const res = await fetch(
-    `${process.env.NEXT_PUBLIC_API_URL}/api/services/instalacion`,
+    `${process.env.NEXT_PUBLIC_API_URL}/api/services/instalacion?page=${page}`,
     {
       headers: {
         Authorization: `Bearer ${token}`,
