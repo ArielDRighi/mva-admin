@@ -20,7 +20,7 @@ const dataSideBar = {
   navMain: [
     {
       title: "Vehículos",
-      url: "/admin/dashboard/vehiculos",
+      url: "#",
       icon: Car,
       items: [
         { title: "Listado", url: "/admin/dashboard/vehiculos/listado" },
@@ -40,11 +40,15 @@ const dataSideBar = {
           title: "Licencias de empleado",
           url: "/admin/dashboard/empleados/licencias",
         },
+        {
+          title: "Licencias de conducir",
+          url: "/admin/dashboard/empleados/licencias_conducir",
+        },
       ],
     },
     {
       title: "Sanitarios",
-      url: "/admin/dashboard/sanitarios",
+      url: "#",
       icon: Toilet,
       items: [
         { title: "Listado", url: "/admin/dashboard/sanitarios/listado" },
@@ -62,16 +66,16 @@ const dataSideBar = {
     },
     {
       title: "Servicios",
-      url: "/dashboard/servicios",
+      url: "#",
       icon: Hammer,
       items: [
         {
           title: "Crear Capacitacion",
-          url: "/admin/dashboard/capacitaciones/crear",
+          url: "/admin/dashboard/servicios/capacitaciones/crear",
         },
         {
           title: "Listado capacitaciones",
-          url: "/admin/dashboard/capacitaciones/listado",
+          url: "/admin/dashboard/servicios/capacitaciones/listado",
         },
         {
           title: "Crear Instalacion",
@@ -85,7 +89,7 @@ const dataSideBar = {
     },
     {
       title: "Condiciones contractuales",
-      url: "/admin/dashboard/condiciones-contractuales",
+      url: "#",
       icon: Wrench,
       items: [
         {
@@ -111,7 +115,7 @@ const dataSideBar = {
     },
     {
       title: "Talles de empleados",
-      url: "/admin/dashboard/talles-de-empleados",
+      url: "#",
       icon: Shirt,
       items: [
         {

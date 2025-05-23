@@ -85,8 +85,7 @@ export async function updateMyClothing(
 
 export async function getTallesEmpleados(
   page: number = 1,
-  itemsPerPage: number = 10,
-  search: string = ""
+  itemsPerPage: number = 10
 ): Promise<{
   data: RopaTalles[];
   total: number;
@@ -99,7 +98,7 @@ export async function getTallesEmpleados(
     const searchParams = new URLSearchParams();
     searchParams.append("page", page.toString());
     searchParams.append("limit", itemsPerPage.toString());
-    if (search) searchParams.append("search", search);
+    console.log("searchParams", searchParams.toString());
 
     const response = await fetch(
       `${
@@ -121,7 +120,7 @@ export async function getTallesEmpleados(
     }
 
     const data = await response.json();
-
+    console.log("data", data);
     // Si es un array directamente, es la lista de talles sin paginación
     if (Array.isArray(data)) {
       return {
@@ -134,7 +133,7 @@ export async function getTallesEmpleados(
 
     // Si tiene estructura de paginación (como se esperaba inicialmente)
     return {
-      data: data.items || [],
+      data: data.data || [],
       total: data?.totalItems || 0,
       page: data?.currentPage || 1,
       itemsPerPage: data?.itemsPerPage || 10,

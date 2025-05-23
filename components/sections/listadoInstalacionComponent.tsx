@@ -159,7 +159,7 @@ export function ListadoInstalacionComponent() {
     useState<Instalacion | null>(null);
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState<boolean>(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState<boolean>(false);
-
+  console.log("Instalaciones:", instalaciones);
   // Load data
   useEffect(() => {
     const fetchInstalaciones = async () => {
@@ -168,7 +168,7 @@ export function ListadoInstalacionComponent() {
         const page = Number(searchParams.get("page")) || 1;
         const search = searchParams.get("search") || "";
 
-        const response = await getInstalaciones();
+        const response = await getInstalaciones(page);
 
         if (response && response.data) {
           setInstalaciones(response.data);
