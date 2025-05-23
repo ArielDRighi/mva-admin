@@ -521,3 +521,70 @@ export async function getInstalaciones(page: number) {
 
   return await res.json();
 }
+
+export interface CreateLimpiezaDto {
+  tipoServicio: "LIMPIEZA";
+  condicionContractualId: number;
+  cantidadVehiculos: number;
+  fechaProgramada: string;
+  ubicacion: string;
+  asignacionAutomatica: boolean;
+  banosInstalados: number[];
+  asignacionesManual: [
+    {
+      empleadoId: number;
+      vehiculoId: number;
+    },
+    {
+      empleadoId: number;
+    }
+  ];
+  notas?: string;
+}
+
+export async function createServicioGenerico(data: CreateLimpiezaDto) {
+  console.log("[createServicioGenerico] Starting with data:", data);
+  const cookieStore = await cookies();
+  const token = cookieStore.get("token")?.value;
+
+  if (!token) {
+    console.error("[createServicioGenerico] Token not found");
+    throw new Error("Token no encontrado");
+  }
+
+  console.log("[createServicioGenerico] Token found, making API request");
+  console.log(
+    "[createServicioGenerico] API URL:",
+    `${process.env.NEXT_PUBLIC_API_URL}/api/services/generico`
+  );
+
+  try {
+    const res = await fetch(
+      `${process.env.NEXT_PUBLIC_API_URL}/api/services/generico`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(data),
+        cache: "no-store",
+      }
+    );
+
+    console.log("[createServicioGenerico] Response status:", res.status);
+
+    if (!res.ok) {
+      const errorText = await res.text();
+      console.error("[createServicioGenerico] Error response:", errorText);
+      throw new Error(`Error al crear el servicio generico: ${errorText}`);
+    }
+
+    const responseData = await res.json();
+    console.log("[createServicioGenerico] Success response:", responseData);
+    return responseData;
+  } catch (error) {
+    console.error("[createServicioGenerico] Exception:", error);
+    throw error;
+  }
+}
