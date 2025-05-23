@@ -68,6 +68,10 @@ const dataSideBar = {
           title: "Crear Instalacion",
           url: "/admin/dashboard/servicios/instalacion/crear",
         },
+        {
+          title: "Listado Instalaciones",
+          url: "/admin/dashboard/servicios/instalacion/listado",
+        },
       ],
     },
     {

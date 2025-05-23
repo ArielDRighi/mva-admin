@@ -1,4 +1,4 @@
-import { CrearInstalacionComponent } from "@/components/sections/instalacionCrearComponent";
+import CrearInstalacionComponent from "@/components/sections/instalacionCrearComponent";
 import React from "react";
 
 export default async function CrearInstalacionPage() {

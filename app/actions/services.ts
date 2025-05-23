@@ -467,7 +467,6 @@ export interface CreateInstalacionDto {
   empleadoBId?: number;
   asignacionAutomatica: boolean;
   asignacionesManual: {
-    empleadoId: number;
     vehiculoId: number;
     banosIds: number[];
   }[];
@@ -494,6 +493,27 @@ export async function createServiceInstalacion(data: CreateInstalacionDto) {
   );
 
   if (!res.ok) throw new Error("Error al crear el servicio de instalacion");
+
+  return await res.json();
+}
+
+export async function getInstalaciones() {
+  const cookieStore = await cookies();
+  const token = cookieStore.get("token")?.value;
+
+  if (!token) throw new Error("Token no encontrado");
+
+  const res = await fetch(
+    `${process.env.NEXT_PUBLIC_API_URL}/api/services/instalacion`,
+    {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+      cache: "no-store",
+    }
+  );
+
+  if (!res.ok) throw new Error("Error al obtener instalaciones");
 
   return await res.json();
 }
