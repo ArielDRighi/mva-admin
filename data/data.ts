@@ -65,11 +65,21 @@ const dataSideBar = {
       url: "/dashboard/servicios",
       icon: Hammer,
       items: [
-        { title: "Crear Servicio", url: "/admin/dashboard/servicios/crear" },
-        { title: "Historial", url: "/admin/dashboard/servicios/historial" },
         {
-          title: "Servicios Activos",
-          url: "/admin/dashboard/servicios/activos",
+          title: "Crear Capacitacion",
+          url: "/admin/dashboard/capacitaciones/crear",
+        },
+        {
+          title: "Listado capacitaciones",
+          url: "/admin/dashboard/capacitaciones/listado",
+        },
+        {
+          title: "Crear Instalacion",
+          url: "/admin/dashboard/servicios/instalacion/crear",
+        },
+        {
+          title: "Listado Instalaciones",
+          url: "/admin/dashboard/servicios/instalacion/listado",
         },
       ],
     },
