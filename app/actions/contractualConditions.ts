@@ -106,7 +106,7 @@ export async function getContractualConditionsByClient(clientId: number) {
   if (!token) throw new Error("Token no encontrado");
 
   const res = await fetch(
-    `${process.env.NEXT_PUBLIC_API_URL}/api/contractual_conditions/client-name/${clientId}`,
+    `${process.env.NEXT_PUBLIC_API_URL}/api/contractual_conditions/client-id/${clientId}`,
     {
       headers: {
         Authorization: `Bearer ${token}`,
