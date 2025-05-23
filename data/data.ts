@@ -7,7 +7,8 @@ import {
   Hammer,
   Wrench,
   UserCog,
-} from "lucide-react"; // Quité CloudSun, agregué Wrench y UserCog
+  Shirt,
+} from "lucide-react";
 
 const dataSideBar = {
   team: {
@@ -105,6 +106,17 @@ const dataSideBar = {
         {
           title: "Listado",
           url: "/admin/dashboard/usuarios/listado",
+        },
+      ],
+    },
+    {
+      title: "Talles de empleados",
+      url: "/admin/dashboard/talles-de-empleados",
+      icon: Shirt,
+      items: [
+        {
+          title: "Listado",
+          url: "/admin/dashboard/talles-de-empleados/listado",
         },
       ],
     },

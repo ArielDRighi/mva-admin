@@ -368,3 +368,23 @@ export enum Role {
   SUPERVISOR = "SUPERVISOR",
   OPERARIO = "OPERARIO",
 }
+
+export interface RopaTalles {
+  id: number;
+  empleado: {
+    id: number;
+    nombre: string;
+    apellido: string;
+  };
+  calzado_talle: string;
+  pantalon_talle: string;
+  camisa_talle: string;
+  campera_bigNort_talle: string;
+  pielBigNort_talle: string;
+  medias_talle: string;
+  pantalon_termico_bigNort_talle: string;
+  campera_polar_bigNort_talle: string;
+  mameluco_talle: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
