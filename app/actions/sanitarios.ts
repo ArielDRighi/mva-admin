@@ -9,26 +9,39 @@ export async function getSanitarios(
   limit: number = 15,
   search: string = ""
 ) {
-  const cookieStore = await cookies();
-  const token = cookieStore.get("token")?.value;
+  try {
+    const cookieStore = await cookies();
+    const token = cookieStore.get("token")?.value;
 
-  if (!token) throw new Error("Token no encontrado");
+    if (!token) throw new Error("Token no encontrado");
 
-  const searchQuery = search ? `&search=${search}` : "";
+    const searchQuery = search ? `&search=${search}` : "";
+    const apiUrl = `${process.env.NEXT_PUBLIC_API_URL}/api/chemical_toilets?page=${page}&limit=${limit}${searchQuery}`;
 
-  const res = await fetch(
-    `${process.env.NEXT_PUBLIC_API_URL}/api/chemical_toilets?page=${page}&limit=${limit}${searchQuery}`,
-    {
+    console.log(`Fetching sanitarios from: ${apiUrl}`);
+
+    const res = await fetch(apiUrl, {
       headers: {
         Authorization: `Bearer ${token}`,
       },
       cache: "no-store",
+    });
+
+    if (!res.ok) {
+      const errorText = await res.text().catch(() => "");
+      console.error(
+        `Error en getSanitarios: Status ${res.status}, Error: ${errorText}`
+      );
+      // En lugar de lanzar un error, retornamos un objeto vacío pero válido
+      return { items: [], total: 0, page: page, limit: limit, totalPages: 0 };
     }
-  );
 
-  if (!res.ok) throw new Error("Error al obtener sanitarios");
-
-  return await res.json();
+    return await res.json();
+  } catch (error) {
+    console.error("Error en getSanitarios:", error);
+    // Devolvemos un objeto vacío pero con la estructura esperada
+    return { items: [], total: 0, page: page, limit: limit, totalPages: 0 };
+  }
 }
 
 export async function editSanitario(id: string, data: Sanitario) {

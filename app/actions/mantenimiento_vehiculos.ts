@@ -3,7 +3,6 @@
 import {
   CreateVehicleMaintenance,
   UpdateVehicleMaintenance,
-  VehicleMaintenance,
 } from "@/types/types";
 import { cookies } from "next/headers";
 

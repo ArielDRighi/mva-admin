@@ -46,7 +46,13 @@ const LoginComponent = () => {
       const data = await loginUser(values.email, values.password);
       setCookie("token", data.access_token);
       setCookie("user", JSON.stringify(data.user));
-      router.push("/dashboard");
+
+      // Check if user has ADMIN role (in the roles array)
+      if (data.user.roles && data.user.roles.includes("ADMIN")) {
+        router.push("/admin/dashboard");
+      } else if (data.user.roles && data.user.roles.includes("OPERADOR")) {
+        router.push("/empleado/dashboard");
+      }
     } catch (err) {
       setFormError("Usuario o contraseña incorrectos");
       console.log(err);

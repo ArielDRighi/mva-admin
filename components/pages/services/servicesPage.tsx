@@ -6,7 +6,7 @@ const ServiciosPage = () => {
   const serviceOptions = [
     {
       id: "crear",
-      href: "/dashboard/servicios/crear",
+      href: "/admin/dashboard/servicios/crear",
       imgSrc: ServiciosImg,
       imgAlt: "Icono de creación de servicios",
       title: "Creación de Servicios",
@@ -15,7 +15,7 @@ const ServiciosPage = () => {
     },
     {
       id: "activos",
-      href: "/dashboard/servicios/activos",
+      href: "/admin/dashboard/servicios/activos",
       imgSrc: ServiciosImg,
       imgAlt: "Icono de servicios activos",
       title: "Servicios Activos",
@@ -24,7 +24,7 @@ const ServiciosPage = () => {
     },
     {
       id: "historial",
-      href: "/dashboard/servicios/historial",
+      href: "/admin/dashboard/servicios/historial",
       imgSrc: ServiciosImg,
       imgAlt: "Icono de historial de servicios",
       title: "Historial de Servicios",

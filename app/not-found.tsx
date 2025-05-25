@@ -33,17 +33,10 @@ export default function NotFound() {
         <div className="flex flex-col sm:flex-row gap-4 justify-center">
           <Button
             variant="default"
-            onClick={() => router.push("/dashboard")}
+            onClick={() => router.push("/")}
             className="w-full sm:w-auto"
           >
-            Ir al Dashboard
-          </Button>
-          <Button
-            variant="outline"
-            onClick={() => router.back()}
-            className="w-full sm:w-auto"
-          >
-            Volver
+            Ir al Home
           </Button>
         </div>
       </div>

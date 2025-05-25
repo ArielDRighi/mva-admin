@@ -29,6 +29,8 @@ import {
 } from "@/app/actions/services";
 import { Servicio } from "@/types/serviceTypes";
 import { getFuturesCleanings } from "@/app/actions/services";
+import { getLicenciasToExpire } from "@/app/actions/LicenciasConducir";
+import { Empleado } from "@/types/types";
 
 export type User = {
   id: number;
@@ -67,6 +69,20 @@ export type resumeService = {
   completados: number;
 };
 
+export interface LicenciaConducir {
+  licencia_id: number;
+  categoria: string;
+  fecha_expedicion: Date;
+  fecha_vencimiento: Date;
+  empleado: Empleado;
+}
+export type LicenciasToExpireResponse = {
+  data: LicenciaConducir[];
+  totalItems: number;
+  currentPage: number;
+  totalPages: number;
+};
+
 const DashboardComponent = () => {
   const [user, setUser] = useState<User | null>(null);
   const [totalVehicles, setTotalVehicles] = useState<totalVehicles>();
@@ -83,7 +99,8 @@ const DashboardComponent = () => {
     totalPages: 0,
   });
   const [activityRecent, setRecentActivity] = useState<any>(null);
-  console.log("activityRecent", activityRecent);
+  const [licenciasToExpire, setLicenciasToExpire] =
+    useState<LicenciasToExpireResponse>();
 
   const router = useRouter();
 
@@ -98,6 +115,8 @@ const DashboardComponent = () => {
         const resumeService = await getResumeServices();
         const futuresCleanings = await getFuturesCleanings();
         const activity = await getRecentActivity();
+        const fetchLicenciasToExpire = await getLicenciasToExpire(30, 1, 10);
+        setLicenciasToExpire(fetchLicenciasToExpire);
         setRecentActivity(activity);
         setFuturesCleanings(futuresCleanings);
         setresumeService(resumeService);
@@ -113,122 +132,6 @@ const DashboardComponent = () => {
 
     fetchData();
   }, []);
-
-  const recentActivity = [
-    {
-      type: "SERVICIO",
-      action: "COMPLETADO",
-      description: "Instalación para Cliente ABC",
-      time: "Hace 1 hora",
-      user: "Carlos Ramírez",
-    },
-    {
-      type: "MANTENIMIENTO",
-      action: "PROGRAMADO",
-      description: "Vehículo Ford F-150 (ABC123)",
-      time: "Hace 2 horas",
-      user: "Laura González",
-    },
-    {
-      type: "SERVICIO",
-      action: "ASIGNADO",
-      description: "Limpieza para Cliente XYZ",
-      time: "Hace 3 horas",
-      user: "Juan Pérez",
-    },
-    {
-      type: "BAÑO",
-      action: "MANTENIMIENTO",
-      description: "Baño #12 en reparación",
-      time: "Hace 5 horas",
-      user: "Sistema",
-    },
-    {
-      type: "CLIENTE",
-      action: "NUEVO",
-      description: "Eventos Premium SA",
-      time: "Hace 6 horas",
-      user: "Ana Martínez",
-    },
-  ];
-
-  const upcomingMaintenance = [
-    {
-      id: 1,
-      type: "Vehículo",
-      resource: "Ford F-150 (ABC123)",
-      date: "2025-05-17",
-      maintenance: "Cambio de aceite y filtros",
-      priority: "Alta",
-    },
-    {
-      id: 2,
-      type: "Baño",
-      resource: "Baño #08",
-      date: "2025-05-18",
-      maintenance: "Revisión general",
-      priority: "Media",
-    },
-    {
-      id: 3,
-      type: "Vehículo",
-      resource: "Mercedes Sprinter (XYZ789)",
-      date: "2025-05-20",
-      maintenance: "Mantenimiento preventivo",
-      priority: "Baja",
-    },
-    {
-      id: 4,
-      type: "Baño",
-      resource: "Baño #15",
-      date: "2025-05-22",
-      maintenance: "Reparación de válvula",
-      priority: "Alta",
-    },
-  ];
-
-  const todayServices = [
-    {
-      id: 1,
-      client: "Constructora Norte SA",
-      type: "INSTALACIÓN",
-      status: "PROGRAMADO",
-      time: "09:30",
-      address: "Av. Santa Fe 1234",
-    },
-    {
-      id: 2,
-      client: "Eventos Exclusivos",
-      type: "RETIRO",
-      status: "EN_PROGRESO",
-      time: "10:15",
-      address: "Ruta 2 km 50",
-    },
-    {
-      id: 3,
-      client: "Parque Industrial Este",
-      type: "LIMPIEZA",
-      status: "PROGRAMADO",
-      time: "13:00",
-      address: "Calle Industrial 500",
-    },
-    {
-      id: 4,
-      client: "Centro Cultural Recoleta",
-      type: "MANTENIMIENTO",
-      status: "COMPLETADO",
-      time: "08:45",
-      address: "Junín 1930",
-    },
-  ];
-
-  const pendingServices = 12;
-  const completedServices = 8;
-
-  const pendingContractRenewals = [
-    { client: "Constructora Norte SA", expiration: "2025-05-25" },
-    { client: "Eventos Exclusivos", expiration: "2025-06-01" },
-  ];
 
   useEffect(() => {
     const userCookie = getCookie("user");
@@ -311,7 +214,7 @@ const DashboardComponent = () => {
         </div>
         <div className="mt-4 md:mt-0 flex space-x-2">
           <Button
-            onClick={() => router.push("/dashboard/servicios/crear")}
+            onClick={() => router.push("/admin/dashboard/servicios/crear")}
             className="bg-primary hover:bg-primary/90"
           >
             Nuevo Servicio
@@ -459,7 +362,9 @@ const DashboardComponent = () => {
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={() => router.push("/dashboard/servicios/activos")}
+                  onClick={() =>
+                    router.push("/admin/dashboard/servicios/activos")
+                  }
                 >
                   Ver todos
                 </Button>
@@ -597,7 +502,7 @@ const DashboardComponent = () => {
                     variant="ghost"
                     size="sm"
                     onClick={() =>
-                      router.push("/dashboard/servicios/limpiezas")
+                      router.push("/admin/dashboard/servicios/limpiezas")
                     }
                   >
                     Ver todas
@@ -868,43 +773,66 @@ const DashboardComponent = () => {
       </div>
 
       {/* Alerts and notifications */}
-      {/* {pendingContractRenewals.length > 0 && (
-        <div className="mb-8">
-          <Card className="border-red-200 bg-red-50">
-            <CardHeader>
-              <div className="flex items-center">
-                <AlertCircle className="h-5 w-5 mr-2 text-red-600" />
-                <CardTitle className="text-red-800">Alertas</CardTitle>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                {pendingContractRenewals.map((contract, i) => (
-                  <div
-                    key={i}
-                    className="flex items-center justify-between bg-white p-3 rounded-md border border-red-100"
-                  >
-                    <div>
-                      <p className="font-medium">{contract.client}</p>
-                      <p className="text-sm text-gray-600">
-                        Contrato vence el{" "}
-                        {new Date(contract.expiration).toLocaleDateString()}
-                      </p>
-                    </div>
-                    <Button
-                      size="sm"
-                      onClick={() => router.push("/dashboard/contratos")}
-                      className="bg-red-600 hover:bg-red-700"
+      {licenciasToExpire &&
+        licenciasToExpire.data &&
+        licenciasToExpire.data.length > 0 && (
+          <div className="mb-8">
+            <Card className="border-amber-200 bg-amber-50">
+              <CardHeader>
+                <div className="flex items-center">
+                  <AlertCircle className="h-5 w-5 mr-2 text-amber-600" />
+                  <CardTitle className="text-amber-800">
+                    Licencias por vencer
+                  </CardTitle>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  {licenciasToExpire.data.map((licencia) => (
+                    <div
+                      key={licencia.licencia_id}
+                      className="flex items-center justify-between bg-white p-3 rounded-md border border-amber-100"
                     >
-                      Renovar
-                    </Button>
-                  </div>
-                ))}
+                      <div>
+                        <p className="font-medium">
+                          {licencia.empleado.nombre}{" "}
+                          {licencia.empleado.apellido}
+                        </p>
+                        <p className="text-sm text-gray-600">
+                          Licencia categoría{" "}
+                          <strong>{licencia.categoria}</strong> vence el{" "}
+                          {new Date(
+                            licencia.fecha_vencimiento
+                          ).toLocaleDateString()}
+                        </p>
+                      </div>
+                      <Badge className="bg-amber-100 text-amber-800">
+                        {Math.ceil(
+                          (new Date(licencia.fecha_vencimiento).getTime() -
+                            new Date().getTime()) /
+                            (1000 * 60 * 60 * 24)
+                        )}{" "}
+                        días
+                      </Badge>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+              <div className="px-6 pb-4">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="w-full border-amber-200 hover:bg-amber-100"
+                  onClick={() =>
+                    router.push("/admin/dashboard/empleados/licencias")
+                  }
+                >
+                  Ver todas las licencias
+                </Button>
               </div>
-            </CardContent>
-          </Card>
-        </div>
-      )} */}
+            </Card>
+          </div>
+        )}
     </div>
   );
 };

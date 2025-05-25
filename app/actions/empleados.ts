@@ -202,3 +202,92 @@ export async function getTotalEmployees() {
 
   return await res.json();
 }
+
+export async function getMineAssignedServicesPending(employeeId: number) {
+  const cookieStore = await cookies();
+  const token = cookieStore.get("token")?.value;
+
+  if (!token) throw new Error("Token no encontrado");
+  const res = await fetch(
+    `${process.env.NEXT_PUBLIC_API_URL}/api/services/assigned/pendings/${employeeId}`,
+    {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+      cache: "no-store",
+    }
+  );
+
+  if (!res.ok) throw new Error("Error al obtener los servicios asignados");
+
+  return await res.json();
+}
+
+export async function getMineAssignedServicesInProgress(employeeId: number) {
+  const cookieStore = await cookies();
+  const token = cookieStore.get("token")?.value;
+
+  if (!token) throw new Error("Token no encontrado");
+  const res = await fetch(
+    `${process.env.NEXT_PUBLIC_API_URL}/api/services/assigned/inProgress/${employeeId}`,
+    {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+      cache: "no-store",
+    }
+  );
+
+  if (!res.ok) throw new Error("Error al obtener los servicios asignados");
+
+  return await res.json();
+}
+
+export async function getLastServicesByUserId(employeeId: number) {
+  const cookieStore = await cookies();
+  const token = cookieStore.get("token")?.value;
+
+  if (!token) throw new Error("Token no encontrado");
+  const res = await fetch(
+    `${process.env.NEXT_PUBLIC_API_URL}/api/services/employee/${employeeId}/last`,
+    {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+      cache: "no-store",
+    }
+  );
+
+  if (!res.ok) throw new Error("Error al obtener los servicios asignados");
+
+  return await res.json();
+}
+
+export async function getCompletedServicesByEmployee(
+  employeeId: number,
+  page: number = 1,
+  limit: number = 10,
+  search?: string
+) {
+  const cookieStore = await cookies();
+  const token = cookieStore.get("token")?.value;
+
+  if (!token) throw new Error("Token no encontrado");
+
+  const searchQuery = search ? `&search=${search}` : "";
+
+  const res = await fetch(
+    `${process.env.NEXT_PUBLIC_API_URL}/api/services/employee/${employeeId}/completed?page=${page}&limit=${limit}${searchQuery}`,
+    {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+      cache: "no-store",
+    }
+  );
+
+  if (!res.ok)
+    throw new Error("Error al obtener los servicios completados del empleado");
+
+  return await res.json();
+}

@@ -3,11 +3,13 @@
 import { useRouter, useSearchParams } from "next/navigation";
 import { ListadoTabla } from "@/components/ui/local/ListadoTabla";
 import { Badge } from "@/components/ui/badge";
+import { EmpleadoSelector } from "@/components/ui/local/SearchSelector/Selectors";
 import {
   CreateEmployeeLeaveDto,
   UpdateEmployeeLeaveDto,
   LeaveType,
 } from "@/types/types";
+import { EmployeeLeave } from "@/types/licenciasTypes";
 import { TableCell } from "../ui/table";
 import { useCallback, useEffect, useState } from "react";
 import {
@@ -16,6 +18,7 @@ import {
   updateEmployeeLeave,
   deleteEmployeeLeave,
   approveEmployeeLeave,
+  rejectEmployeeLeave,
 } from "@/app/actions/LicenciasEmpleados";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
@@ -25,7 +28,6 @@ import Loader from "../ui/local/Loader";
 import { z } from "zod";
 import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { getEmployees } from "@/app/actions/empleados";
 import {
   Card,
   CardContent,
@@ -43,7 +45,6 @@ import {
   Calendar,
   FileText,
   Plus,
-  RefreshCcw,
 } from "lucide-react";
 
 export default function LicenciasEmpleadosComponent({
@@ -52,28 +53,27 @@ export default function LicenciasEmpleadosComponent({
   currentPage,
   itemsPerPage,
 }: {
-  data: any[];
+  data: EmployeeLeave[];
   totalItems: number;
   currentPage: number;
   itemsPerPage: number;
 }) {
   const router = useRouter();
   const searchParams = useSearchParams();
-
-  // Asegurar que data siempre sea un array
   const safeData = Array.isArray(data) ? data : [];
 
-  const [licencias, setLicencias] = useState<any[]>(safeData);
+  const [licencias, setLicencias] = useState<EmployeeLeave[]>(safeData);
   const [total, setTotal] = useState<number>(totalItems);
   const [page, setPage] = useState<number>(currentPage);
   const [loading, setLoading] = useState<boolean>(false);
-  const [selectedLicencia, setSelectedLicencia] = useState<any | null>(null);
-  const [isCreating, setIsCreating] = useState(false);
-  const [empleados, setEmpleados] = useState<any[]>([]);
-  const [isFirstLoad, setIsFirstLoad] = useState(true);
-  const [activeTab, setActiveTab] = useState("todos");
+  const [selectedLicencia, setSelectedLicencia] =
+    useState<EmployeeLeave | null>(null);
+  const [isCreating, setIsCreating] = useState<boolean>(false);
+  const [isFirstLoad, setIsFirstLoad] = useState<boolean>(true);
+  const [activeTab, setActiveTab] = useState<string>("todos");
 
   // Esquema para validación de formulario
+
   const createLicenciaSchema = z.object({
     employeeId: z.number({
       required_error: "El empleado es obligatorio",
@@ -84,10 +84,12 @@ export default function LicenciasEmpleadosComponent({
     tipoLicencia: z.enum(
       [
         LeaveType.VACACIONES,
-        LeaveType.LICENCIA_MEDICA,
-        LeaveType.LICENCIA_PERSONAL,
+        LeaveType.CASAMIENTO,
+        LeaveType.ENFERMEDAD,
+        LeaveType.FALLECIMIENTO_FAMILIAR,
+        LeaveType.NACIMIENTO,
+        LeaveType.ORDINARIA,
         LeaveType.CAPACITACION,
-        LeaveType.OTRO,
       ],
       {
         errorMap: () => ({ message: "El tipo de licencia es obligatorio" }),
@@ -123,8 +125,7 @@ export default function LicenciasEmpleadosComponent({
     params.set("page", "1");
     router.replace(`?${params.toString()}`);
   };
-
-  const handleEditClick = (licencia: any) => {
+  const handleEditClick = (licencia: EmployeeLeave) => {
     setSelectedLicencia(licencia);
     setIsCreating(false);
 
@@ -132,12 +133,14 @@ export default function LicenciasEmpleadosComponent({
 
     // Mapeo de campos del API a nuestro esquema
     const mappedLicencia = {
-      employeeId: licencia.employee_id || licencia.employeeId,
-      fechaInicio: licencia.start_date || licencia.fechaInicio,
-      fechaFin: licencia.end_date || licencia.fechaFin,
-      tipoLicencia: licencia.type || licencia.tipoLicencia,
+      employeeId: licencia.employee_id || licencia.employeeId || 0,
+      fechaInicio: licencia.start_date || licencia.fechaInicio || "",
+      fechaFin: licencia.end_date || licencia.fechaFin || "",
+      tipoLicencia:
+        licencia.type || licencia.tipoLicencia || LeaveType.VACACIONES,
       notas: licencia.observations || licencia.reason || licencia.notas || "",
-      aprobado: licencia.status === "APPROVED" || licencia.aprobado === true,
+      // Map the new status field to a boolean for the form
+      aprobado: licencia.status === "APROBADO",
     };
 
     // Establecer todos los valores en el formulario
@@ -148,13 +151,21 @@ export default function LicenciasEmpleadosComponent({
       if (value !== undefined) {
         if (key === "fechaInicio" || key === "fechaFin") {
           // Convertir la fecha a formato YYYY-MM-DD para input type="date"
-          const dateValue =
-            value instanceof Date
-              ? value.toISOString().split("T")[0]
-              : new Date(value).toISOString().split("T")[0];
-          setValue(typedKey as any, dateValue);
-        } else {
-          setValue(typedKey as any, value);
+          let dateValue = "";
+          if (value instanceof Date) {
+            dateValue = value.toISOString().split("T")[0];
+          } else if (typeof value === "string") {
+            dateValue = new Date(value).toISOString().split("T")[0];
+          }
+          setValue(key as "fechaInicio" | "fechaFin", dateValue);
+        } else if (key === "employeeId") {
+          setValue("employeeId", value as number);
+        } else if (key === "tipoLicencia") {
+          setValue("tipoLicencia", value as LeaveType);
+        } else if (key === "notas") {
+          setValue("notas", value as string);
+        } else if (key === "aprobado") {
+          setValue("aprobado", value as boolean);
         }
       }
     });
@@ -202,6 +213,19 @@ export default function LicenciasEmpleadosComponent({
     }
   };
 
+  const handleRejectClick = async (id: number) => {
+    try {
+      await rejectEmployeeLeave(id);
+      toast.success("Licencia rechazada", {
+        description: "La licencia ha sido rechazada.",
+      });
+      await fetchLicencias();
+    } catch (error) {
+      console.error("Error al rechazar la licencia:", error);
+      toast.error("Error", { description: "No se pudo rechazar la licencia." });
+    }
+  };
+
   const onSubmit = async (data: z.infer<typeof createLicenciaSchema>) => {
     try {
       if (selectedLicencia && selectedLicencia.id) {
@@ -211,7 +235,8 @@ export default function LicenciasEmpleadosComponent({
           fechaFin: new Date(data.fechaFin),
           tipoLicencia: data.tipoLicencia,
           notas: data.notas,
-          aprobado: data.aprobado,
+          // Convert the boolean to the corresponding status string if needed by your API
+          status: data.aprobado ? "APROBADO" : "PENDIENTE",
         };
         await updateEmployeeLeave(selectedLicencia.id, updateData);
         toast.success("Licencia actualizada", {
@@ -224,7 +249,7 @@ export default function LicenciasEmpleadosComponent({
           fechaFin: new Date(data.fechaFin),
           tipoLicencia: data.tipoLicencia,
           notas: data.notas,
-          aprobado: data.aprobado,
+          // For new leaves, use PENDIENTE as default status
         };
         await createEmployeeLeave(createData);
         toast.success("Licencia creada", {
@@ -244,7 +269,6 @@ export default function LicenciasEmpleadosComponent({
       });
     }
   };
-
   const fetchLicencias = useCallback(async () => {
     const currentPage = Number(searchParams.get("page")) || 1;
     const search = searchParams.get("search") || "";
@@ -257,15 +281,23 @@ export default function LicenciasEmpleadosComponent({
         search
       );
 
-      if (fetchedLicencias.data && Array.isArray(fetchedLicencias.data)) {
-        setLicencias(fetchedLicencias.data);
+      if (Array.isArray(fetchedLicencias)) {
+        // Handle case where response is directly an array
+        setLicencias(fetchedLicencias as EmployeeLeave[]);
+        setTotal(fetchedLicencias.length); // You might need a better way to get total count
+        setPage(currentPage);
+      } else if (
+        fetchedLicencias.data &&
+        Array.isArray(fetchedLicencias.data)
+      ) {
+        setLicencias(fetchedLicencias.data as EmployeeLeave[]);
         setTotal(fetchedLicencias.totalItems || 0);
         setPage(fetchedLicencias.currentPage || 1);
       } else if (
         fetchedLicencias.items &&
         Array.isArray(fetchedLicencias.items)
       ) {
-        setLicencias(fetchedLicencias.items);
+        setLicencias(fetchedLicencias.items as EmployeeLeave[]);
         setTotal(fetchedLicencias.total || 0);
         setPage(fetchedLicencias.page || 1);
       } else {
@@ -275,24 +307,7 @@ export default function LicenciasEmpleadosComponent({
       console.error("Error al cargar las licencias:", error);
     } finally {
       setLoading(false);
-    }
-  }, [searchParams, itemsPerPage]);
-
-  const fetchEmpleados = useCallback(async () => {
-    try {
-      const fetchedEmpleados = await getEmployees();
-      if (fetchedEmpleados.data && Array.isArray(fetchedEmpleados.data)) {
-        setEmpleados(fetchedEmpleados.data);
-      } else if (
-        fetchedEmpleados.items &&
-        Array.isArray(fetchedEmpleados.items)
-      ) {
-        setEmpleados(fetchedEmpleados.items);
-      }
-    } catch (error) {
-      console.error("Error al cargar los empleados:", error);
-    }
-  }, []);
+    }  }, [searchParams, itemsPerPage]);
 
   useEffect(() => {
     if (isFirstLoad) {
@@ -302,13 +317,37 @@ export default function LicenciasEmpleadosComponent({
     }
   }, [fetchLicencias, isFirstLoad]);
 
-  useEffect(() => {
-    fetchEmpleados();
-  }, [fetchEmpleados]);
-
   // Función para manejar el cambio de pestaña
   const handleTabChange = (value: string) => {
     setActiveTab(value);
+  };
+  // Move these function definitions BEFORE they are used
+  const getApprovalStatus = (
+    licencia: EmployeeLeave
+  ): "APPROVED" | "REJECTED" | "PENDING" => {
+    // Check for direct status field first
+    if (licencia.status) {
+      if (licencia.status === "APROBADO") return "APPROVED";
+      if (licencia.status === "RECHAZADO") return "REJECTED";
+      if (licencia.status === "PENDIENTE") return "PENDING";
+    }
+
+    // Fall back to the old aprobado boolean field if status isn't present
+    if (licencia.aprobado === true) return "APPROVED";
+    if (licencia.aprobado === false && licencia.status === "RECHAZADO")
+      return "REJECTED";
+    return "PENDING";
+  };
+
+  const getStatusBadgeVariant = (
+    status: string
+  ): "default" | "outline" | "destructive" => {
+    const variants: Record<string, "default" | "outline" | "destructive"> = {
+      PENDING: "outline",
+      APPROVED: "default",
+      REJECTED: "destructive",
+    };
+    return variants[status] || "outline";
   };
 
   const filteredLicencias =
@@ -326,23 +365,6 @@ export default function LicenciasEmpleadosComponent({
       </div>
     );
   }
-
-  // Mapea el estado de aprobación a los valores de visualización
-  const getApprovalStatus = (licencia: any) => {
-    if (licencia.aprobado === true) return "APPROVED";
-    if (licencia.aprobado === false && licencia.status === "REJECTED")
-      return "REJECTED";
-    return "PENDING";
-  };
-
-  const getStatusBadgeVariant = (status: string) => {
-    const variants: Record<string, "default" | "outline" | "destructive"> = {
-      PENDING: "outline",
-      APPROVED: "default",
-      REJECTED: "destructive",
-    };
-    return variants[status] || "outline";
-  };
 
   return (
     <Card className="w-full shadow-md">
@@ -400,6 +422,7 @@ export default function LicenciasEmpleadosComponent({
             data={filteredLicencias}
             itemsPerPage={itemsPerPage}
             searchableKeys={[
+              // Las claves ahora se pueden usar directamente gracias al índice de tipo
               "employee.nombre",
               "employee.documento",
               "tipoLicencia",
@@ -435,7 +458,6 @@ export default function LicenciasEmpleadosComponent({
                     </div>
                   </div>
                 </TableCell>
-
                 <TableCell className="min-w-[180px]">
                   <div className="space-y-1">
                     <div className="flex items-center text-sm font-medium">
@@ -449,32 +471,34 @@ export default function LicenciasEmpleadosComponent({
                     )}
                   </div>
                 </TableCell>
-
                 <TableCell className="min-w-[200px]">
                   <div className="space-y-1">
                     <div className="flex items-center text-sm">
                       <Calendar className="h-3.5 w-3.5 mr-2 text-muted-foreground" />
                       <span>
                         Desde:{" "}
-                        {(licencia.fechaInicio || licencia.start_date) &&
-                          new Date(
-                            licencia.fechaInicio || licencia.start_date
-                          ).toLocaleDateString("es-AR")}
+                        {licencia.fechaInicio || licencia.start_date
+                          ? new Date(
+                              (licencia.fechaInicio as string) ||
+                                (licencia.start_date as string)
+                            ).toLocaleDateString("es-AR")
+                          : ""}
                       </span>
                     </div>
                     <div className="flex items-center text-sm">
                       <Calendar className="h-3.5 w-3.5 mr-2 text-muted-foreground" />
                       <span>
                         Hasta:{" "}
-                        {(licencia.fechaFin || licencia.end_date) &&
-                          new Date(
-                            licencia.fechaFin || licencia.end_date
-                          ).toLocaleDateString("es-AR")}
+                        {licencia.fechaFin || licencia.end_date
+                          ? new Date(
+                              (licencia.fechaFin as string) ||
+                                (licencia.end_date as string)
+                            ).toLocaleDateString("es-AR")
+                          : ""}
                       </span>
                     </div>
                   </div>
                 </TableCell>
-
                 <TableCell>
                   <Badge
                     variant={getStatusBadgeVariant(getApprovalStatus(licencia))}
@@ -493,7 +517,6 @@ export default function LicenciasEmpleadosComponent({
                       : "Pendiente"}
                   </Badge>
                 </TableCell>
-
                 <TableCell className="flex gap-2">
                   <Button
                     variant="outline"
@@ -506,17 +529,31 @@ export default function LicenciasEmpleadosComponent({
                   </Button>
 
                   {getApprovalStatus(licencia) === "PENDING" && (
-                    <Button
-                      variant="default"
-                      size="sm"
-                      onClick={() =>
-                        licencia.id && handleApproveClick(licencia.id)
-                      }
-                      className="cursor-pointer bg-green-100 text-green-700 hover:bg-green-200 hover:text-green-800"
-                    >
-                      <CheckCircle className="h-3.5 w-3.5 mr-1" />
-                      Aprobar
-                    </Button>
+                    <>
+                      <Button
+                        variant="default"
+                        size="sm"
+                        onClick={() =>
+                          licencia.id && handleApproveClick(licencia.id)
+                        }
+                        className="cursor-pointer bg-green-100 text-green-700 hover:bg-green-200 hover:text-green-800"
+                      >
+                        <CheckCircle className="h-3.5 w-3.5 mr-1" />
+                        Aprobar
+                      </Button>
+
+                      <Button
+                        variant="destructive"
+                        size="sm"
+                        onClick={() =>
+                          licencia.id && handleRejectClick(licencia.id)
+                        }
+                        className="cursor-pointer bg-red-100 text-red-700 hover:bg-red-200 hover:text-red-800"
+                      >
+                        <PauseCircle className="h-3.5 w-3.5 mr-1" />
+                        Rechazar
+                      </Button>
+                    </>
                   )}
 
                   <Button
@@ -553,24 +590,17 @@ export default function LicenciasEmpleadosComponent({
         }
         onSubmit={handleSubmit(onSubmit)}
       >
-        <>
-          <Controller
+        <>          <Controller
             name="employeeId"
             control={control}
             render={({ field, fieldState }) => (
-              <FormField
+              <EmpleadoSelector
                 label="Empleado"
                 name="employeeId"
-                fieldType="select"
-                value={field.value?.toString() || ""}
-                onChange={(selectedValue: string) =>
-                  field.onChange(Number(selectedValue))
-                }
-                options={empleados.map((emp) => ({
-                  label: `${emp.nombre} ${emp.apellido}`,
-                  value: emp.id.toString(),
-                }))}
+                value={field.value}
+                onChange={(empleadoId) => field.onChange(empleadoId)}
                 error={fieldState.error?.message}
+                disabled={false}
               />
             )}
           />
@@ -591,14 +621,19 @@ export default function LicenciasEmpleadosComponent({
                   { label: "Vacaciones", value: LeaveType.VACACIONES },
                   {
                     label: "Licencia Médica",
-                    value: LeaveType.LICENCIA_MEDICA,
+                    value: LeaveType.ENFERMEDAD,
                   },
                   {
                     label: "Licencia Personal",
-                    value: LeaveType.LICENCIA_PERSONAL,
+                    value: LeaveType.ORDINARIA,
                   },
-                  { label: "Capacitación", value: LeaveType.CAPACITACION },
-                  { label: "Otros", value: LeaveType.OTRO },
+                  {
+                    label: "Fallecimiento Familiar",
+                    value: LeaveType.FALLECIMIENTO_FAMILIAR,
+                  },
+                  { label: "Casamiento", value: LeaveType.CASAMIENTO },
+                  { label: "Nacimiento", value: LeaveType.NACIMIENTO },
+                  { label: "Capacitacion", value: LeaveType.CAPACITACION },
                 ]}
                 error={fieldState.error?.message}
               />

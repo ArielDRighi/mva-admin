@@ -4,7 +4,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { ListadoTabla } from "@/components/ui/local/ListadoTabla";
 import { Badge } from "@/components/ui/badge";
 import { TableCell } from "@/components/ui/table";
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { FormDialog } from "../ui/local/FormDialog";
 import { FormField } from "../ui/local/FormField";
@@ -20,7 +20,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   FileText,
   Plus,
@@ -45,15 +45,6 @@ type CondicionContractual = {
   periodicidad: string;
   tarifa: string;
   tipo_de_contrato: string;
-};
-
-// Tipo para la respuesta de la API
-type CondicionesContractualesResponse = {
-  items: CondicionContractual[];
-  total: number;
-  page: number;
-  limit: number;
-  totalPages: number;
 };
 
 export default function ListadoCondicionesContractualesComponent({

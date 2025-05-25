@@ -10,14 +10,14 @@ const VehiculosPage = () => {
           Vehiculos
         </h2>
         <InfoCard
-          href="/dashboard/vehiculos/listado"
+          href="/admin/dashboard/vehiculos/listado"
           imgSrc={VehiculosImg}
           imgAlt="Icono de vehiculos"
           title="Gestión de Vehiculos"
           description="Consultá el listado completo de vehiculos disponibles y gestioná su información."
         />
         <InfoCard
-          href="/dashboard/vehiculos/mantenimiento"
+          href="/admin/dashboard/vehiculos/mantenimiento"
           imgSrc={VehiculosImg}
           imgAlt="Icono de vehiculos en mantenimiento"
           title="Gestión de Vehiculos en Mantenimiento"

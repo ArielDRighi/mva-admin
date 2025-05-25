@@ -35,7 +35,7 @@ export type CreateEmployeeLeaveDto = {
   fechaFin: Date;
   tipoLicencia: LeaveType;
   notas?: string;
-  aprobado?: boolean;
+  // status?: "PENDIENTE" | "APROBADO" | "RECHAZADO";
 };
 
 export class UpdateEmployeeLeaveDto {
@@ -45,14 +45,17 @@ export class UpdateEmployeeLeaveDto {
   tipoLicencia?: LeaveType;
   notas?: string;
   aprobado?: boolean;
+  status?: "PENDIENTE" | "APROBADO" | "RECHAZADO";
 }
 
 export enum LeaveType {
   VACACIONES = "VACACIONES",
-  LICENCIA_MEDICA = "LICENCIA_MEDICA",
-  LICENCIA_PERSONAL = "LICENCIA_PERSONAL",
+  ENFERMEDAD = "ENFERMEDAD",
+  ORDINARIA = "ORDINARIA",
+  FALLECIMIENTO_FAMILIAR = "FALLECIMIENTO_FAMILIAR",
+  CASAMIENTO = "CASAMIENTO",
+  NACIMIENTO = "NACIMIENTO",
   CAPACITACION = "CAPACITACION",
-  OTRO = "OTRO",
 }
 
 export type UpdateVehicleMaintenance = {
@@ -74,11 +77,15 @@ export type CreateVehicleMaintenance = {
 
 export type Vehiculo = {
   id: number;
+  numeroInterno: string | null;
   placa: string;
   marca: string;
   modelo: string;
   anio: number;
-  capacidadCarga: number;
+  tipoCabina: string;
+  fechaVencimientoVTV: string | null;
+  fechaVencimientoSeguro: string | null;
+  esExterno: boolean;
   estado:
     | "DISPONIBLE"
     | "ASIGNADO"
@@ -86,14 +93,19 @@ export type Vehiculo = {
     | "INACTIVO"
     | "BAJA"
     | string;
+  capacidadCarga?: number;
 };
 
 export type UpdateVehiculo = {
+  numeroInterno?: string | null;
   placa?: string;
   marca?: string;
   modelo?: string;
   anio?: number;
-  capacidadCarga?: number;
+  tipoCabina?: string;
+  fechaVencimientoVTV?: string | null;
+  fechaVencimientoSeguro?: string | null;
+  esExterno?: boolean;
   estado?:
     | "DISPONIBLE"
     | "ASIGNADO"
@@ -101,25 +113,31 @@ export type UpdateVehiculo = {
     | "INACTIVO"
     | "BAJA"
     | string;
-};
-
-export type VehiculoStatus = {
-  estado:
-    | "DISPONIBLE"
-    | "ASIGNADO"
-    | "MANTENIMIENTO"
-    | "INACTIVO"
-    | "BAJA"
-    | string;
+  capacidadCarga?: number;
 };
 
 export type CreateVehiculo = {
+  numeroInterno?: string | null;
   placa: string;
   marca: string;
   modelo: string;
   anio: number;
-  capacidadCarga: number;
+  tipoCabina: string;
+  fechaVencimientoVTV?: string | null;
+  fechaVencimientoSeguro?: string | null;
+  esExterno: boolean;
   estado?:
+    | "DISPONIBLE"
+    | "ASIGNADO"
+    | "MANTENIMIENTO"
+    | "INACTIVO"
+    | "BAJA"
+    | string;
+  capacidadCarga?: number;
+};
+
+export type VehiculoStatus = {
+  estado:
     | "DISPONIBLE"
     | "ASIGNADO"
     | "MANTENIMIENTO"
@@ -326,3 +344,47 @@ export type ChemicalToilet = {
   fecha_adquisicion: string;
   estado: string;
 };
+
+export interface User {
+  id: number;
+  nombre: string;
+  email: string;
+  password?: string;
+  estado: "ACTIVO" | "INACTIVO";
+  roles: Role[];
+  empleadoId?: number;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+/**
+ * Roles de usuario disponibles en el sistema
+ * - ADMIN: Acceso completo a todas las funcionalidades
+ * - SUPERVISOR: Monitoreo y gestión de operaciones sin acceso administrativo
+ * - OPERARIO: Acceso limitado a operaciones específicas
+ */
+export enum Role {
+  ADMIN = "ADMIN",
+  SUPERVISOR = "SUPERVISOR",
+  OPERARIO = "OPERARIO",
+}
+
+export interface RopaTalles {
+  id: number;
+  empleado: {
+    id: number;
+    nombre: string;
+    apellido: string;
+  };
+  calzado_talle: string;
+  pantalon_talle: string;
+  camisa_talle: string;
+  campera_bigNort_talle: string;
+  pielBigNort_talle: string;
+  medias_talle: string;
+  pantalon_termico_bigNort_talle: string;
+  campera_polar_bigNort_talle: string;
+  mameluco_talle: string;
+  createdAt: Date;
+  updatedAt: Date;
+}

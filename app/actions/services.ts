@@ -1,12 +1,6 @@
 "use server";
 
-import {
-  UpdateServiceDto,
-  ServiceState,
-  CreateServiceDtoAutomatico,
-  CreateServiceDtoManual,
-  ManualAssignment,
-} from "@/types/serviceTypes";
+import { UpdateServiceDto, ServiceState } from "@/types/serviceTypes";
 import { cookies } from "next/headers";
 
 /**
@@ -152,87 +146,6 @@ export async function getInProgressServices() {
   if (!res.ok) throw new Error("Error al obtener servicios en progreso");
 
   return await res.json();
-}
-
-/**
- * Crea un nuevo servicio con asignación automática de recursos
- * Esta función utiliza la ruta /services/create/automatic
- */
-export async function createServiceAutomatic(data: CreateServiceDtoAutomatico) {
-  const cookieStore = await cookies();
-  const token = cookieStore.get("token")?.value;
-
-  if (!token) throw new Error("Token no encontrado");
-
-  const res = await fetch(
-    `${process.env.NEXT_PUBLIC_API_URL}/api/services/create/automatic`,
-    {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(data),
-      cache: "no-store",
-    }
-  );
-
-  // Get the response data first before checking status
-  const responseData = await res.json();
-
-  if (!res.ok) {
-    throw new Error(responseData.message || "Error al crear el servicio");
-  }
-
-  // Return the already parsed response data
-  return responseData;
-}
-
-/**
- * Crea un nuevo servicio con asignación manual de recursos
- * Esta función utiliza la ruta /services/create/manual
- */
-export async function createServiceManual(
-  data: CreateServiceDtoManual & {
-    asignacionesManual: ManualAssignment[];
-  }
-) {
-  const cookieStore = await cookies();
-  const token = cookieStore.get("token")?.value;
-
-  if (!token) throw new Error("Token no encontrado");
-
-  // Validar que hay al menos una asignación manual
-  if (!data.asignacionesManual || data.asignacionesManual.length === 0) {
-    throw new Error("Se requiere al menos una asignación manual de recursos");
-  }
-
-  const res = await fetch(
-    `${process.env.NEXT_PUBLIC_API_URL}/api/services/create/manual`,
-    {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(data),
-      cache: "no-store",
-    }
-  );
-
-  if (!res.ok) {
-    const errorData = await res.json().catch(() => ({}));
-
-    if (res.status === 400 && errorData.message?.includes("asignación")) {
-      throw new Error("Se requiere proporcionar asignaciones manuales válidas");
-    } else if (res.status === 403) {
-      throw new Error("No tienes permisos para crear servicios");
-    } else {
-      throw new Error(
-        errorData.message || "Error al crear el servicio con asignación manual"
-      );
-    }
-  }
 }
 
 /**
@@ -456,6 +369,243 @@ export async function getRecentActivity() {
   );
 
   if (!res.ok) throw new Error("Error al obtener actividades recientes");
+
+  return await res.json();
+}
+enum serviceStatus {
+  EN_PROGRESO = "EN_PROGRESO",
+  COMPLETADO = "COMPLETADO",
+  CANCELADO = "CANCELADO",
+  SUSPENDIDO = "SUSPENDIDO",
+}
+export async function updateStatusService(id: number, estado: serviceStatus) {
+  const cookieStore = await cookies();
+  const token = cookieStore.get("token")?.value;
+
+  if (!token) throw new Error("Token no encontrado");
+
+  const res = await fetch(
+    `${process.env.NEXT_PUBLIC_API_URL}/api/services/${id}/estado`,
+    {
+      method: "PATCH",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ estado }),
+      cache: "no-store",
+    }
+  );
+
+  if (!res.ok) throw new Error("Error al cambiar el estado del servicio");
+
+  return await res.json();
+}
+
+// UTILIZAMOS TODO DE ACA PARA ABAJO
+export interface CreateCapacitacionDto {
+  tipoServicio: "CAPACITACION";
+  fechaProgramada: string;
+  fechaFin: string;
+  ubicacion: string;
+  asignacionesManual: {
+    empleadoId: number;
+  }[];
+}
+
+export async function createServiceCapacitacion(data: CreateCapacitacionDto) {
+  const cookieStore = await cookies();
+  const token = cookieStore.get("token")?.value;
+
+  if (!token) throw new Error("Token no encontrado");
+
+  const res = await fetch(
+    `${process.env.NEXT_PUBLIC_API_URL}/api/services/capacitacion`,
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(data),
+      cache: "no-store",
+    }
+  );
+
+  if (!res.ok) throw new Error("Error al crear el servicio de capacitacion");
+
+  return await res.json();
+}
+
+export async function getCapacitaciones() {
+  const cookieStore = await cookies();
+  const token = cookieStore.get("token")?.value;
+
+  if (!token) throw new Error("Token no encontrado");
+
+  const res = await fetch(
+    `${process.env.NEXT_PUBLIC_API_URL}/api/services/capacitacion`,
+    {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+      cache: "no-store",
+    }
+  );
+
+  if (!res.ok) throw new Error("Error al obtener capacitaciones");
+
+  return await res.json();
+}
+
+export interface CreateInstalacionDto {
+  condicionContractualId: number;
+  fechaProgramada: string;
+  cantidadVehiculos: number;
+  ubicacion: string;
+  asignacionAutomatica: boolean;
+  asignacionesManual: [
+    {
+      empleadoId?: number;
+      vehiculoId: number;
+      banosIds: number[];
+    },
+    {
+      empleadoId?: number;
+    }
+  ];
+  notas?: string;
+}
+
+export async function createServiceInstalacion(data: CreateInstalacionDto) {
+  const cookieStore = await cookies();
+  const token = cookieStore.get("token")?.value;
+
+  if (!token) throw new Error("Token no encontrado");
+
+  const res = await fetch(
+    `${process.env.NEXT_PUBLIC_API_URL}/api/services/instalacion`,
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(data),
+      cache: "no-store",
+    }
+  );
+
+  if (!res.ok) throw new Error("Error al crear el servicio de instalacion");
+
+  return await res.json();
+}
+
+export async function getInstalaciones(page: number) {
+  const cookieStore = await cookies();
+  const token = cookieStore.get("token")?.value;
+
+  if (!token) throw new Error("Token no encontrado");
+
+  const res = await fetch(
+    `${process.env.NEXT_PUBLIC_API_URL}/api/services/instalacion?page=${page}`,
+    {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+      cache: "no-store",
+    }
+  );
+
+  if (!res.ok) throw new Error("Error al obtener instalaciones");
+
+  return await res.json();
+}
+
+export interface CreateLimpiezaDto {
+  tipoServicio: "LIMPIEZA";
+  condicionContractualId: number;
+  cantidadVehiculos: number;
+  fechaProgramada: string;
+  ubicacion: string;
+  asignacionAutomatica: boolean;
+  banosInstalados: number[];
+  asignacionesManual: [
+    {
+      empleadoId: number;
+      vehiculoId: number;
+    },
+    {
+      empleadoId: number;
+    }
+  ];
+  notas?: string;
+}
+
+export async function createServicioGenerico(data: CreateLimpiezaDto) {
+  console.log("[createServicioGenerico] Starting with data:", data);
+  const cookieStore = await cookies();
+  const token = cookieStore.get("token")?.value;
+
+  if (!token) {
+    console.error("[createServicioGenerico] Token not found");
+    throw new Error("Token no encontrado");
+  }
+
+  console.log("[createServicioGenerico] Token found, making API request");
+  console.log(
+    "[createServicioGenerico] API URL:",
+    `${process.env.NEXT_PUBLIC_API_URL}/api/services/generico`
+  );
+
+  try {
+    const res = await fetch(
+      `${process.env.NEXT_PUBLIC_API_URL}/api/services/generico`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(data),
+        cache: "no-store",
+      }
+    );
+
+    console.log("[createServicioGenerico] Response status:", res.status);
+
+    if (!res.ok) {
+      const errorText = await res.text();
+      console.error("[createServicioGenerico] Error response:", errorText);
+      throw new Error(`Error al crear el servicio generico: ${errorText}`);
+    }
+
+    const responseData = await res.json();
+    console.log("[createServicioGenerico] Success response:", responseData);
+    return responseData;
+  } catch (error) {
+    console.error("[createServicioGenerico] Exception:", error);
+    throw error;
+  }
+}
+
+export async function getServiciosGenericos(page: number) {
+  const cookieStore = await cookies();
+  const token = cookieStore.get("token")?.value;
+
+  if (!token) throw new Error("Token no encontrado");
+
+  const res = await fetch(
+    `${process.env.NEXT_PUBLIC_API_URL}/api/services/generico?page=${page}`,
+    {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+      cache: "no-store",
+    }
+  );
+
+  if (!res.ok) throw new Error("Error al obtener servicios genericos");
 
   return await res.json();
 }
