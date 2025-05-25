@@ -44,6 +44,10 @@ const dataSideBar = {
           title: "Licencias de conducir",
           url: "/admin/dashboard/empleados/licencias_conducir",
         },
+        {
+          title: "Contactos de emergencia",
+          url: "/admin/dashboard/empleados/contactos-emergencia",
+        },
       ],
     },
     {

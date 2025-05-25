@@ -46,30 +46,33 @@ export function NavMain({ items }: { items: NavMainItem[] }) {
               className="group/collapsible mb-1"
             >
               <SidebarMenuItem>
+                {" "}
                 <CollapsibleTrigger asChild>
                   <SidebarMenuButton
                     tooltip={item.title}
                     className={cn(
-                      "cursor-pointer transition-all duration-200 hover:bg-muted/80",
+                      "cursor-pointer transition-all duration-200 hover:bg-muted/80 min-h-[32px]",
                       isActive && "bg-muted font-medium text-primary"
                     )}
                   >
-                    <Link href={item.url} className="flex items-center">
+                    <Link href={item.url} className="flex items-center flex-1">
                       {item.icon && (
                         <div
                           className={cn(
-                            "h-5 w-5 mr-2 transition-colors",
+                            "h-5 w-5 mr-2 transition-colors shrink-0",
                             isActive ? "text-primary" : "text-muted-foreground"
                           )}
                         >
                           <item.icon className="h-full w-full" />
                         </div>
                       )}
-                      <span>{item.title}</span>
+                      <span className="whitespace-normal break-words">
+                        {item.title}
+                      </span>
                     </Link>
                     <ChevronRight
                       className={cn(
-                        "ml-auto h-4 w-4 transition-transform duration-300 text-muted-foreground",
+                        "ml-auto h-4 w-4 transition-transform duration-300 text-muted-foreground shrink-0",
                         "group-data-[state=open]/collapsible:rotate-90",
                         isActive && "text-primary"
                       )}
@@ -83,26 +86,31 @@ export function NavMain({ items }: { items: NavMainItem[] }) {
                     exit={{ opacity: 0 }}
                     transition={{ duration: 0.2 }}
                   >
-                    <SidebarMenuSub className="pl-4 border-l-[1px] border-border/40 ml-4 mt-1">
+                    <SidebarMenuSub className="pl-4 border-l-[1px] border-border/40 ml-4 mt-1 flex flex-col">
                       {item.items?.map((subItem) => {
                         const isSubActive = pathname === subItem.url;
                         return (
-                          <SidebarMenuSubItem key={subItem.title}>
+                          <SidebarMenuSubItem
+                            key={subItem.title}
+                            className="w-full flex-wrap"
+                          >
                             <SidebarMenuSubButton
                               asChild
                               className={cn(
-                                "transition-all duration-150 hover:text-primary",
+                                "transition-all duration-150 hover:text-primary flex w-full h-auto",
                                 isSubActive &&
                                   "font-medium text-primary bg-muted/50"
                               )}
                             >
                               <Link
                                 href={subItem.url}
-                                className="py-1.5 px-2 rounded"
+                                className="py-2 px-2 rounded flex items-center min-h-[36px] break-words w-full"
                               >
-                                <span>{subItem.title}</span>
+                                <span className="flex-1 whitespace-normal overflow-visible hyphens-auto">
+                                  {subItem.title}
+                                </span>
                                 {isSubActive && (
-                                  <div className="ml-auto h-1.5 w-1.5 rounded-full bg-primary" />
+                                  <div className="ml-auto h-1.5 w-1.5 rounded-full bg-primary shrink-0" />
                                 )}
                               </Link>
                             </SidebarMenuSubButton>
