@@ -40,6 +40,10 @@ const dataSideBar = {
           title: "Licencias de empleado",
           url: "/admin/dashboard/empleados/licencias",
         },
+        {
+          title: "Contactos de emergencia",
+          url: "/admin/dashboard/empleados/contactos-emergencia",
+        },
       ],
     },
     {
