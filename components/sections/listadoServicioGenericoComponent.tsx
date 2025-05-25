@@ -7,7 +7,11 @@ import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { toast } from "sonner";
 
-import { deleteService, getInstalaciones } from "@/app/actions/services";
+import {
+  deleteService,
+  getInstalaciones,
+  getServiciosGenericos,
+} from "@/app/actions/services";
 import {
   Card,
   CardContent,
@@ -144,47 +148,49 @@ interface InstalacionesResponse {
   totalPages: number;
 }
 
-export function ListadoInstalacionComponent() {
+export function ListadoServicioGenericoComponent() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
   // States
-  const [instalaciones, setInstalaciones] = useState<Instalacion[]>([]);
+  const [servicios, setServicios] = useState<Instalacion[]>([]);
   const [totalItems, setTotalItems] = useState<number>(0);
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [loading, setLoading] = useState<boolean>(true);
   const [searchTerm, setSearchTerm] = useState<string>("");
   const [activeTab, setActiveTab] = useState<string>("todos");
-  const [selectedInstalacion, setSelectedInstalacion] =
-    useState<Instalacion | null>(null);
+  const [selectedServicio, setSelectedServicio] = useState<Instalacion | null>(
+    null
+  );
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState<boolean>(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState<boolean>(false);
-  console.log("Instalaciones:", instalaciones);
+  console.log("Servicios:", servicios);
+
   // Load data
   useEffect(() => {
-    const fetchInstalaciones = async () => {
+    const fetchGenericos = async () => {
       try {
         setLoading(true);
         const page = Number(searchParams.get("page")) || 1;
         const search = searchParams.get("search") || "";
 
-        const response = await getInstalaciones(page);
+        const response = await getServiciosGenericos(page);
 
         if (response && response.data) {
-          setInstalaciones(response.data);
+          setServicios(response.data);
           setTotalItems(response.totalItems || 0);
           setCurrentPage(response.currentPage || 1);
         } else {
           console.error("Unexpected response format:", response);
         }
       } catch (error) {
-        console.error("Error fetching instalaciones:", error);
+        console.error("Error fetching servicios genéricos:", error);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchInstalaciones();
+    fetchGenericos();
   }, [searchParams]);
 
   // Handle search
@@ -240,24 +246,25 @@ export function ListadoInstalacionComponent() {
     }
   };
 
-  // Filter installations based on the active tab
-  const filteredInstalaciones = instalaciones.filter(
-    (instalacion) =>
+  // Filter services based on the active tab
+  const filteredServicios = servicios.filter(
+    (servicio) =>
       activeTab === "todos" ||
-      instalacion.estado.toUpperCase() === activeTab.toUpperCase()
+      servicio.estado.toUpperCase() === activeTab.toUpperCase()
   );
 
   return (
     <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
       <div className="grid auto-rows-min gap-4 grid-cols-1">
-        <h1 className="text-2xl font-bold">Listado de Instalaciones</h1>
+        <h1 className="text-2xl font-bold">Listado de Servicios Genéricos</h1>
         <p className="text-gray-500">
-          Consulta y gestiona los servicios de instalación de baños químicos.
+          Consulta y gestiona los servicios genéricos de la empresa. Puedes
+          filtrar, buscar y ver detalles de cada servicio.
         </p>
 
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle>Instalaciones</CardTitle>
+            <CardTitle>Servicios</CardTitle>
             <div className="flex flex-col sm:flex-row items-center space-x-0 sm:space-x-2 space-y-2 sm:space-y-0 pt-2">
               <Input
                 placeholder="Buscar por cliente, ubicación..."
@@ -269,10 +276,10 @@ export function ListadoInstalacionComponent() {
               <Button
                 variant="outline"
                 onClick={() =>
-                  router.push("/admin/dashboard/servicios/instalacion/crear")
+                  router.push("/admin/dashboard/servicios/genericos/crear")
                 }
               >
-                Crear Instalación
+                Crear Servicio Genérico
               </Button>
             </div>
 
@@ -305,11 +312,11 @@ export function ListadoInstalacionComponent() {
           <CardContent>
             {loading ? (
               <div className="flex justify-center p-4">
-                Cargando instalaciones...
+                Cargando servicios...
               </div>
-            ) : filteredInstalaciones.length === 0 ? (
+            ) : filteredServicios.length === 0 ? (
               <div className="flex justify-center p-4">
-                No hay instalaciones disponibles
+                No hay servicios disponibles
               </div>
             ) : (
               <>
@@ -326,15 +333,15 @@ export function ListadoInstalacionComponent() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {filteredInstalaciones.map((instalacion) => (
-                      <TableRow key={instalacion.id}>
+                    {filteredServicios.map((servicio) => (
+                      <TableRow key={servicio.id}>
                         <TableCell className="font-medium">
-                          {instalacion.id}
+                          {servicio.id}
                         </TableCell>
                         <TableCell>
                           <div className="flex items-center">
                             <span>
-                              {instalacion.cliente?.nombre ||
+                              {servicio.cliente?.nombre ||
                                 "Cliente no especificado"}
                             </span>
                           </div>
@@ -342,30 +349,28 @@ export function ListadoInstalacionComponent() {
                         <TableCell>
                           <div className="flex items-center">
                             <CalendarDays className="h-4 w-4 mr-2 text-muted-foreground" />
-                            <span>
-                              {formatDate(instalacion.fechaProgramada)}
-                            </span>
+                            <span>{formatDate(servicio.fechaProgramada)}</span>
                           </div>
                         </TableCell>
                         <TableCell>
                           <Badge
-                            className={getStatusBadgeStyle(instalacion.estado)}
+                            className={getStatusBadgeStyle(servicio.estado)}
                           >
-                            {instalacion.estado}
+                            {servicio.estado}
                           </Badge>
                         </TableCell>
                         <TableCell>
                           <div className="flex items-center">
                             <MapPin className="h-4 w-4 mr-2 text-muted-foreground" />
                             <span className="truncate max-w-[180px]">
-                              {instalacion.ubicacion}
+                              {servicio.ubicacion}
                             </span>
                           </div>
                         </TableCell>
                         <TableCell>
                           <div className="flex items-center">
                             <FileText className="h-4 w-4 mr-2 text-muted-foreground" />
-                            <span>{instalacion.cantidadBanos} baños</span>
+                            <span>{servicio.cantidadBanos} baños</span>
                           </div>
                         </TableCell>
                         <TableCell>
@@ -374,7 +379,7 @@ export function ListadoInstalacionComponent() {
                               variant="outline"
                               size="sm"
                               onClick={() => {
-                                setSelectedInstalacion(instalacion);
+                                setSelectedServicio(servicio);
                                 setIsDetailsModalOpen(true);
                               }}
                             >
@@ -385,7 +390,7 @@ export function ListadoInstalacionComponent() {
                               variant="destructive"
                               size="sm"
                               onClick={() => {
-                                setSelectedInstalacion(instalacion);
+                                setSelectedServicio(servicio);
                                 setIsDeleteDialogOpen(true);
                               }}
                               className="cursor-pointer bg-red-100 text-red-700 hover:bg-red-200 hover:text-red-800"
@@ -430,14 +435,14 @@ export function ListadoInstalacionComponent() {
       </div>
 
       {/* Details Modal */}
-      {selectedInstalacion && (
+      {selectedServicio && (
         <Dialog open={isDetailsModalOpen} onOpenChange={setIsDetailsModalOpen}>
           <DialogContent className="max-w-3xl">
             <DialogHeader>
-              <DialogTitle>Detalles de la Instalación</DialogTitle>
+              <DialogTitle>Detalles del Servicio</DialogTitle>
               <DialogDescription>
-                ID: {selectedInstalacion.id} | Creado:{" "}
-                {formatDate(selectedInstalacion.fechaCreacion)}
+                ID: {selectedServicio.id} | Creado:{" "}
+                {formatDate(selectedServicio.fechaCreacion)}
               </DialogDescription>
             </DialogHeader>
 
@@ -448,20 +453,20 @@ export function ListadoInstalacionComponent() {
                     Cliente
                   </h3>
                   <p className="text-lg font-semibold">
-                    {selectedInstalacion.cliente?.nombre || "No especificado"}
+                    {selectedServicio.cliente?.nombre || "No especificado"}
                   </p>
-                  {selectedInstalacion.cliente && (
+                  {selectedServicio.cliente && (
                     <div className="mt-1 text-sm">
                       <p className="flex items-center gap-1">
                         <span>CUIT:</span>
                         <span className="text-muted-foreground">
-                          {selectedInstalacion.cliente.cuit}
+                          {selectedServicio.cliente.cuit}
                         </span>
                       </p>
                       <p className="flex items-center gap-1">
                         <span>Contacto:</span>
                         <span className="text-muted-foreground">
-                          {selectedInstalacion.cliente.contacto_principal}
+                          {selectedServicio.cliente.contacto_principal}
                         </span>
                       </p>
                     </div>
@@ -477,23 +482,23 @@ export function ListadoInstalacionComponent() {
                       <CalendarDays className="h-4 w-4 text-blue-500" />
                       <span>
                         Programada:{" "}
-                        {formatDate(selectedInstalacion.fechaProgramada)}{" "}
-                        {formatTime(selectedInstalacion.fechaProgramada)}
+                        {formatDate(selectedServicio.fechaProgramada)}{" "}
+                        {formatTime(selectedServicio.fechaProgramada)}
                       </span>
                     </p>
-                    {selectedInstalacion.fechaInicio && (
+                    {selectedServicio.fechaInicio && (
                       <p className="flex items-center gap-2">
                         <CalendarDays className="h-4 w-4 text-green-500" />
                         <span>
-                          Inicio: {formatDate(selectedInstalacion.fechaInicio)}
+                          Inicio: {formatDate(selectedServicio.fechaInicio)}
                         </span>
                       </p>
                     )}
-                    {selectedInstalacion.fechaFin && (
+                    {selectedServicio.fechaFin && (
                       <p className="flex items-center gap-2">
                         <CalendarDays className="h-4 w-4 text-red-500" />
                         <span>
-                          Fin: {formatDate(selectedInstalacion.fechaFin)}
+                          Fin: {formatDate(selectedServicio.fechaFin)}
                         </span>
                       </p>
                     )}
@@ -506,17 +511,17 @@ export function ListadoInstalacionComponent() {
                   </h3>
                   <p className="mt-1 flex items-center gap-2">
                     <MapPin className="h-4 w-4 text-red-500" />
-                    <span>{selectedInstalacion.ubicacion}</span>
+                    <span>{selectedServicio.ubicacion}</span>
                   </p>
                 </div>
 
-                {selectedInstalacion.notas && (
+                {selectedServicio.notas && (
                   <div>
                     <h3 className="text-sm font-medium text-muted-foreground">
                       Notas
                     </h3>
                     <p className="mt-1 text-sm border rounded-md p-3 bg-muted/30">
-                      {selectedInstalacion.notas}
+                      {selectedServicio.notas}
                     </p>
                   </div>
                 )}
@@ -530,18 +535,18 @@ export function ListadoInstalacionComponent() {
                   <div className="mt-1 space-y-2">
                     <p className="flex items-center gap-2">
                       <FileText className="h-4 w-4 text-blue-500" />
-                      <span>Baños: {selectedInstalacion.cantidadBanos}</span>
+                      <span>Baños: {selectedServicio.cantidadBanos}</span>
                     </p>
                     <p className="flex items-center gap-2">
                       <Users className="h-4 w-4 text-indigo-500" />
                       <span>
-                        Empleados: {selectedInstalacion.cantidadEmpleados}
+                        Empleados: {selectedServicio.cantidadEmpleados}
                       </span>
                     </p>
                     <p className="flex items-center gap-2">
                       <Truck className="h-4 w-4 text-green-500" />
                       <span>
-                        Vehículos: {selectedInstalacion.cantidadVehiculos}
+                        Vehículos: {selectedServicio.cantidadVehiculos}
                       </span>
                     </p>
                   </div>
@@ -553,32 +558,30 @@ export function ListadoInstalacionComponent() {
                   </h3>
                   <div className="mt-1">
                     <Badge
-                      className={getStatusBadgeStyle(
-                        selectedInstalacion.estado
-                      )}
+                      className={getStatusBadgeStyle(selectedServicio.estado)}
                     >
-                      {selectedInstalacion.estado}
+                      {selectedServicio.estado}
                     </Badge>
                     <p className="mt-1 text-sm">
                       Asignación:{" "}
-                      {selectedInstalacion.asignacionAutomatica
+                      {selectedServicio.asignacionAutomatica
                         ? "Automática"
                         : "Manual"}
                     </p>
                   </div>
                 </div>
 
-                {selectedInstalacion.asignaciones &&
-                  selectedInstalacion.asignaciones.length > 0 && (
+                {selectedServicio.asignaciones &&
+                  selectedServicio.asignaciones.length > 0 && (
                     <div>
                       <h3 className="text-sm font-medium text-muted-foreground">
                         Asignaciones
                       </h3>
                       <div className="mt-2 space-y-3">
                         {/* Empleados asignados */}
-                        {selectedInstalacion.asignaciones
-                          .filter((asig) => asig.empleado)
-                          .map((asig) => (
+                        {selectedServicio.asignaciones
+                          .filter((asig: Asignacion) => asig.empleado)
+                          .map((asig: Asignacion) => (
                             <div
                               key={`emp-${asig.id}`}
                               className="flex items-center gap-2 p-2 rounded-md bg-slate-50"
@@ -592,9 +595,9 @@ export function ListadoInstalacionComponent() {
                           ))}
 
                         {/* Vehículos asignados */}
-                        {selectedInstalacion.asignaciones
-                          .filter((asig) => asig.vehiculo)
-                          .map((asig) => (
+                        {selectedServicio.asignaciones
+                          .filter((asig: Asignacion) => asig.vehiculo)
+                          .map((asig: Asignacion) => (
                             <div
                               key={`veh-${asig.id}`}
                               className="flex items-center gap-2 p-2 rounded-md bg-slate-50"
@@ -608,9 +611,9 @@ export function ListadoInstalacionComponent() {
                           ))}
 
                         {/* Baños asignados */}
-                        {selectedInstalacion.asignaciones
-                          .filter((asig) => asig.bano)
-                          .map((asig) => (
+                        {selectedServicio.asignaciones
+                          .filter((asig: Asignacion) => asig.bano)
+                          .map((asig: Asignacion) => (
                             <div
                               key={`ban-${asig.id}`}
                               className="flex items-center gap-2 p-2 rounded-md bg-slate-50"
@@ -641,23 +644,22 @@ export function ListadoInstalacionComponent() {
       )}
 
       {/* Delete Confirmation Dialog */}
-      {selectedInstalacion && (
+      {selectedServicio && (
         <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
           <DialogContent>
             <DialogHeader>
               <DialogTitle>Confirmar eliminación</DialogTitle>
               <DialogDescription>
-                ¿Estás seguro de que deseas eliminar esta instalación? Esta
-                acción no se puede deshacer.
+                ¿Estás seguro de que deseas eliminar este servicio? Esta acción
+                no se puede deshacer.
               </DialogDescription>
             </DialogHeader>
             <div className="bg-orange-50 border border-orange-200 rounded-md p-3 text-orange-800 text-sm">
               <p>
-                Cliente:{" "}
-                {selectedInstalacion.cliente?.nombre || "No especificado"}
+                Cliente: {selectedServicio.cliente?.nombre || "No especificado"}
               </p>
-              <p>Fecha: {formatDate(selectedInstalacion.fechaProgramada)}</p>
-              <p>Estado: {selectedInstalacion.estado}</p>
+              <p>Fecha: {formatDate(selectedServicio.fechaProgramada)}</p>
+              <p>Estado: {selectedServicio.estado}</p>
             </div>
             <DialogFooter>
               <Button
@@ -669,20 +671,20 @@ export function ListadoInstalacionComponent() {
               <Button
                 variant="destructive"
                 onClick={() => {
-                  deleteService(selectedInstalacion.id)
+                  deleteService(selectedServicio.id)
                     .then(() => {
-                      toast.success("Instalación eliminada", {
+                      toast.success("Servicio eliminado", {
                         description:
-                          "La instalación ha sido eliminada correctamente",
+                          "El servicio ha sido eliminado correctamente",
                       });
                       setIsDeleteDialogOpen(false);
                       // Refresh the list
                     })
                     .catch((error) => {
                       console.error("Error deleting installation:", error);
-                      toast.error("Error al eliminar la instalación", {
+                      toast.error("Error al eliminar el servicio", {
                         description:
-                          "No se pudo eliminar la instalación. Intenta nuevamente.",
+                          "No se pudo eliminar el servicio. Intenta nuevamente.",
                       });
                     });
 

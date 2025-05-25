@@ -109,6 +109,7 @@ export default function CapacitacionesCrearComponent() {
     };
 
     try {
+      console.log("Capacitación Data:", capacitacionData);
       await createServiceCapacitacion(capacitacionData);
 
       toast.success("Capacitación creada exitosamente");

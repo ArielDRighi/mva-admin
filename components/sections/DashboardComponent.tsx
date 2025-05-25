@@ -29,6 +29,8 @@ import {
 } from "@/app/actions/services";
 import { Servicio } from "@/types/serviceTypes";
 import { getFuturesCleanings } from "@/app/actions/services";
+import { getLicenciasToExpire } from "@/app/actions/LicenciasConducir";
+import { Empleado } from "@/types/types";
 
 export type User = {
   id: number;
@@ -67,6 +69,20 @@ export type resumeService = {
   completados: number;
 };
 
+export interface LicenciaConducir {
+  licencia_id: number;
+  categoria: string;
+  fecha_expedicion: Date;
+  fecha_vencimiento: Date;
+  empleado: Empleado;
+}
+export type LicenciasToExpireResponse = {
+  data: LicenciaConducir[];
+  totalItems: number;
+  currentPage: number;
+  totalPages: number;
+};
+
 const DashboardComponent = () => {
   const [user, setUser] = useState<User | null>(null);
   const [totalVehicles, setTotalVehicles] = useState<totalVehicles>();
@@ -83,7 +99,8 @@ const DashboardComponent = () => {
     totalPages: 0,
   });
   const [activityRecent, setRecentActivity] = useState<any>(null);
-  console.log("activityRecent", activityRecent);
+  const [licenciasToExpire, setLicenciasToExpire] =
+    useState<LicenciasToExpireResponse>();
 
   const router = useRouter();
 
@@ -98,6 +115,8 @@ const DashboardComponent = () => {
         const resumeService = await getResumeServices();
         const futuresCleanings = await getFuturesCleanings();
         const activity = await getRecentActivity();
+        const fetchLicenciasToExpire = await getLicenciasToExpire(30, 1, 10);
+        setLicenciasToExpire(fetchLicenciasToExpire);
         setRecentActivity(activity);
         setFuturesCleanings(futuresCleanings);
         setresumeService(resumeService);
@@ -754,43 +773,66 @@ const DashboardComponent = () => {
       </div>
 
       {/* Alerts and notifications */}
-      {/* {pendingContractRenewals.length > 0 && (
-        <div className="mb-8">
-          <Card className="border-red-200 bg-red-50">
-            <CardHeader>
-              <div className="flex items-center">
-                <AlertCircle className="h-5 w-5 mr-2 text-red-600" />
-                <CardTitle className="text-red-800">Alertas</CardTitle>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                {pendingContractRenewals.map((contract, i) => (
-                  <div
-                    key={i}
-                    className="flex items-center justify-between bg-white p-3 rounded-md border border-red-100"
-                  >
-                    <div>
-                      <p className="font-medium">{contract.client}</p>
-                      <p className="text-sm text-gray-600">
-                        Contrato vence el{" "}
-                        {new Date(contract.expiration).toLocaleDateString()}
-                      </p>
-                    </div>
-                    <Button
-                      size="sm"
-                      onClick={() => router.push("/dashboard/contratos")}
-                      className="bg-red-600 hover:bg-red-700"
+      {licenciasToExpire &&
+        licenciasToExpire.data &&
+        licenciasToExpire.data.length > 0 && (
+          <div className="mb-8">
+            <Card className="border-amber-200 bg-amber-50">
+              <CardHeader>
+                <div className="flex items-center">
+                  <AlertCircle className="h-5 w-5 mr-2 text-amber-600" />
+                  <CardTitle className="text-amber-800">
+                    Licencias por vencer
+                  </CardTitle>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  {licenciasToExpire.data.map((licencia) => (
+                    <div
+                      key={licencia.licencia_id}
+                      className="flex items-center justify-between bg-white p-3 rounded-md border border-amber-100"
                     >
-                      Renovar
-                    </Button>
-                  </div>
-                ))}
+                      <div>
+                        <p className="font-medium">
+                          {licencia.empleado.nombre}{" "}
+                          {licencia.empleado.apellido}
+                        </p>
+                        <p className="text-sm text-gray-600">
+                          Licencia categoría{" "}
+                          <strong>{licencia.categoria}</strong> vence el{" "}
+                          {new Date(
+                            licencia.fecha_vencimiento
+                          ).toLocaleDateString()}
+                        </p>
+                      </div>
+                      <Badge className="bg-amber-100 text-amber-800">
+                        {Math.ceil(
+                          (new Date(licencia.fecha_vencimiento).getTime() -
+                            new Date().getTime()) /
+                            (1000 * 60 * 60 * 24)
+                        )}{" "}
+                        días
+                      </Badge>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+              <div className="px-6 pb-4">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="w-full border-amber-200 hover:bg-amber-100"
+                  onClick={() =>
+                    router.push("/admin/dashboard/empleados/licencias")
+                  }
+                >
+                  Ver todas las licencias
+                </Button>
               </div>
-            </CardContent>
-          </Card>
-        </div>
-      )} */}
+            </Card>
+          </div>
+        )}
     </div>
   );
 };

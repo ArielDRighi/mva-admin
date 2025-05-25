@@ -1,0 +1,1092 @@
+"use client";
+
+import React from "react";
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { z } from "zod";
+import { useForm, Controller } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { toast } from "sonner";
+
+import { Button } from "@/components/ui/button";
+import { FormField } from "@/components/ui/local/FormField";
+import { Card, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { getClients } from "@/app/actions/clientes";
+import { getContractualConditionsByClient } from "@/app/actions/contractualConditions";
+import { createServicioGenerico } from "@/app/actions/services";
+import { Badge } from "@/components/ui/badge";
+import Loader from "@/components/ui/local/Loader";
+import { Cliente, Empleado, Sanitario, Vehiculo } from "@/types/types";
+import { ServiceType } from "@/types/serviceTypes";
+import {
+  Search,
+  FileText,
+  Users,
+  ChevronLeft,
+  ChevronRight,
+  Save,
+  Clipboard,
+  Bath,
+} from "lucide-react";
+import DatePicker from "react-datepicker";
+import "react-datepicker/dist/react-datepicker.css";
+import { getEmployees } from "@/app/actions/empleados";
+import { getVehicles } from "@/app/actions/vehiculos";
+import { getSanitariosByClient } from "@/app/actions/sanitarios";
+
+// Schema for the form
+const formSchema = z.object({
+  // Step 1
+  clienteId: z.number().min(1, "Debe seleccionar un cliente"),
+
+  // Step 2
+  condicionContractualId: z
+    .number()
+    .min(1, "Debe seleccionar una condición contractual"),
+
+  // Step 3
+  fechaProgramada: z.date({
+    required_error: "La fecha programada es obligatoria",
+  }),
+  cantidadVehiculos: z.number().min(1, "Debe especificar al menos 1 vehículo"),
+  ubicacion: z.string().min(3, "La ubicación debe tener al menos 3 caracteres"),
+  notas: z.string().optional(),
+  // Step 4
+  banosInstalados: z
+    .array(z.number())
+    .min(1, "Debe seleccionar al menos un baño"),
+  empleadosIds: z
+    .array(z.number())
+    .min(1, "Debe seleccionar al menos un empleado"),
+  vehiculosIds: z
+    .array(z.number())
+    .min(1, "Debe seleccionar al menos un vehículo"),
+
+  // Additional fields for service creation
+  tipoServicio: z.literal(ServiceType.LIMPIEZA),
+  asignacionAutomatica: z.boolean(),
+});
+
+type FormData = z.infer<typeof formSchema>;
+
+type CondicionContractual = {
+  condicionContractualId: number;
+  clientId: number;
+  tipo_de_contrato: string;
+  fecha_inicio: string;
+  fecha_fin: string;
+  condiciones_especificas: string;
+  tarifa: number;
+  periodicidad: string;
+  estado: string;
+};
+
+export function CrearServicioGenericoComponent() {
+  const router = useRouter();
+  const [step, setStep] = useState<number>(1);
+  const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
+
+  const [clientes, setClientes] = useState<Cliente[]>([]);
+  const [filteredClientes, setFilteredClientes] = useState<Cliente[]>([]);
+  const [searchTermCliente, setSearchTermCliente] = useState<string>("");
+
+  const [condicionesContractuales, setCondicionesContractuales] = useState<
+    CondicionContractual[]
+  >([]);
+
+  const [banosInstalados, setBanosInstalados] = useState<Sanitario[]>([]);
+  const [empleadosDisponibles, setEmpleadosDisponibles] = useState<Empleado[]>(
+    []
+  );
+  const [vehiculosDisponibles, setVehiculosDisponibles] = useState<Vehiculo[]>(
+    []
+  );
+
+  const [selectedEmpleados, setSelectedEmpleados] = useState<number[]>([]);
+  const [selectedVehiculos, setSelectedVehiculos] = useState<number[]>([]);
+  const [selectedBanos, setSelectedBanos] = useState<number[]>([]);
+
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+
+  const form = useForm<FormData>({
+    resolver: zodResolver(formSchema),
+    defaultValues: {
+      clienteId: 0,
+      condicionContractualId: 0,
+      fechaProgramada: undefined,
+      cantidadVehiculos: 1,
+      ubicacion: "",
+      notas: "",
+      banosInstalados: [],
+      empleadosIds: [],
+      vehiculosIds: [],
+      tipoServicio: ServiceType.LIMPIEZA,
+      asignacionAutomatica: false,
+    },
+  });
+
+  const {
+    control,
+    handleSubmit,
+    watch,
+    setValue,
+    trigger,
+    getValues,
+    formState: { errors },
+  } = form;
+  const selectedClientId = watch("clienteId");
+  const [selectedCondicionId, setSelectedCondicionId] = useState<number>(0);
+  const selectedFechaProgramada = watch("fechaProgramada");
+
+  // Keep selectedCondicionId in sync with form value
+  useEffect(() => {
+    const subscription = watch((value, { name }) => {
+      if (name === "condicionContractualId") {
+        setSelectedCondicionId(value.condicionContractualId as number);
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, [watch]);
+
+  // Cargar clientes al inicio
+  useEffect(() => {
+    const fetchClientes = async () => {
+      try {
+        setIsLoading(true);
+        const clientesData = await getClients();
+        setClientes(clientesData.items || []);
+        setFilteredClientes(clientesData.items || []);
+      } catch (error) {
+        console.error("Error al cargar los clientes:", error);
+        toast.error("Error al cargar los clientes", {
+          description:
+            "No se pudieron cargar los clientes. Por favor, intente nuevamente.",
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchClientes();
+  }, []);
+
+  // Filtrar clientes por término de búsqueda
+  useEffect(() => {
+    if (searchTermCliente.trim() === "") {
+      setFilteredClientes(clientes);
+    } else {
+      const searchTermLower = searchTermCliente.toLowerCase();
+      const filtered = clientes.filter(
+        (cliente) =>
+          cliente.nombre.toLowerCase().includes(searchTermLower) ||
+          cliente.cuit.toLowerCase().includes(searchTermLower) ||
+          cliente.email.toLowerCase().includes(searchTermLower)
+      );
+      setFilteredClientes(filtered);
+    }
+  }, [searchTermCliente, clientes]);
+  // Cargar condiciones contractuales cuando se selecciona un cliente
+  useEffect(() => {
+    const fetchCondicionesContractuales = async () => {
+      if (selectedClientId && selectedClientId > 0) {
+        try {
+          setIsLoading(true);
+          const condicionesData = await getContractualConditionsByClient(
+            selectedClientId
+          );
+          setCondicionesContractuales(condicionesData || []);
+
+          // Solo resetear el valor si estamos cambiando de cliente
+          // No lo resetea si ya se ha seleccionado una condición
+          if (step === 2 && !selectedCondicionId) {
+            setValue("condicionContractualId", 0);
+          }
+        } catch (error) {
+          console.error("Error al cargar condiciones contractuales:", error);
+          toast.error("Error", {
+            description:
+              "No se pudieron cargar las condiciones contractuales. Por favor, intente nuevamente.",
+          });
+        } finally {
+          setIsLoading(false);
+        }
+      }
+    };
+
+    if (step >= 2) {
+      fetchCondicionesContractuales();
+    }
+  }, [selectedClientId, step, setValue, selectedCondicionId]);
+
+  // Cargar recursos cuando se selecciona una fecha
+  useEffect(() => {
+    const fetchResources = async () => {
+      if (selectedClientId && selectedFechaProgramada && step >= 4) {
+        try {
+          setIsLoading(true);
+
+          // Cargar empleados y vehículos disponibles
+          const [empleadosResponse, vehiculosResponse] = await Promise.all([
+            getEmployees(),
+            getVehicles(),
+          ]);
+
+          // Filtrar por disponibles
+          const empleadosDisp =
+            empleadosResponse?.data?.filter(
+              (empleado: Empleado) => empleado.estado === "DISPONIBLE"
+            ) || [];
+
+          const vehiculosDisp =
+            vehiculosResponse?.data?.filter(
+              (vehiculo: Vehiculo) => vehiculo.estado === "DISPONIBLE"
+            ) || [];
+
+          setEmpleadosDisponibles(empleadosDisp);
+          setVehiculosDisponibles(vehiculosDisp);
+
+          // Cargar baños instalados para el cliente
+          const banosClienteResponse = await getSanitariosByClient(
+            selectedClientId
+          );
+          setBanosInstalados(banosClienteResponse || []);
+        } catch (error) {
+          console.error("Error al cargar recursos:", error);
+          toast.error("Error", {
+            description:
+              "No se pudieron cargar los recursos necesarios. Por favor, intente nuevamente.",
+          });
+        } finally {
+          setIsLoading(false);
+        }
+      }
+    };
+
+    fetchResources();
+  }, [selectedClientId, selectedFechaProgramada, step]);
+
+  // Manejar selección de empleado
+  const handleEmpleadoSelection = (empleadoId: number) => {
+    const updatedSelection = selectedEmpleados.includes(empleadoId)
+      ? selectedEmpleados.filter((id) => id !== empleadoId)
+      : [...selectedEmpleados, empleadoId];
+
+    setSelectedEmpleados(updatedSelection);
+    setValue("empleadosIds", updatedSelection);
+  };
+
+  // Manejar selección de vehículo
+  const handleVehiculoSelection = (vehiculoId: number) => {
+    const updatedSelection = selectedVehiculos.includes(vehiculoId)
+      ? selectedVehiculos.filter((id) => id !== vehiculoId)
+      : [...selectedVehiculos, vehiculoId];
+
+    setSelectedVehiculos(updatedSelection);
+    setValue("vehiculosIds", updatedSelection);
+  };
+
+  // Manejar selección de baño
+  const handleBanoSelection = (banoId: number) => {
+    const updatedSelection = selectedBanos.includes(banoId)
+      ? selectedBanos.filter((id) => id !== banoId)
+      : [...selectedBanos, banoId];
+
+    setSelectedBanos(updatedSelection);
+    setValue("banosInstalados", updatedSelection);
+  };
+  // Avanzar al siguiente paso
+  const handleNextStep = async () => {
+    // Validar campos según el paso actual
+    let isStepValid = false;
+
+    switch (step) {
+      case 1:
+        isStepValid = await trigger("clienteId");
+        break;
+      case 2:
+        isStepValid = await trigger("condicionContractualId");
+        // Double-check that we have a valid condition selected
+        const currentCondicionId = getValues("condicionContractualId");
+        console.log(
+          "Validating step 2, condicionContractualId:",
+          currentCondicionId
+        );
+
+        if (currentCondicionId <= 0 || !currentCondicionId) {
+          // If form validation didn't catch it, enforce it here
+          toast.error("Por favor seleccione una condición contractual");
+          return false;
+        }
+        break;
+      case 3:
+        isStepValid = await trigger([
+          "fechaProgramada",
+          "cantidadVehiculos",
+          "ubicacion",
+        ] as const);
+        break;
+      default:
+        isStepValid = true;
+        break;
+    }
+    if (isStepValid) {
+      // Log the values before advancing to catch any issues
+      console.log(
+        "Advancing to next step. Current form values:",
+        form.getValues()
+      );
+      setStep((prevStep) => prevStep + 1);
+    }
+  };
+  // Retroceder al paso anterior
+  const handlePrevStep = () => {
+    // Asegurarse de que los datos del formulario sean consistentes al moverse entre pasos
+    console.log(
+      "Going back to previous step. Current form values:",
+      form.getValues()
+    );
+
+    // Si venimos del paso 3, asegurarse de que la condición contractual esté correctamente establecida
+    if (step === 3) {
+      if (selectedCondicionId > 0) {
+        setValue("condicionContractualId", selectedCondicionId);
+        console.log("Restored condicionContractualId to", selectedCondicionId);
+      }
+    }
+
+    setStep((prevStep) => prevStep - 1);
+  }; // Enviar formulario
+  const onSubmit = async (data: FormData) => {
+    console.log("Submit function called with data:", data);
+    try {
+      setIsSubmitting(true);
+      console.log("Form submission started, isSubmitting set to true");
+
+      // Preparar las asignaciones manuales según el formato esperado por CreateLimpiezaDto
+      // Debe ser un array con exactamente 2 elementos
+      const asignacionesManual: [
+        { empleadoId: number; vehiculoId: number },
+        { empleadoId: number }
+      ] = [
+        {
+          // Primera asignación principal
+          empleadoId: data.empleadosIds.length > 0 ? data.empleadosIds[0] : 0,
+          vehiculoId: data.vehiculosIds.length > 0 ? data.vehiculosIds[0] : 0,
+        },
+        {
+          // Segunda asignación (empleado adicional si existe)
+          empleadoId: data.empleadosIds.length > 1 ? data.empleadosIds[1] : 0,
+        },
+      ];
+
+      console.log("asignacionesManual prepared:", asignacionesManual); // Objeto para enviar a la API
+      const servicioRequest = {
+        tipoServicio: "LIMPIEZA",
+        condicionContractualId:
+          selectedCondicionId || data.condicionContractualId, // Use selectedCondicionId as fallback
+        cantidadVehiculos: data.cantidadVehiculos,
+        fechaProgramada: data.fechaProgramada.toISOString(),
+        ubicacion: data.ubicacion,
+        asignacionAutomatica: false,
+        banosInstalados: data.banosInstalados,
+        asignacionesManual: asignacionesManual,
+        notas: data.notas || "Limpieza mensual según contrato",
+      };
+
+      // Verificación adicional para asegurar que condicionContractualId tenga un valor válido
+      if (
+        !servicioRequest.condicionContractualId ||
+        servicioRequest.condicionContractualId <= 0
+      ) {
+        console.error(
+          "condicionContractualId no es válido:",
+          servicioRequest.condicionContractualId
+        );
+        toast.error("Error en el formulario", {
+          description: "Por favor seleccione una condición contractual válida.",
+        });
+        return; // Detener el envío del formulario
+      }
+      console.log("servicioRequest object prepared:", servicioRequest);
+      console.log("Form values before submission:", {
+        formCondicionId: form.getValues("condicionContractualId"),
+        stateCondicionId: selectedCondicionId,
+        finalCondicionId: servicioRequest.condicionContractualId,
+      });
+
+      // Crear el servicio
+      console.log("Calling createServicioGenerico function");
+      const response = await createServicioGenerico(servicioRequest);
+      console.log("Servicio creado, response:", response);
+
+      toast.success("Servicio de limpieza creado", {
+        description: "El servicio de limpieza se ha creado exitosamente.",
+      });
+
+      // Redireccionar a la página de listado de servicios
+      router.push("/admin/services");
+    } catch (error) {
+      console.error("Error al crear el servicio:", error);
+      console.log("Error details:", JSON.stringify(error, null, 2));
+      toast.error("Error al crear el servicio", {
+        description:
+          "No se pudo crear el servicio. Por favor, intente nuevamente.",
+      });
+    } finally {
+      console.log("Setting isSubmitting back to false");
+      setIsSubmitting(false);
+    }
+  };
+
+  if (isLoading && step === 1) {
+    return (
+      <div className="flex flex-1 flex-col gap-4 p-4 pt-0 items-center justify-center">
+        <Loader />
+      </div>
+    );
+  }
+  // Log the current form state when component renders
+  console.log("Component rendering with form state:", {
+    values: form.getValues(),
+    errors: form.formState.errors,
+    isDirty: form.formState.isDirty,
+    isValid: form.formState.isValid,
+    isSubmitted: form.formState.isSubmitted,
+    isSubmitting: form.formState.isSubmitting,
+    isSubmitSuccessful: form.formState.isSubmitSuccessful,
+  });
+
+  return (
+    <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
+      <div className="grid auto-rows-min gap-4 grid-cols-1">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold">Crear Servicio de Limpieza</h1>
+            <p className="text-gray-600">
+              Complete el formulario para crear un nuevo servicio de limpieza
+            </p>
+          </div>
+
+          {/* Indicador de pasos */}
+          <div className="flex items-center gap-2">
+            <Badge
+              className={`px-3 py-1 ${
+                step >= 1 ? "bg-blue-500" : "bg-gray-300"
+              }`}
+            >
+              1. Cliente
+            </Badge>
+            <Badge
+              className={`px-3 py-1 ${
+                step >= 2 ? "bg-blue-500" : "bg-gray-300"
+              }`}
+            >
+              2. Condición Contractual
+            </Badge>
+            <Badge
+              className={`px-3 py-1 ${
+                step >= 3 ? "bg-blue-500" : "bg-gray-300"
+              }`}
+            >
+              3. Detalles de Limpieza
+            </Badge>
+            <Badge
+              className={`px-3 py-1 ${
+                step >= 4 ? "bg-blue-500" : "bg-gray-300"
+              }`}
+            >
+              4. Asignación de Recursos
+            </Badge>
+          </div>
+        </div>
+
+        <Card>
+          <CardContent className="p-6">
+            <form
+              onSubmit={handleSubmit(
+                (data) => {
+                  console.log("Form submitted successfully, data:", data);
+                  onSubmit(data);
+                },
+                (errors) => {
+                  console.error("Form validation failed:", errors);
+                  console.log("Current form values:", form.getValues());
+                  return false;
+                }
+              )}
+            >
+              {/* Paso 1: Selección de Cliente */}
+              {step === 1 && (
+                <div>
+                  <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
+                    <Users className="h-5 w-5" />
+                    Selección de Cliente
+                  </h2>
+                  <div className="mb-4">
+                    <div className="relative">
+                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                      <Input
+                        placeholder="Buscar cliente por nombre, CUIT o email..."
+                        className="pl-10"
+                        value={searchTermCliente}
+                        onChange={(e) => setSearchTermCliente(e.target.value)}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-4">
+                    {filteredClientes.map((cliente) => (
+                      <div
+                        key={cliente.clienteId}
+                        className={`border rounded-md p-4 cursor-pointer transition-colors ${
+                          selectedClientId === cliente.clienteId
+                            ? "border-blue-500 bg-blue-50"
+                            : "hover:border-blue-300 hover:bg-blue-50/50"
+                        }`}
+                        onClick={() => {
+                          if (cliente.clienteId !== undefined) {
+                            setValue("clienteId", cliente.clienteId);
+                            // Reset condicionContractualId when changing clients to avoid confusion
+                            if (selectedClientId !== cliente.clienteId) {
+                              setValue("condicionContractualId", 0);
+                              setSelectedCondicionId(0);
+                            }
+                          }
+                        }}
+                      >
+                        <div className="font-medium text-lg">
+                          {cliente.nombre}
+                        </div>
+                        <div className="text-sm text-gray-500">
+                          CUIT: {cliente.cuit}
+                        </div>
+                        <div className="text-sm text-gray-500">
+                          Email: {cliente.email}
+                        </div>
+                        <div className="text-sm text-gray-500">
+                          Dirección: {cliente.direccion}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {errors.clienteId && (
+                    <p className="text-red-500 text-sm mt-2">
+                      {errors.clienteId.message}
+                    </p>
+                  )}
+                </div>
+              )}
+
+              {/* Paso 2: Condición Contractual */}
+              {step === 2 && (
+                <div>
+                  <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
+                    <FileText className="h-5 w-5" />
+                    Selección de Condición Contractual
+                  </h2>
+                  {isLoading ? (
+                    <div className="flex justify-center py-8">
+                      <Loader />
+                    </div>
+                  ) : condicionesContractuales.length === 0 ? (
+                    <div className="text-center py-8 border rounded-md">
+                      <p className="text-gray-500">
+                        No hay condiciones contractuales disponibles para este
+                        cliente.
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                      {condicionesContractuales.map((condicion) => (
+                        <div
+                          key={condicion.condicionContractualId}
+                          className={`border rounded-md p-4 cursor-pointer transition-colors ${
+                            selectedCondicionId ===
+                            condicion.condicionContractualId
+                              ? "border-blue-500 bg-blue-50"
+                              : "hover:border-blue-300 hover:bg-blue-50/50"
+                          }`}
+                          onClick={() => {
+                            // Update the form value
+                            setValue(
+                              "condicionContractualId",
+                              condicion.condicionContractualId
+                            );
+                            // Also update the selected condition ID state
+                            setSelectedCondicionId(
+                              condicion.condicionContractualId
+                            );
+                          }}
+                        >
+                          <div className="font-medium">
+                            {condicion.tipo_de_contrato}
+                          </div>
+                          <div className="text-sm text-gray-500">
+                            Período:{" "}
+                            {new Date(
+                              condicion.fecha_inicio
+                            ).toLocaleDateString()}{" "}
+                            -{" "}
+                            {new Date(condicion.fecha_fin).toLocaleDateString()}
+                          </div>
+                          <div className="text-sm text-gray-500">
+                            Tarifa: ${condicion.tarifa} (
+                            {condicion.periodicidad})
+                          </div>
+                          {condicion.condiciones_especificas && (
+                            <div className="text-sm text-gray-500 mt-2">
+                              <span className="font-medium">
+                                Condiciones específicas:
+                              </span>
+                              <p className="italic">
+                                "{condicion.condiciones_especificas}"
+                              </p>
+                            </div>
+                          )}
+                          <Badge
+                            className={`mt-2 ${
+                              condicion.estado === "Activo"
+                                ? "bg-green-100 text-green-800"
+                                : condicion.estado === "Terminado"
+                                ? "bg-red-100 text-red-800"
+                                : "bg-yellow-100 text-yellow-800"
+                            }`}
+                          >
+                            {condicion.estado}
+                          </Badge>
+                        </div>
+                      ))}
+                    </div>
+                  )}{" "}
+                  {errors.condicionContractualId && (
+                    <p className="text-red-500 text-sm mt-2">
+                      {errors.condicionContractualId.message}
+                    </p>
+                  )}
+                  {/* Debug information (only visible in development) */}
+                  {process.env.NODE_ENV !== "production" && (
+                    <div className="mt-4 px-4 py-2 rounded bg-gray-100 border border-gray-200">
+                      <h3 className="font-medium text-sm mb-1">Debug Info:</h3>
+                      <p className="text-xs text-gray-600">
+                        ID en el state: {selectedCondicionId}
+                      </p>
+                      <p className="text-xs text-gray-600">
+                        ID en el formulario:{" "}
+                        {getValues("condicionContractualId")}
+                      </p>
+                      {selectedCondicionId !==
+                        getValues("condicionContractualId") && (
+                        <p className="text-xs text-red-500 font-bold mt-1">
+                          ¡Atención! El valor seleccionado no coincide con el
+                          valor del formulario.
+                        </p>
+                      )}
+                    </div>
+                  )}
+                  {/* Mostrar el valor actual para debugging */}
+                  <div className="mt-4 text-sm text-gray-500">
+                    <p>
+                      Condición contractual seleccionada ID:{" "}
+                      {selectedCondicionId}
+                    </p>
+                    <p>
+                      Valor en el formulario:{" "}
+                      {getValues("condicionContractualId")}
+                    </p>
+                    {selectedCondicionId !==
+                      getValues("condicionContractualId") && (
+                      <p className="text-red-500">
+                        ¡Atención! El valor seleccionado no coincide con el
+                        valor del formulario.
+                      </p>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Paso 3: Detalles de Limpieza */}
+              {step === 3 && (
+                <div>
+                  <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
+                    <Clipboard className="h-5 w-5" />
+                    Detalles del Servicio de Limpieza
+                  </h2>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
+                    {/* Fecha Programada */}
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium">
+                        Fecha Programada
+                      </label>
+                      <Controller
+                        name="fechaProgramada"
+                        control={control}
+                        render={({ field }) => (
+                          <div className="flex flex-col">
+                            <DatePicker
+                              selected={field.value}
+                              onChange={(date: Date | null) =>
+                                field.onChange(date)
+                              }
+                              dateFormat="dd/MM/yyyy"
+                              className="w-full rounded-md border border-gray-300 px-3 py-2"
+                              minDate={new Date()}
+                              placeholderText="Seleccione fecha"
+                            />
+                            {errors.fechaProgramada && (
+                              <p className="text-red-500 text-sm mt-1">
+                                {errors.fechaProgramada.message}
+                              </p>
+                            )}
+                          </div>
+                        )}
+                      />
+                    </div>
+
+                    {/* Cantidad de Vehículos */}
+                    <Controller
+                      name="cantidadVehiculos"
+                      control={control}
+                      render={({ field, fieldState }) => (
+                        <FormField
+                          label="Cantidad de Vehículos"
+                          name="cantidadVehiculos"
+                          type="number"
+                          value={field.value?.toString() || "1"}
+                          onChange={(value) =>
+                            field.onChange(parseInt(value, 10))
+                          }
+                          error={fieldState.error?.message}
+                          min={1}
+                        />
+                      )}
+                    />
+
+                    {/* Ubicación */}
+                    <Controller
+                      name="ubicacion"
+                      control={control}
+                      render={({ field, fieldState }) => (
+                        <FormField
+                          label="Ubicación"
+                          name="ubicacion"
+                          value={field.value || ""}
+                          onChange={field.onChange}
+                          error={fieldState.error?.message}
+                          placeholder="Ingrese la ubicación del servicio"
+                          className="md:col-span-2"
+                        />
+                      )}
+                    />
+
+                    {/* Notas */}
+                    <div className="space-y-2 md:col-span-2">
+                      <label className="text-sm font-medium">
+                        Notas (Opcional)
+                      </label>
+                      <Controller
+                        name="notas"
+                        control={control}
+                        render={({ field }) => (
+                          <Textarea
+                            {...field}
+                            placeholder="Ingrese notas adicionales sobre el servicio"
+                            className="min-h-[100px]"
+                          />
+                        )}
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Paso 4: Asignación de Recursos */}
+              {step === 4 && (
+                <div>
+                  <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
+                    <Bath className="h-5 w-5" />
+                    Selección de Baños, Empleados y Vehículos
+                  </h2>
+
+                  {isLoading ? (
+                    <div className="flex justify-center py-8">
+                      <Loader />
+                    </div>
+                  ) : (
+                    <div className="space-y-8">
+                      {/* Selección de Baños Instalados */}
+                      <div>
+                        <h3 className="text-lg font-medium mb-3 flex items-center justify-between">
+                          Seleccionar Baños Instalados
+                          <Badge variant="outline" className="bg-blue-50">
+                            {selectedBanos.length} seleccionados
+                          </Badge>
+                        </h3>
+
+                        {banosInstalados.length === 0 ? (
+                          <div className="text-center py-8 border rounded-md">
+                            <p className="text-gray-500">
+                              No hay baños instalados para este cliente.
+                            </p>
+                          </div>
+                        ) : (
+                          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                            {banosInstalados.map((bano) => (
+                              <div
+                                key={bano.baño_id}
+                                className={`border p-3 rounded-md cursor-pointer transition-colors ${
+                                  selectedBanos.includes(
+                                    parseInt(bano.baño_id || "0")
+                                  )
+                                    ? "bg-blue-50 border-blue-300"
+                                    : "hover:bg-slate-50"
+                                }`}
+                                onClick={() =>
+                                  handleBanoSelection(
+                                    parseInt(bano.baño_id || "0")
+                                  )
+                                }
+                              >
+                                <div className="flex items-center justify-between">
+                                  <div className="flex-1">
+                                    <p className="font-medium">
+                                      Código: {bano.codigo_interno}
+                                    </p>
+                                    <p className="text-sm text-gray-600">
+                                      Modelo: {bano.modelo}
+                                    </p>
+                                    <p className="text-xs text-gray-500">
+                                      Adquirido:{" "}
+                                      {new Date(
+                                        bano.fecha_adquisicion
+                                      ).toLocaleDateString()}
+                                    </p>
+                                  </div>
+                                  <Badge
+                                    className={
+                                      bano.estado === "ASIGNADO"
+                                        ? "bg-green-100 text-green-800"
+                                        : "bg-gray-100 text-gray-800"
+                                    }
+                                  >
+                                    {bano.estado}
+                                  </Badge>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+
+                        {errors.banosInstalados && (
+                          <p className="text-red-500 text-sm mt-2">
+                            {errors.banosInstalados.message}
+                          </p>
+                        )}
+                      </div>
+
+                      {/* Selección de Empleados */}
+                      <div>
+                        <h3 className="text-lg font-medium mb-3 flex items-center justify-between">
+                          Seleccionar Empleados
+                          <Badge variant="outline" className="bg-blue-50">
+                            {selectedEmpleados.length} seleccionados
+                          </Badge>
+                        </h3>
+
+                        {empleadosDisponibles.length === 0 ? (
+                          <div className="text-center py-8 border rounded-md">
+                            <p className="text-gray-500">
+                              No hay empleados disponibles.
+                            </p>
+                          </div>
+                        ) : (
+                          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                            {empleadosDisponibles.map((empleado) => (
+                              <div
+                                key={empleado.id}
+                                className={`border p-3 rounded-md cursor-pointer transition-colors ${
+                                  selectedEmpleados.includes(empleado.id)
+                                    ? "bg-blue-50 border-blue-300"
+                                    : "hover:bg-slate-50"
+                                }`}
+                                onClick={() =>
+                                  handleEmpleadoSelection(empleado.id)
+                                }
+                              >
+                                <div className="flex items-center">
+                                  <div className="flex-shrink-0 mr-3">
+                                    <div
+                                      className={`w-10 h-10 rounded-full flex items-center justify-center text-white ${
+                                        selectedEmpleados.includes(empleado.id)
+                                          ? "bg-blue-500"
+                                          : "bg-slate-400"
+                                      }`}
+                                    >
+                                      {empleado.nombre.charAt(0)}
+                                      {empleado.apellido.charAt(0)}
+                                    </div>
+                                  </div>
+                                  <div className="flex-grow">
+                                    <p className="font-medium">{`${empleado.apellido}, ${empleado.nombre}`}</p>
+                                    <p className="text-xs text-gray-500">{`DNI: ${empleado.documento}`}</p>
+                                    <p className="text-xs text-gray-500">{`Cargo: ${empleado.cargo}`}</p>
+                                    <Badge
+                                      variant="outline"
+                                      className="mt-1 bg-green-100 text-green-800 hover:bg-green-100"
+                                    >
+                                      {empleado.estado}
+                                    </Badge>
+                                  </div>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+
+                        {errors.empleadosIds && (
+                          <p className="text-red-500 text-sm mt-2">
+                            {errors.empleadosIds.message}
+                          </p>
+                        )}
+                      </div>
+
+                      {/* Selección de Vehículos */}
+                      <div>
+                        <h3 className="text-lg font-medium mb-3 flex items-center justify-between">
+                          Seleccionar Vehículos
+                          <Badge variant="outline" className="bg-blue-50">
+                            {selectedVehiculos.length} seleccionados
+                          </Badge>
+                        </h3>
+
+                        {vehiculosDisponibles.length === 0 ? (
+                          <div className="text-center py-8 border rounded-md">
+                            <p className="text-gray-500">
+                              No hay vehículos disponibles.
+                            </p>
+                          </div>
+                        ) : (
+                          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                            {vehiculosDisponibles.map((vehiculo) => (
+                              <div
+                                key={vehiculo.id}
+                                className={`border p-3 rounded-md cursor-pointer transition-colors ${
+                                  selectedVehiculos.includes(vehiculo.id)
+                                    ? "bg-blue-50 border-blue-300"
+                                    : "hover:bg-slate-50"
+                                }`}
+                                onClick={() =>
+                                  handleVehiculoSelection(vehiculo.id)
+                                }
+                              >
+                                <div className="flex items-center justify-between">
+                                  <div className="flex-grow">
+                                    <p className="font-medium">
+                                      {vehiculo.marca} {vehiculo.modelo}
+                                    </p>
+                                    <p className="text-sm">
+                                      Placa: {vehiculo.placa}
+                                    </p>
+                                    <p className="text-xs text-gray-500">
+                                      {vehiculo.anio} •{" "}
+                                      {vehiculo.tipoCabina || "N/A"}
+                                    </p>
+                                  </div>
+                                  <Badge className="bg-green-100 text-green-800">
+                                    {vehiculo.estado}
+                                  </Badge>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+
+                        {errors.vehiculosIds && (
+                          <p className="text-red-500 text-sm mt-2">
+                            {errors.vehiculosIds.message}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Botones de navegación */}
+              <div className="flex justify-between mt-8">
+                {step > 1 ? (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={handlePrevStep}
+                    disabled={isSubmitting}
+                    className="flex items-center gap-2"
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                    Anterior
+                  </Button>
+                ) : (
+                  <div></div>
+                )}
+
+                {step < 4 ? (
+                  <Button
+                    type="button"
+                    onClick={handleNextStep}
+                    disabled={isSubmitting}
+                    className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700"
+                  >
+                    Siguiente
+                    <ChevronRight className="h-4 w-4" />
+                  </Button>
+                ) : (
+                  <Button
+                    type="submit"
+                    disabled={isSubmitting}
+                    className="flex items-center gap-2 bg-green-600 hover:bg-green-700"
+                    onClick={async () => {
+                      console.log(
+                        "Submit button clicked",
+                        form.getValues(),
+                        "Current errors:",
+                        form.formState.errors
+                      );
+                      // Trigger validation for step 4 fields
+                      const step4Valid = await trigger([
+                        "banosInstalados",
+                        "empleadosIds",
+                        "vehiculosIds",
+                      ]);
+                      console.log(
+                        "Step 4 validation result:",
+                        step4Valid,
+                        "Errors after validation:",
+                        form.formState.errors
+                      );
+                    }}
+                  >
+                    {isSubmitting ? (
+                      <>
+                        <Loader className="h-4 w-4 animate-spin" />
+                        Creando...
+                      </>
+                    ) : (
+                      <>
+                        <Save className="h-4 w-4" />
+                        Crear Servicio
+                      </>
+                    )}
+                  </Button>
+                )}
+              </div>
+            </form>
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  );
+}
