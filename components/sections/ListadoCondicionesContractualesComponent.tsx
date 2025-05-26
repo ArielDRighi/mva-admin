@@ -34,6 +34,7 @@ import {
   Tag,
   FileCheck,
 } from "lucide-react";
+import { deleteContractualCondition } from "@/app/actions/contractualConditions";
 
 // Definir el tipo para la condición contractual
 type CondicionContractual = {
@@ -138,25 +139,24 @@ export default function ListadoCondicionesContractualesComponent({
   };
 
   // Función para manejar creación
-  const handleCreateClick = () => {
-    reset({
-      condiciones_especificas: "",
-      estado: "Activo",
-      fecha_inicio: "",
-      fecha_fin: "",
-      periodicidad: "Mensual",
-      tarifa: "",
-      tipo_de_contrato: "Temporal",
-    });
-    setSelectedCondicion(null);
-    setIsCreating(true);
-  };
+  // const handleCreateClick = () => {
+  //   reset({
+  //     condiciones_especificas: "",
+  //     estado: "Activo",
+  //     fecha_inicio: "",
+  //     fecha_fin: "",
+  //     periodicidad: "Mensual",
+  //     tarifa: "",
+  //     tipo_de_contrato: "Temporal",
+  //   });
+  //   setSelectedCondicion(null);
+  //   setIsCreating(true);
+  // };
 
   // Función para manejar eliminación
   const handleDeleteClick = async (id: number) => {
     try {
-      // Aquí iría la lógica para eliminar la condición contractual
-      // Simulamos eliminación en el estado local
+      await deleteContractualCondition(id);
       setCondiciones(
         condiciones.filter((c) => c.condicionContractualId !== id)
       );
@@ -294,7 +294,9 @@ export default function ListadoCondicionesContractualesComponent({
             </CardDescription>
           </div>
           <Button
-            onClick={handleCreateClick}
+            onClick={() =>
+              router.push("/admin/dashboard/condiciones-contractuales/crear")
+            }
             className="cursor-pointer bg-indigo-600 hover:bg-indigo-700"
           >
             <Plus className="mr-2 h-4 w-4" />

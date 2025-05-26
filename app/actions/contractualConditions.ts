@@ -211,11 +211,25 @@ export async function deleteContractualCondition(id: number) {
   );
 
   if (!res.ok) {
-    const errorData = await res.json().catch(() => ({}));
-    throw new Error(
-      errorData.message || "Error al eliminar la condición contractual"
-    );
+    throw new Error(`Error al eliminar la condición contractual con ID ${id}`);
   }
 
-  return await res.json();
+  // Get the response text first
+  const responseText = await res.text();
+
+  // If it's empty, return a generic success message
+  if (!responseText.trim()) {
+    return {
+      success: true,
+      message: "Condición contractual eliminada correctamente",
+    };
+  }
+
+  // Try to parse as JSON, if it fails, return the text as part of a success object
+  try {
+    return JSON.parse(responseText);
+  } catch (error) {
+    // If the response is not JSON, return the text as part of a success object
+    return { message: responseText, success: true };
+  }
 }

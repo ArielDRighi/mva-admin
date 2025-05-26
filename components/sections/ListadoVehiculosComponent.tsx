@@ -145,13 +145,17 @@ const ListadoVehiculosComponent = ({
       }
     });
   };
-
   const handleCreateClick = () => {
     reset({
+      numeroInterno: null,
       placa: "",
       marca: "",
       modelo: "",
       anio: new Date().getFullYear(),
+      tipoCabina: "simple",
+      fechaVencimientoVTV: null,
+      fechaVencimientoSeguro: null,
+      esExterno: false,
       estado: "DISPONIBLE",
     });
     setSelectedVehiculo(null);
@@ -323,7 +327,8 @@ const ListadoVehiculosComponent = ({
             totalItems={total}
             currentPage={page}
             onPageChange={handlePageChange}
-            onSearchChange={handleSearchChange}            columns={[
+            onSearchChange={handleSearchChange}
+            columns={[
               { title: "Vehículo", key: "vehiculo" },
               { title: "Información", key: "informacion" },
               { title: "Vencimientos", key: "vencimientos" },
@@ -349,7 +354,8 @@ const ListadoVehiculosComponent = ({
                         {vehiculo.marca} {vehiculo.modelo}
                       </div>
                     </div>
-                  </div>                </TableCell>                
+                  </div>{" "}
+                </TableCell>
                 <TableCell className="min-w-[150px]">
                   <div className="space-y-1">
                     <div className="flex items-center text-sm">
@@ -366,15 +372,19 @@ const ListadoVehiculosComponent = ({
                     </div>
                   </div>
                 </TableCell>
-                
+
                 <TableCell className="min-w-[180px]">
-                  {(vehiculo.fechaVencimientoVTV || vehiculo.fechaVencimientoSeguro) ? (
+                  {vehiculo.fechaVencimientoVTV ||
+                  vehiculo.fechaVencimientoSeguro ? (
                     <div className="flex flex-col gap-1">
                       {vehiculo.fechaVencimientoVTV && (
                         <div className="flex items-center text-sm">
                           <Calendar className="h-3.5 w-3.5 mr-1 text-muted-foreground" />
                           <span>
-                            VTV: {new Date(vehiculo.fechaVencimientoVTV).toLocaleDateString("es-AR")}
+                            VTV:{" "}
+                            {new Date(
+                              vehiculo.fechaVencimientoVTV
+                            ).toLocaleDateString("es-AR")}
                           </span>
                         </div>
                       )}
@@ -382,7 +392,10 @@ const ListadoVehiculosComponent = ({
                         <div className="flex items-center text-sm">
                           <CheckCircle className="h-3.5 w-3.5 mr-1 text-muted-foreground" />
                           <span>
-                            Seguro: {new Date(vehiculo.fechaVencimientoSeguro).toLocaleDateString("es-AR")}
+                            Seguro:{" "}
+                            {new Date(
+                              vehiculo.fechaVencimientoSeguro
+                            ).toLocaleDateString("es-AR")}
                           </span>
                         </div>
                       )}
@@ -393,7 +406,7 @@ const ListadoVehiculosComponent = ({
                     </span>
                   )}
                 </TableCell>
-                
+
                 <TableCell>
                   <Badge
                     variant={
@@ -581,21 +594,20 @@ const ListadoVehiculosComponent = ({
               };
               const displayValue = field.value
                 ? capitalizeFirstLetter(field.value)
-                : "";
+                : "Simple";
 
               return (
                 <FormField
                   label="Tipo de Cabina"
                   name="tipoCabina"
                   fieldType="select"
-                  value={displayValue || "Simple"}
+                  value={displayValue}
                   onChange={(value) => {
                     field.onChange(value.toLowerCase());
                   }}
                   options={[
                     { label: "Simple", value: "Simple" },
                     { label: "Doble", value: "Doble" },
-                    { label: "Extendida", value: "Extendida" },
                   ]}
                   error={fieldState.error?.message}
                 />
@@ -634,6 +646,7 @@ const ListadoVehiculosComponent = ({
             name="esExterno"
             control={control}
             render={({ field, fieldState }) => {
+              // Default to "Vehículo propio" if undefined or null
               const currentLabel =
                 field.value === true ? "Vehículo externo" : "Vehículo propio";
 
@@ -642,9 +655,7 @@ const ListadoVehiculosComponent = ({
                   label="Tipo de Vehículo"
                   name="esExterno"
                   fieldType="select"
-                  value={
-                    field.value === undefined ? "Vehículo propio" : currentLabel
-                  }
+                  value={currentLabel}
                   onChange={(value) => {
                     field.onChange(value === "Vehículo externo");
                   }}

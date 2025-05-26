@@ -86,9 +86,9 @@ export default function ListadoClientesComponent({
       .string()
       .regex(
         /^\d{3}-\d{4}-\d{4}$/,
-        "Formato de teléfono incorrecto, debe ser xxx-xxxx-xxxx"
+        "Formato de teléfono incorrecto,ss debe ser xxx-xxxx-xxxx"
       )
-      .or(z.string().regex(/^\d{12}$/, "Debe tener 12 dígitos, sin barras")),
+      .or(z.string().regex(/^\d{10}$/, "Debe tener 12 dígitos, sin barras")),
 
     email: z
       .string()

@@ -434,9 +434,6 @@ const DashboardEmployeeComponent = () => {
             </p>
           </div>
           <div className="flex gap-2">
-            <Button className="bg-white text-blue-700 hover:bg-blue-50" asChild>
-              <Link href="/empleado/perfil">Ver mi perfil</Link>
-            </Button>
             <Button
               variant="outline"
               className="bg-red-500 text-white hover:bg-red-600 border-none"
@@ -851,32 +848,40 @@ const DashboardEmployeeComponent = () => {
             <div className="grid grid-cols-1 gap-2">
               <Button
                 variant="outline"
-                className="justify-start hover:bg-amber-50 dark:hover:bg-amber-950"
+                className="justify-start hover:bg-amber-50 dark:hover:bg-amber-950 h-auto py-2"
                 asChild
               >
-                <Link href="/empleado/contactos_emergencia">
-                  <Calendar className="mr-2 h-4 w-4 text-amber-600" />
-                  Mis contactos de emergencia
+                <Link
+                  href="/empleado/contactos_emergencia"
+                  className="flex items-center"
+                >
+                  <Calendar className="mr-2 h-4 w-4 flex-shrink-0 text-amber-600" />
+                  <span className="text-sm line-clamp-2">
+                    Contactos de emergencia
+                  </span>
                 </Link>
               </Button>
               <Button
                 variant="outline"
-                className="justify-start hover:bg-amber-50 dark:hover:bg-amber-950"
+                className="justify-start hover:bg-amber-50 dark:hover:bg-amber-950 h-auto py-2"
                 asChild
               >
-                <Link href="/empleado/vestimenta">
-                  <UserRound className="mr-2 h-4 w-4 text-amber-600" />
-                  Mis talles de ropa
+                <Link href="/empleado/vestimenta" className="flex items-center">
+                  <UserRound className="mr-2 h-4 w-4 flex-shrink-0 text-amber-600" />
+                  <span className="text-sm">Mis talles de ropa</span>
                 </Link>
               </Button>
               <Button
                 variant="outline"
-                className="justify-start hover:bg-amber-50 dark:hover:bg-amber-950"
+                className="justify-start hover:bg-amber-50 dark:hover:bg-amber-950 h-auto py-2"
                 asChild
               >
-                <Link href="/empleado/licencia_conducir">
-                  <Truck className="mr-2 h-4 w-4 text-amber-600" />
-                  Mi licencia de conducir
+                <Link
+                  href="/empleado/licencia_conducir"
+                  className="flex items-center"
+                >
+                  <Truck className="mr-2 h-4 w-4 flex-shrink-0 text-amber-600" />
+                  <span className="text-sm">Mi licencia de conducir</span>
                 </Link>
               </Button>
             </div>

@@ -15,6 +15,7 @@ export async function loginUser(email: string, password: string) {
 
   const data = await res.json();
 
+  // Establecer las cookies para la sesión
   setCookie("token", data.access_token);
   setCookie("user", JSON.stringify(data.user));
 
