@@ -22,6 +22,14 @@ import {
 } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
   FileText,
   Plus,
   Edit2,
@@ -33,6 +41,8 @@ import {
   DollarSign,
   Tag,
   FileCheck,
+  Info,
+  User,
 } from "lucide-react";
 import { deleteContractualCondition } from "@/app/actions/contractualConditions";
 
@@ -46,6 +56,18 @@ type CondicionContractual = {
   periodicidad: string;
   tarifa: string;
   tipo_de_contrato: string;
+  // Campos adicionales
+  clientId?: number;
+  tarifa_alquiler?: number;
+  tarifa_instalacion?: number;
+  tarifa_limpieza?: number;
+  tipo_servicio?: string;
+  cantidad_banos?: number;
+  cliente?: {
+    nombre?: string;
+    telefono?: string;
+    email?: string;
+  };
 };
 
 export default function ListadoCondicionesContractualesComponent({
@@ -76,6 +98,7 @@ export default function ListadoCondicionesContractualesComponent({
   const [isCreating, setIsCreating] = useState(false);
   const [isFirstLoad, setIsFirstLoad] = useState(true);
   const [activeTab, setActiveTab] = useState("todos");
+  const [isViewModalOpen, setIsViewModalOpen] = useState(false);
 
   // Esquema de validación para las condiciones contractuales
   const condicionContractualSchema = z.object({
@@ -174,6 +197,12 @@ export default function ListadoCondicionesContractualesComponent({
   // Función para manejar cambio de tab
   const handleTabChange = (value: string) => {
     setActiveTab(value);
+  };
+
+  // Función para manejar la visualización de detalles
+  const handleViewDetails = (condicion: CondicionContractual) => {
+    setSelectedCondicion(condicion);
+    setIsViewModalOpen(true);
   };
 
   // Función para manejar el envío del formulario
@@ -358,7 +387,10 @@ export default function ListadoCondicionesContractualesComponent({
             renderRow={(condicion) => (
               <>
                 <TableCell className="min-w-[250px]">
-                  <div className="space-y-1">
+                  <div
+                    className="space-y-1 cursor-pointer hover:bg-slate-50 p-2 rounded-md transition-colors"
+                    onClick={() => handleViewDetails(condicion)}
+                  >
                     <div className="font-medium">
                       Contrato #{condicion.condicionContractualId}
                     </div>
@@ -369,7 +401,10 @@ export default function ListadoCondicionesContractualesComponent({
                 </TableCell>
 
                 <TableCell className="min-w-[220px]">
-                  <div className="space-y-1">
+                  <div
+                    className="space-y-1 cursor-pointer hover:bg-slate-50 p-2 rounded-md transition-colors"
+                    onClick={() => handleViewDetails(condicion)}
+                  >
                     <div className="flex items-center text-sm">
                       <Tag className="h-3.5 w-3.5 mr-2 text-muted-foreground" />
                       <span>{condicion.tipo_de_contrato}</span>
@@ -385,7 +420,10 @@ export default function ListadoCondicionesContractualesComponent({
                 </TableCell>
 
                 <TableCell className="min-w-[200px]">
-                  <div className="space-y-1">
+                  <div
+                    className="space-y-1 cursor-pointer hover:bg-slate-50 p-2 rounded-md transition-colors"
+                    onClick={() => handleViewDetails(condicion)}
+                  >
                     <div className="flex items-center text-sm">
                       <Clock className="h-3.5 w-3.5 mr-2 text-muted-foreground" />
                       <span>{condicion.periodicidad}</span>
@@ -407,6 +445,16 @@ export default function ListadoCondicionesContractualesComponent({
                 </TableCell>
 
                 <TableCell className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleViewDetails(condicion)}
+                    className="cursor-pointer border-slate-200 hover:bg-slate-50 hover:text-slate-900"
+                  >
+                    <Info className="h-3.5 w-3.5 mr-1" />
+                    Ver detalles
+                  </Button>
+
                   <Button
                     variant="outline"
                     size="sm"
@@ -586,6 +634,260 @@ export default function ListadoCondicionesContractualesComponent({
           />
         </div>
       </FormDialog>
+
+      {/* Modal para ver detalles de la condición contractual */}
+      <Dialog open={isViewModalOpen} onOpenChange={setIsViewModalOpen}>
+        <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-xl">
+              Detalles de Condición Contractual
+            </DialogTitle>
+            <DialogDescription>
+              Información completa de la condición contractual
+            </DialogDescription>
+          </DialogHeader>
+
+          {selectedCondicion && (
+            <div className="space-y-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-lg font-semibold">
+                    Contrato #{selectedCondicion.condicionContractualId}
+                  </h3>
+                  {selectedCondicion.cliente && (
+                    <p className="text-sm text-muted-foreground">
+                      Cliente: {selectedCondicion.cliente.nombre}
+                    </p>
+                  )}
+                </div>
+                <Badge
+                  variant={getStatusBadgeVariant(selectedCondicion.estado)}
+                  className={getStatusBadgeClass(selectedCondicion.estado)}
+                >
+                  {selectedCondicion.estado}
+                </Badge>
+              </div>
+
+              {/* Sección: Información General */}
+              <div className="border rounded-lg p-4">
+                <h4 className="font-medium text-md mb-3 flex items-center">
+                  <FileText className="h-4 w-4 mr-2 text-indigo-600" />
+                  Información General
+                </h4>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <h5 className="text-xs uppercase font-medium text-muted-foreground">
+                      Tipo de Contrato
+                    </h5>
+                    <p className="text-sm font-medium mt-1 flex items-center">
+                      <Tag className="h-4 w-4 mr-2 text-muted-foreground" />
+                      {selectedCondicion.tipo_de_contrato}
+                    </p>
+                  </div>
+
+                  {selectedCondicion.tipo_servicio && (
+                    <div>
+                      <h5 className="text-xs uppercase font-medium text-muted-foreground">
+                        Tipo de Servicio
+                      </h5>
+                      <p className="text-sm font-medium mt-1">
+                        {selectedCondicion.tipo_servicio}
+                      </p>
+                    </div>
+                  )}
+
+                  <div>
+                    <h5 className="text-xs uppercase font-medium text-muted-foreground">
+                      Fecha de Inicio
+                    </h5>
+                    <p className="text-sm font-medium mt-1 flex items-center">
+                      <Calendar className="h-4 w-4 mr-2 text-muted-foreground" />
+                      {formatDate(selectedCondicion.fecha_inicio)}
+                    </p>
+                  </div>
+
+                  <div>
+                    <h5 className="text-xs uppercase font-medium text-muted-foreground">
+                      Fecha de Fin
+                    </h5>
+                    <p className="text-sm font-medium mt-1 flex items-center">
+                      <Calendar className="h-4 w-4 mr-2 text-muted-foreground" />
+                      {formatDate(selectedCondicion.fecha_fin)}
+                    </p>
+                  </div>
+
+                  <div>
+                    <h5 className="text-xs uppercase font-medium text-muted-foreground">
+                      Periodicidad
+                    </h5>
+                    <p className="text-sm font-medium mt-1 flex items-center">
+                      <Clock className="h-4 w-4 mr-2 text-muted-foreground" />
+                      {selectedCondicion.periodicidad}
+                    </p>
+                  </div>
+
+                  {selectedCondicion.cantidad_banos !== undefined && (
+                    <div>
+                      <h5 className="text-xs uppercase font-medium text-muted-foreground">
+                        Cantidad de Baños
+                      </h5>
+                      <p className="text-sm font-medium mt-1">
+                        {selectedCondicion.cantidad_banos}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Sección: Información Financiera */}
+              <div className="border rounded-lg p-4">
+                <h4 className="font-medium text-md mb-3 flex items-center">
+                  <DollarSign className="h-4 w-4 mr-2 text-indigo-600" />
+                  Información Financiera
+                </h4>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <h5 className="text-xs uppercase font-medium text-muted-foreground">
+                      Tarifa Total
+                    </h5>
+                    <p className="text-sm font-medium mt-1 flex items-center">
+                      <DollarSign className="h-4 w-4 mr-2 text-muted-foreground" />
+                      ${selectedCondicion.tarifa}
+                    </p>
+                  </div>
+
+                  {selectedCondicion.tarifa_alquiler !== undefined && (
+                    <div>
+                      <h5 className="text-xs uppercase font-medium text-muted-foreground">
+                        Tarifa de Alquiler
+                      </h5>
+                      <p className="text-sm font-medium mt-1 flex items-center">
+                        ${selectedCondicion.tarifa_alquiler}
+                      </p>
+                    </div>
+                  )}
+
+                  {selectedCondicion.tarifa_instalacion !== undefined && (
+                    <div>
+                      <h5 className="text-xs uppercase font-medium text-muted-foreground">
+                        Tarifa de Instalación
+                      </h5>
+                      <p className="text-sm font-medium mt-1 flex items-center">
+                        ${selectedCondicion.tarifa_instalacion}
+                      </p>
+                    </div>
+                  )}
+
+                  {selectedCondicion.tarifa_limpieza !== undefined && (
+                    <div>
+                      <h5 className="text-xs uppercase font-medium text-muted-foreground">
+                        Tarifa de Limpieza
+                      </h5>
+                      <p className="text-sm font-medium mt-1 flex items-center">
+                        ${selectedCondicion.tarifa_limpieza}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Sección: Datos del Cliente */}
+              {selectedCondicion.cliente && (
+                <div className="border rounded-lg p-4">
+                  <h4 className="font-medium text-md mb-3 flex items-center">
+                    <User className="h-4 w-4 mr-2 text-indigo-600" />
+                    Datos del Cliente
+                  </h4>
+                  <div className="grid grid-cols-1 gap-4">
+                    <div>
+                      <h5 className="text-xs uppercase font-medium text-muted-foreground">
+                        Nombre
+                      </h5>
+                      <p className="text-sm font-medium mt-1">
+                        {selectedCondicion.cliente.nombre}
+                      </p>
+                    </div>
+
+                    {selectedCondicion.cliente.telefono && (
+                      <div>
+                        <h5 className="text-xs uppercase font-medium text-muted-foreground">
+                          Teléfono
+                        </h5>
+                        <p className="text-sm font-medium mt-1">
+                          {selectedCondicion.cliente.telefono}
+                        </p>
+                      </div>
+                    )}
+
+                    {selectedCondicion.cliente.email && (
+                      <div>
+                        <h5 className="text-xs uppercase font-medium text-muted-foreground">
+                          Email
+                        </h5>
+                        <p className="text-sm font-medium mt-1">
+                          {selectedCondicion.cliente.email}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Sección: Condiciones Específicas */}
+              <div className="border rounded-lg p-4">
+                <h4 className="font-medium text-md mb-3 flex items-center">
+                  <FileCheck className="h-4 w-4 mr-2 text-indigo-600" />
+                  Condiciones Específicas
+                </h4>
+                <div className="bg-slate-50 rounded-md border p-3">
+                  <p className="text-sm whitespace-pre-wrap">
+                    {selectedCondicion.condiciones_especificas}
+                  </p>
+                </div>
+              </div>
+
+              <DialogFooter className="flex justify-between mt-6">
+                <div className="flex space-x-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setIsViewModalOpen(false);
+                      handleEditClick(selectedCondicion);
+                    }}
+                    className="cursor-pointer border-slate-200 hover:bg-slate-50 hover:text-slate-900"
+                  >
+                    <Edit2 className="h-3.5 w-3.5 mr-1" />
+                    Editar
+                  </Button>
+
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    onClick={() => {
+                      setIsViewModalOpen(false);
+                      selectedCondicion.condicionContractualId &&
+                        handleDeleteClick(
+                          selectedCondicion.condicionContractualId
+                        );
+                    }}
+                    className="cursor-pointer bg-red-100 text-red-700 hover:bg-red-200 hover:text-red-800"
+                  >
+                    <Trash2 className="h-3.5 w-3.5 mr-1" />
+                    Eliminar
+                  </Button>
+                </div>
+                <Button
+                  variant="outline"
+                  onClick={() => setIsViewModalOpen(false)}
+                >
+                  Cerrar
+                </Button>
+              </DialogFooter>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 }
