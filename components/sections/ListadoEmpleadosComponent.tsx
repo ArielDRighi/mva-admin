@@ -92,7 +92,7 @@ export default function ListadoEmpleadosComponent({
         "Formato de email inválido, ejemplo: empleado@empresa.com"
       ),
     cargo: z.string().min(1, "El puesto es obligatorio"),
-    estado: z.enum(["ACTIVO", "DISPONIBLE", "SUSPENDIDO"], {
+    estado: z.enum(["ASIGNADO", "DISPONIBLE", "SUSPENDIDO"], {
       errorMap: () => ({ message: "El estado es obligatorio" }),
     }),
     numero_legajo: z.coerce.number({
@@ -120,7 +120,7 @@ export default function ListadoEmpleadosComponent({
       telefono: "",
       email: "",
       cargo: "",
-      estado: "ACTIVO",
+      estado: "ASIGNADO",
       numero_legajo: undefined,
       cuil: "",
       cbu: "",
@@ -183,7 +183,7 @@ export default function ListadoEmpleadosComponent({
       telefono: "",
       email: "",
       cargo: "",
-      estado: "ACTIVO",
+      estado: "ASIGNADO",
       numero_legajo: undefined,
       cuil: "",
       cbu: "",
@@ -342,10 +342,10 @@ export default function ListadoEmpleadosComponent({
               <TabsTrigger value="todos" className="flex items-center">
                 <UserRound className="mr-2 h-4 w-4" />
                 Todos
-              </TabsTrigger>
-              <TabsTrigger value="activo" className="flex items-center">
+              </TabsTrigger>{" "}
+              <TabsTrigger value="asignado" className="flex items-center">
                 <CheckCircle className="mr-2 h-4 w-4" />
-                Activos
+                Asignados
               </TabsTrigger>
               <TabsTrigger value="suspendido" className="flex items-center">
                 <PauseCircle className="mr-2 h-4 w-4" />
@@ -427,16 +427,17 @@ export default function ListadoEmpleadosComponent({
                 </TableCell>
 
                 <TableCell>
+                  {" "}
                   <Badge
                     variant={
-                      empleado.estado === "ACTIVO"
+                      empleado.estado === "ASIGNADO"
                         ? "default"
                         : empleado.estado === "SUSPENDIDO"
                         ? "destructive"
                         : "outline"
                     }
                     className={
-                      empleado.estado === "ACTIVO"
+                      empleado.estado === "ASIGNADO"
                         ? "bg-green-100 text-green-800 hover:bg-green-100"
                         : empleado.estado === "SUSPENDIDO"
                         ? "bg-red-100 text-red-800 hover:bg-red-100"
@@ -457,7 +458,6 @@ export default function ListadoEmpleadosComponent({
                     <Edit2 className="h-3.5 w-3.5 mr-1" />
                     Editar
                   </Button>
-
                   <Button
                     variant="destructive"
                     size="sm"
@@ -468,21 +468,20 @@ export default function ListadoEmpleadosComponent({
                   >
                     <Trash2 className="h-3.5 w-3.5 mr-1" />
                     Eliminar
-                  </Button>
-
+                  </Button>{" "}
                   <div className="ml-1">
-                    {empleado.estado !== "ACTIVO" && (
+                    {empleado.estado !== "ASIGNADO" && (
                       <Button
                         variant="default"
                         size="sm"
                         onClick={() =>
                           empleado.id &&
-                          handleChangeStatus(empleado.id, "ACTIVO")
+                          handleChangeStatus(empleado.id, "ASIGNADO")
                         }
                         className="cursor-pointer bg-green-100 text-green-700 hover:bg-green-200 hover:text-green-800"
                       >
                         <CheckCircle className="h-3.5 w-3.5 mr-1" />
-                        Activar
+                        Asignar
                       </Button>
                     )}
 
@@ -705,8 +704,8 @@ export default function ListadoEmpleadosComponent({
                   field.onChange(selectedValue)
                 }
                 options={[
-                  { label: "Activo", value: "ACTIVO" },
-                  { label: "Disponibles", value: "DISPONIBLE" },
+                  { label: "Asignado", value: "ASIGNADO" },
+                  { label: "Disponible", value: "DISPONIBLE" },
                   { label: "Suspendido", value: "SUSPENDIDO" },
                 ]}
                 error={fieldState.error?.message}

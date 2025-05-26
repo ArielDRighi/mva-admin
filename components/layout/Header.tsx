@@ -31,7 +31,12 @@ const Header = () => {
         <Breadcrumb>
           <BreadcrumbList>
             {segments.map((segment, index) => {
-              const href = "/" + segments.slice(0, index + 1).join("/");
+              // Generate href but handle special case for admin
+              let href = "/" + segments.slice(0, index + 1).join("/");
+              if (segment === "admin" && index === 0) {
+                href = "/admin/dashboard";
+              }
+
               const isLast = index === segments.length - 1;
 
               return (

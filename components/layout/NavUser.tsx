@@ -43,7 +43,7 @@ export function NavUser() {
   }, []);
 
   const handleAccountClick = () => {
-    router.push("admin/dashboard/cuenta");
+    router.push("admin/dashboard");
   };
 
   const handleLogout = () => {
@@ -90,13 +90,13 @@ export function NavUser() {
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuGroup>
-              <DropdownMenuItem
+              {/* <DropdownMenuItem
                 onClick={handleAccountClick}
                 className="cursor-pointer"
               >
                 <BadgeCheck className="mr-2 h-4 w-4" />
                 Cuenta
-              </DropdownMenuItem>
+              </DropdownMenuItem> */}
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={handleLogout} className="cursor-pointer">

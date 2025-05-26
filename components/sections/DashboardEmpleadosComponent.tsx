@@ -419,7 +419,7 @@ const DashboardEmployeeComponent = () => {
 
   return (
     <div className="container px-4 sm:px-6 mx-auto py-6 space-y-6 md:space-y-8">
-      {/* Header with employee info - Updated with better colors */}
+      {/* Header with employee info - Updated with better colors */}{" "}
       <div className="bg-gradient-to-r from-blue-600 to-indigo-700 rounded-xl p-5 shadow-md">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div className="text-white">
@@ -432,11 +432,50 @@ const DashboardEmployeeComponent = () => {
                 {user?.estado}
               </Badge>
             </p>
+
+            {/* Quick links section moved to header */}
+            <div className="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-2">
+              <Button
+                variant="outline"
+                className="justify-start bg-white/10 hover:bg-white/20 text-white border-0 h-auto py-2"
+                asChild
+              >
+                <Link
+                  href="/empleado/contactos_emergencia"
+                  className="flex items-center"
+                >
+                  <Calendar className="mr-2 h-4 w-4 flex-shrink-0" />
+                  <span className="text-sm line-clamp-2">
+                    Contactos de emergencia
+                  </span>
+                </Link>
+              </Button>
+              <Button
+                variant="outline"
+                className="justify-start bg-white/10 hover:bg-white/20 text-white border-0 h-auto py-2"
+                asChild
+              >
+                <Link href="/empleado/vestimenta" className="flex items-center">
+                  <UserRound className="mr-2 h-4 w-4 flex-shrink-0" />
+                  <span className="text-sm">Mis talles de ropa</span>
+                </Link>
+              </Button>
+              <Button
+                variant="outline"
+                className="justify-start bg-white/10 hover:bg-white/20 text-white border-0 h-auto py-2"
+                asChild
+              >
+                <Link
+                  href="/empleado/licencia_conducir"
+                  className="flex items-center"
+                >
+                  <Truck className="mr-2 h-4 w-4 flex-shrink-0" />
+                  <span className="text-sm">Mi licencia de conducir</span>
+                </Link>
+              </Button>
+            </div>
           </div>
           <div className="flex gap-2">
-            <Button className="bg-white text-blue-700 hover:bg-blue-50" asChild>
-              <Link href="/empleado/perfil">Ver mi perfil</Link>
-            </Button>
             <Button
               variant="outline"
               className="bg-red-500 text-white hover:bg-red-600 border-none"
@@ -450,12 +489,11 @@ const DashboardEmployeeComponent = () => {
             </Button>
           </div>
         </div>
-      </div>
-
+      </div>{" "}
       {/* Main dashboard content */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 md:gap-6">
-        {/* Upcoming services card */}
-        <Card className="lg:col-span-2 shadow-md hover:shadow-lg transition-shadow">
+        {/* Upcoming services card - Now full width */}
+        <Card className="lg:col-span-3 shadow-md hover:shadow-lg transition-shadow">
           <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950 dark:to-indigo-950 border-b">
             <CardTitle className="text-blue-800 dark:text-blue-300">
               Mis servicios programados
@@ -533,117 +571,7 @@ const DashboardEmployeeComponent = () => {
                   </div>
                 </div>
               ))
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Leave management card - Moved here */}
-        <Card className="shadow-md hover:shadow-lg transition-shadow">
-          <CardHeader className="bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-950 dark:to-pink-950 border-b">
-            <div className="flex justify-between items-center">
-              <div>
-                <CardTitle className="text-purple-800 dark:text-purple-300">
-                  Mis licencias
-                </CardTitle>
-                <CardDescription>
-                  Gestión de licencias y permisos
-                </CardDescription>
-              </div>
-            </div>
-          </CardHeader>
-          <CardContent className="p-4 sm:p-6">
-            <Tabs defaultValue="active">
-              <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="active">Activas</TabsTrigger>
-                <TabsTrigger value="request">Solicitar</TabsTrigger>
-              </TabsList>
-
-              <TabsContent value="active" className="mt-4 space-y-4">
-                {loading ? (
-                  <div className="text-center py-8 text-muted-foreground">
-                    Cargando licencias...
-                  </div>
-                ) : !licencias || licencias.length === 0 ? (
-                  <div className="text-center py-8 text-muted-foreground">
-                    No tienes licencias activas o pendientes
-                  </div>
-                ) : (
-                  licencias.map((licencia) => (
-                    <div
-                      key={licencia.id}
-                      className="border rounded-lg p-3 hover:bg-purple-50 dark:hover:bg-purple-950 transition-colors"
-                    >
-                      <div className="flex justify-between items-start mb-2">
-                        <div className="flex items-center gap-2">
-                          <FileText className="h-4 w-4 text-purple-500" />
-                          <span className="font-medium">
-                            {licencia.tipoLicencia}
-                          </span>
-                        </div>
-                        <Badge
-                          className={getLeaveStatusBadge(
-                            licencia.aprobado ? "APROBADO" : "PENDIENTE"
-                          )}
-                        >
-                          {licencia.aprobado ? "APROBADO" : "PENDIENTE"}
-                        </Badge>
-                      </div>
-                      <div className="text-sm space-y-1">
-                        <div className="flex items-center gap-2">
-                          <Calendar className="h-4 w-4 text-purple-500" />
-                          <span>Desde: {formatDate(licencia.fechaInicio)}</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <Calendar className="h-4 w-4 text-purple-500" />
-                          <span>Hasta: {formatDate(licencia.fechaFin)}</span>
-                        </div>
-                        {licencia.notas && (
-                          <div className="text-muted-foreground mt-1 italic">
-                            "{licencia.notas}"
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  ))
-                )}
-                <Button variant="outline" size="sm" className="w-full" asChild>
-                  <Link href="/empleado/licencias">Ver historial completo</Link>
-                </Button>
-              </TabsContent>
-
-              <TabsContent value="request" className="mt-4">
-                <div className="border rounded-lg p-4 hover:bg-purple-50 dark:hover:bg-purple-950 transition-colors">
-                  <h3 className="font-medium mb-3">Solicitar nueva licencia</h3>
-                  <p className="text-sm text-muted-foreground mb-4">
-                    Para solicitar una nueva licencia o permiso, selecciona el
-                    tipo y completa el formulario detallado.
-                  </p>
-                  <Button
-                    className="w-full bg-purple-600 hover:bg-purple-700"
-                    onClick={() => setIsLeaveModalOpen(true)}
-                  >
-                    Solicitar licencia
-                  </Button>
-                </div>
-
-                <div className="mt-4 space-y-2">
-                  <h4 className="text-sm font-medium">
-                    Tipos de licencias disponibles:
-                  </h4>
-                  <div className="grid grid-cols-1 gap-2">
-                    {availableLeaveTypes.map((type) => (
-                      <div
-                        key={type.value}
-                        className="flex items-center text-sm"
-                      >
-                        <FileText className="h-3.5 w-3.5 mr-2 text-purple-500" />
-                        {type.label}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </TabsContent>
-            </Tabs>
+            )}{" "}
           </CardContent>
         </Card>
 
@@ -740,7 +668,6 @@ const DashboardEmployeeComponent = () => {
           </CardContent>
         </Card>
       </div>
-
       {/* Completed services section */}
       <Card className="shadow-md hover:shadow-lg transition-shadow">
         <CardHeader className="bg-gradient-to-r from-green-50 to-teal-50 dark:from-green-950 dark:to-teal-950 border-b">
@@ -819,8 +746,7 @@ const DashboardEmployeeComponent = () => {
                 </div>
               ))
             )}
-          </div>
-
+          </div>{" "}
           {lastServices &&
             Array.isArray(lastServices) &&
             lastServices.length > 0 && (
@@ -838,52 +764,110 @@ const DashboardEmployeeComponent = () => {
             )}
         </CardContent>
       </Card>
-
-      {/* Quick links section */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card className="shadow-md hover:shadow-lg transition-shadow">
-          <CardHeader className="bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-950 dark:to-orange-950 border-b pb-3">
-            <CardTitle className="text-amber-800 dark:text-amber-300 text-sm">
-              Acceso rápido
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="p-4">
-            <div className="grid grid-cols-1 gap-2">
-              <Button
-                variant="outline"
-                className="justify-start hover:bg-amber-50 dark:hover:bg-amber-950"
-                asChild
-              >
-                <Link href="/empleado/contactos_emergencia">
-                  <Calendar className="mr-2 h-4 w-4 text-amber-600" />
-                  Mis contactos de emergencia
-                </Link>
-              </Button>
-              <Button
-                variant="outline"
-                className="justify-start hover:bg-amber-50 dark:hover:bg-amber-950"
-                asChild
-              >
-                <Link href="/empleado/vestimenta">
-                  <UserRound className="mr-2 h-4 w-4 text-amber-600" />
-                  Mis talles de ropa
-                </Link>
-              </Button>
-              <Button
-                variant="outline"
-                className="justify-start hover:bg-amber-50 dark:hover:bg-amber-950"
-                asChild
-              >
-                <Link href="/empleado/licencia_conducir">
-                  <Truck className="mr-2 h-4 w-4 text-amber-600" />
-                  Mi licencia de conducir
-                </Link>
-              </Button>
+      {/* Leave management card - Moved to the bottom */}
+      <Card className="shadow-md hover:shadow-lg transition-shadow">
+        <CardHeader className="bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-950 dark:to-pink-950 border-b">
+          <div className="flex justify-between items-center">
+            <div>
+              <CardTitle className="text-purple-800 dark:text-purple-300">
+                Mis licencias
+              </CardTitle>
+              <CardDescription>Gestión de licencias y permisos</CardDescription>
             </div>
-          </CardContent>
-        </Card>
-      </div>
+          </div>
+        </CardHeader>
+        <CardContent className="p-4 sm:p-6">
+          <Tabs defaultValue="active">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="active">Activas</TabsTrigger>
+              <TabsTrigger value="request">Solicitar</TabsTrigger>
+            </TabsList>
 
+            <TabsContent value="active" className="mt-4 space-y-4">
+              {loading ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  Cargando licencias...
+                </div>
+              ) : !licencias || licencias.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  No tienes licencias activas o pendientes
+                </div>
+              ) : (
+                licencias.map((licencia) => (
+                  <div
+                    key={licencia.id}
+                    className="border rounded-lg p-3 hover:bg-purple-50 dark:hover:bg-purple-950 transition-colors"
+                  >
+                    <div className="flex justify-between items-start mb-2">
+                      <div className="flex items-center gap-2">
+                        <FileText className="h-4 w-4 text-purple-500" />
+                        <span className="font-medium">
+                          {licencia.tipoLicencia}
+                        </span>
+                      </div>
+                      <Badge
+                        className={getLeaveStatusBadge(
+                          licencia.aprobado ? "APROBADO" : "PENDIENTE"
+                        )}
+                      >
+                        {licencia.aprobado ? "APROBADO" : "PENDIENTE"}
+                      </Badge>
+                    </div>
+                    <div className="text-sm space-y-1">
+                      <div className="flex items-center gap-2">
+                        <Calendar className="h-4 w-4 text-purple-500" />
+                        <span>Desde: {formatDate(licencia.fechaInicio)}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Calendar className="h-4 w-4 text-purple-500" />
+                        <span>Hasta: {formatDate(licencia.fechaFin)}</span>
+                      </div>
+                      {licencia.notas && (
+                        <div className="text-muted-foreground mt-1 italic">
+                          "{licencia.notas}"
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))
+              )}
+              <Button variant="outline" size="sm" className="w-full" asChild>
+                <Link href="/empleado/licencias">Ver historial completo</Link>
+              </Button>
+            </TabsContent>
+
+            <TabsContent value="request" className="mt-4">
+              <div className="border rounded-lg p-4 hover:bg-purple-50 dark:hover:bg-purple-950 transition-colors">
+                <h3 className="font-medium mb-3">Solicitar nueva licencia</h3>
+                <p className="text-sm text-muted-foreground mb-4">
+                  Para solicitar una nueva licencia o permiso, selecciona el
+                  tipo y completa el formulario detallado.
+                </p>
+                <Button
+                  className="w-full bg-purple-600 hover:bg-purple-700"
+                  onClick={() => setIsLeaveModalOpen(true)}
+                >
+                  Solicitar licencia
+                </Button>
+              </div>
+
+              <div className="mt-4 space-y-2">
+                <h4 className="text-sm font-medium">
+                  Tipos de licencias disponibles:
+                </h4>
+                <div className="grid grid-cols-1 gap-2">
+                  {availableLeaveTypes.map((type) => (
+                    <div key={type.value} className="flex items-center text-sm">
+                      <FileText className="h-3.5 w-3.5 mr-2 text-purple-500" />
+                      {type.label}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </TabsContent>
+          </Tabs>
+        </CardContent>
+      </Card>
       {/* Service Detail Modal */}
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
         <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
@@ -1023,7 +1007,6 @@ const DashboardEmployeeComponent = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-
       {/* Completed Service Detail Modal */}
       <Dialog
         open={isCompletedServiceModalOpen}
@@ -1211,7 +1194,6 @@ const DashboardEmployeeComponent = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-
       {/* Leave Request Modal */}
       <Dialog open={isLeaveModalOpen} onOpenChange={setIsLeaveModalOpen}>
         <DialogContent className="sm:max-w-[500px]">

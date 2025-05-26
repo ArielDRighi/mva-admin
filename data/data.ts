@@ -15,6 +15,7 @@ const dataSideBar = {
     name: "MVA SRL",
     logo: LogoMVA,
     plan: "Sistema de Gestión",
+    url: "admin/dashboard",
   },
 
   navMain: [

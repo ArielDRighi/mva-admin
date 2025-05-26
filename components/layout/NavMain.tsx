@@ -37,6 +37,7 @@ export function NavMain({ items }: { items: NavMainItem[] }) {
           const hasActiveChild = item.items?.some(
             (subItem) => pathname === subItem.url
           );
+          const hasSubItems = item.items && item.items.length > 0;
 
           return (
             <Collapsible
@@ -55,7 +56,7 @@ export function NavMain({ items }: { items: NavMainItem[] }) {
                       isActive && "bg-muted font-medium text-primary"
                     )}
                   >
-                    <Link href={item.url} className="flex items-center flex-1">
+                    <div className="flex items-center flex-1">
                       {item.icon && (
                         <div
                           className={cn(
@@ -69,7 +70,7 @@ export function NavMain({ items }: { items: NavMainItem[] }) {
                       <span className="whitespace-normal break-words">
                         {item.title}
                       </span>
-                    </Link>
+                    </div>
                     <ChevronRight
                       className={cn(
                         "ml-auto h-4 w-4 transition-transform duration-300 text-muted-foreground shrink-0",
@@ -78,7 +79,7 @@ export function NavMain({ items }: { items: NavMainItem[] }) {
                       )}
                     />
                   </SidebarMenuButton>
-                </CollapsibleTrigger>
+                </CollapsibleTrigger>{" "}
                 <CollapsibleContent>
                   <motion.div
                     initial={{ opacity: 0 }}
@@ -87,6 +88,31 @@ export function NavMain({ items }: { items: NavMainItem[] }) {
                     transition={{ duration: 0.2 }}
                   >
                     <SidebarMenuSub className="pl-4 border-l-[1px] border-border/40 ml-4 mt-1 flex flex-col">
+                      {/* Si hay una URL principal para este elemento que no sea "#", mostrarla como primer elemento del submenú */}
+                      {item.url && item.url !== "#" && (
+                        <SidebarMenuSubItem className="w-full flex-wrap">
+                          <SidebarMenuSubButton
+                            asChild
+                            className={cn(
+                              "transition-all duration-150 hover:text-primary flex w-full h-auto",
+                              pathname === item.url &&
+                                "font-medium text-primary bg-muted/50"
+                            )}
+                          >
+                            <Link
+                              href={item.url}
+                              className="py-2 px-2 rounded flex items-center min-h-[36px] break-words w-full"
+                            >
+                              <span className="flex-1 whitespace-normal overflow-visible hyphens-auto">
+                                General
+                              </span>
+                              {pathname === item.url && (
+                                <div className="ml-auto h-1.5 w-1.5 rounded-full bg-primary shrink-0" />
+                              )}
+                            </Link>
+                          </SidebarMenuSubButton>
+                        </SidebarMenuSubItem>
+                      )}
                       {item.items?.map((subItem) => {
                         const isSubActive = pathname === subItem.url;
                         return (

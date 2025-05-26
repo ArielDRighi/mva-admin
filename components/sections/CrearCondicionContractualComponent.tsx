@@ -41,11 +41,20 @@ const clienteSchema = z.object({
 
 const condicionesSchema = z
   .object({
-    tipo_de_contrato: z.enum(["Temporal", "Permanente"], {
+    tipo_de_contrato: z.enum(["Temporal", "Permanente", "Por Evento"], {
       required_error: "El tipo de contrato es obligatorio",
     }),
     fecha_inicio: z.string().min(1, "La fecha de inicio es obligatoria"),
     fecha_fin: z.string().optional(),
+    tipo_servicio: z
+      .enum(["INSTALACION", "LIMPIEZA", "MANTENIMIENTO", "ALQUILER"], {
+        required_error: "El tipo de servicio es obligatorio",
+      })
+      .optional(),
+    cantidad_banos: z
+      .number()
+      .min(0, "La cantidad de baños no puede ser negativa")
+      .optional(),
   })
   .superRefine((obj, ctx) => {
     // Si es Temporal y fecha_fin está vacía, añadir un error
@@ -63,23 +72,52 @@ const condicionesSchema = z
 
 const detallesSchema = z.object({
   condiciones_especificas: z.string().optional(),
-  tarifa: z
+  tarifa: z.number().min(0, "La tarifa no puede ser negativa"),
+  tarifa_alquiler: z
     .number()
-    .min(1, "La tarifa es obligatoria")
-    .refine((val) => val > 0, "La tarifa debe ser un valor positivo"),
-  periodicidad: z.enum(["Mensual", "Diaria", "Semanal", "Anual"], {
-    required_error: "La periodicidad es obligatoria",
-  }),
+    .min(0, "La tarifa de alquiler no puede ser negativa")
+    .optional(),
+  tarifa_instalacion: z
+    .number()
+    .min(0, "La tarifa de instalación no puede ser negativa")
+    .optional(),
+  tarifa_limpieza: z
+    .number()
+    .min(0, "La tarifa de limpieza no puede ser negativa")
+    .optional(),
+  periodicidad: z.enum(
+    [
+      "Mensual",
+      "Diaria",
+      "Semanal",
+      "Quincenal",
+      "Trimestral",
+      "Semestral",
+      "Anual",
+    ],
+    {
+      required_error: "La periodicidad es obligatoria",
+    }
+  ),
   estado: z.string().min(1, "El estado es obligatorio"),
 });
 
 // Combina todos los esquemas para la validación final
 const baseCondicionesSchema = z.object({
-  tipo_de_contrato: z.enum(["Temporal", "Permanente"], {
+  tipo_de_contrato: z.enum(["Temporal", "Permanente", "Por Evento"], {
     required_error: "El tipo de contrato es obligatorio",
   }),
   fecha_inicio: z.string().min(1, "La fecha de inicio es obligatoria"),
   fecha_fin: z.string().optional(),
+  tipo_servicio: z
+    .enum(["INSTALACION", "LIMPIEZA", "MANTENIMIENTO", "ALQUILER"], {
+      required_error: "El tipo de servicio es obligatorio",
+    })
+    .optional(),
+  cantidad_banos: z
+    .number()
+    .min(0, "La cantidad de baños no puede ser negativa")
+    .optional(),
 });
 
 const formSchema = clienteSchema
@@ -161,8 +199,13 @@ export default function CrearCondicionContractualComponent() {
         .split("T")[0],
       condiciones_especificas: "",
       tarifa: 2500,
+      tarifa_alquiler: 0,
+      tarifa_instalacion: 0,
+      tarifa_limpieza: 0,
       periodicidad: "Mensual",
       estado: "Activo",
+      tipo_servicio: "INSTALACION",
+      cantidad_banos: 1,
     },
   });
 
@@ -409,8 +452,45 @@ export default function CrearCondicionContractualComponent() {
                   options={[
                     { label: "Temporal", value: "Temporal" },
                     { label: "Permanente", value: "Permanente" },
+                    { label: "Por Evento", value: "Por Evento" },
                   ]}
                   error={fieldState.error?.message}
+                />
+              )}
+            />
+
+            <Controller
+              name="tipo_servicio"
+              control={control}
+              render={({ field, fieldState }) => (
+                <FormField
+                  label="Tipo de Servicio"
+                  name="tipo_servicio"
+                  fieldType="select"
+                  value={field.value as string}
+                  onChange={(value: string) => field.onChange(value)}
+                  options={[
+                    { label: "Instalación", value: "INSTALACION" },
+                    { label: "Limpieza", value: "LIMPIEZA" },
+                    { label: "Mantenimiento", value: "MANTENIMIENTO" },
+                    { label: "Alquiler", value: "ALQUILER" },
+                  ]}
+                  error={fieldState.error?.message}
+                />
+              )}
+            />
+
+            <Controller
+              name="cantidad_banos"
+              control={control}
+              render={({ field, fieldState }) => (
+                <FormField
+                  label="Cantidad de Baños"
+                  name="cantidad_banos"
+                  value={field.value?.toString() || "1"}
+                  onChange={(value) => field.onChange(parseInt(value))}
+                  error={fieldState.error?.message}
+                  type="number"
                 />
               )}
             />
@@ -477,13 +557,16 @@ export default function CrearCondicionContractualComponent() {
               )}
             />
 
+            <h3 className="text-lg font-medium text-slate-800 mt-6 mb-3">
+              Tarifas
+            </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <Controller
                 name="tarifa"
                 control={control}
                 render={({ field, fieldState }) => (
                   <FormField
-                    label="Tarifa"
+                    label="Tarifa Principal"
                     name="tarifa"
                     value={
                       field.value !== undefined && field.value !== null
@@ -499,6 +582,68 @@ export default function CrearCondicionContractualComponent() {
               />
 
               <Controller
+                name="tarifa_alquiler"
+                control={control}
+                render={({ field, fieldState }) => (
+                  <FormField
+                    label="Tarifa de Alquiler"
+                    name="tarifa_alquiler"
+                    value={
+                      field.value !== undefined && field.value !== null
+                        ? field.value.toString()
+                        : ""
+                    }
+                    onChange={(value) => field.onChange(parseFloat(value))}
+                    error={fieldState.error?.message}
+                    type="number"
+                    prefix="$"
+                  />
+                )}
+              />
+
+              <Controller
+                name="tarifa_instalacion"
+                control={control}
+                render={({ field, fieldState }) => (
+                  <FormField
+                    label="Tarifa de Instalación"
+                    name="tarifa_instalacion"
+                    value={
+                      field.value !== undefined && field.value !== null
+                        ? field.value.toString()
+                        : ""
+                    }
+                    onChange={(value) => field.onChange(parseFloat(value))}
+                    error={fieldState.error?.message}
+                    type="number"
+                    prefix="$"
+                  />
+                )}
+              />
+
+              <Controller
+                name="tarifa_limpieza"
+                control={control}
+                render={({ field, fieldState }) => (
+                  <FormField
+                    label="Tarifa de Limpieza"
+                    name="tarifa_limpieza"
+                    value={
+                      field.value !== undefined && field.value !== null
+                        ? field.value.toString()
+                        : ""
+                    }
+                    onChange={(value) => field.onChange(parseFloat(value))}
+                    error={fieldState.error?.message}
+                    type="number"
+                    prefix="$"
+                  />
+                )}
+              />
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+              <Controller
                 name="periodicidad"
                 control={control}
                 render={({ field, fieldState }) => (
@@ -511,7 +656,10 @@ export default function CrearCondicionContractualComponent() {
                     options={[
                       { label: "Diaria", value: "Diaria" },
                       { label: "Semanal", value: "Semanal" },
+                      { label: "Quincenal", value: "Quincenal" },
                       { label: "Mensual", value: "Mensual" },
+                      { label: "Trimestral", value: "Trimestral" },
+                      { label: "Semestral", value: "Semestral" },
                       { label: "Anual", value: "Anual" },
                     ]}
                     error={fieldState.error?.message}
