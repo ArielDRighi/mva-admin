@@ -127,7 +127,7 @@ const dataSideBar = {
     },
     {
       title: "Talles de empleados",
-      url: "#",
+      url: "/admin/dashboard/talles-de-empleados",
       icon: Shirt,
       items: [
         {

@@ -16,7 +16,7 @@ export default function DashboardLayout({
         <Header />
         {children}
       </SidebarInset>
-      <Toaster />
+      <Toaster richColors closeButton/>
     </SidebarProvider>
   );
 }

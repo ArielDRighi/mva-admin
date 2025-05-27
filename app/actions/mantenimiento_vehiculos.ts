@@ -4,226 +4,206 @@ import {
   CreateVehicleMaintenance,
   UpdateVehicleMaintenance,
 } from "@/types/types";
-import { cookies } from "next/headers";
+import {
+  createAuthHeaders,
+  handleApiResponse,
+  createServerAction,
+} from "@/lib/actions";
 
-/* Mantenimiento de Vehículos */
-export async function getMantenimientosVehiculos(
-  page: number = 1,
-  limit: number = 15,
-  search: string = ""
-) {
-  const cookieStore = await cookies();
-  const token = cookieStore.get("token")?.value;
+/**
+ * Obtiene todos los mantenimientos de vehículos con paginación y búsqueda opcional
+ */
+export const getMantenimientosVehiculos = createServerAction(
+  async (page: number = 1, limit: number = 15, search: string = "") => {
+    const headers = await createAuthHeaders();
+    const searchQuery = search ? `&search=${search}` : "";
 
-  if (!token) throw new Error("Token no encontrado");
+    const res = await fetch(
+      `${process.env.NEXT_PUBLIC_API_URL}/api/vehicle_maintenance?page=${page}&limit=${limit}${searchQuery}`,
+      {
+        headers,
+        cache: "no-store",
+      }
+    );
 
-  const searchQuery = search ? `&search=${search}` : "";
+    return handleApiResponse(
+      res,
+      "Error al obtener mantenimientos de vehículos"
+    );
+  },
+  "Error al obtener mantenimientos de vehículos"
+);
 
-  const res = await fetch(
-    `${process.env.NEXT_PUBLIC_API_URL}/api/vehicle_maintenance?page=${page}&limit=${limit}${searchQuery}`,
-    {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-      cache: "no-store",
-    }
-  );
-
-  if (!res.ok) throw new Error("Error al obtener mantenimientos de vehículos");
-
-  return await res.json();
-}
-
-export async function getMantenimientosProgramados() {
-  const cookieStore = await cookies();
-  const token = cookieStore.get("token")?.value;
-
-  if (!token) throw new Error("Token no encontrado");
+/**
+ * Obtiene los mantenimientos programados próximos
+ */
+export const getMantenimientosProgramados = createServerAction(async () => {
+  const headers = await createAuthHeaders();
 
   const res = await fetch(
     `${process.env.NEXT_PUBLIC_API_URL}/api/vehicle_maintenance/upcoming`,
     {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
+      headers,
       cache: "no-store",
     }
   );
 
-  if (!res.ok) throw new Error("Error al obtener mantenimientos programados");
+  return handleApiResponse(res, "Error al obtener mantenimientos programados");
+}, "Error al obtener mantenimientos programados");
 
-  return await res.json();
-}
+/**
+ * Obtiene un mantenimiento de vehículo específico por su ID
+ */
+export const getMantenimientoVehiculoPorId = createServerAction(
+  async (id: number) => {
+    const headers = await createAuthHeaders();
 
-export async function getMantenimientoVehiculoPorId(id: number) {
-  const cookieStore = await cookies();
-  const token = cookieStore.get("token")?.value;
-
-  if (!token) throw new Error("Token no encontrado");
-
-  const res = await fetch(
-    `${process.env.NEXT_PUBLIC_API_URL}/api/vehicle_maintenance/${id}`,
-    {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-      cache: "no-store",
-    }
-  );
-
-  if (!res.ok)
-    throw new Error("Error al obtener el mantenimiento del vehículo");
-
-  return await res.json();
-}
-
-export async function getMantenimientosPorVehiculo(vehiculoId: number) {
-  const cookieStore = await cookies();
-  const token = cookieStore.get("token")?.value;
-
-  if (!token) throw new Error("Token no encontrado");
-
-  const res = await fetch(
-    `${process.env.NEXT_PUBLIC_API_URL}/api/vehicle_maintenance/vehiculo/${vehiculoId}`,
-    {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-      cache: "no-store",
-    }
-  );
-
-  if (!res.ok) throw new Error("Error al obtener mantenimientos del vehículo");
-
-  return await res.json();
-}
-
-export async function createMantenimientoVehiculo(
-  data: CreateVehicleMaintenance
-) {
-  const cookieStore = await cookies();
-  const token = cookieStore.get("token")?.value;
-
-  if (!token) throw new Error("Token no encontrado");
-
-  const res = await fetch(
-    `${process.env.NEXT_PUBLIC_API_URL}/api/vehicle_maintenance`,
-    {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        vehiculoId: data.vehiculoId,
-        fechaMantenimiento: data.fechaMantenimiento,
-        tipoMantenimiento: data.tipoMantenimiento,
-        descripcion: data.descripcion,
-        costo: data.costo,
-        proximoMantenimiento: data.proximoMantenimiento,
-      }),
-      cache: "no-store",
-    }
-  );
-
-  if (!res.ok) {
-    const errorData = await res.json().catch(() => ({}));
-    throw new Error(
-      errorData.message || "Error al programar el mantenimiento del vehículo"
+    const res = await fetch(
+      `${process.env.NEXT_PUBLIC_API_URL}/api/vehicle_maintenance/${id}`,
+      {
+        headers,
+        cache: "no-store",
+      }
     );
-  }
 
-  return res.status;
-}
-
-export async function editMantenimientoVehiculo(
-  id: number,
-  data: UpdateVehicleMaintenance
-) {
-  const cookieStore = await cookies();
-  const token = cookieStore.get("token")?.value;
-
-  if (!token) throw new Error("Token no encontrado");
-
-  const res = await fetch(
-    `${process.env.NEXT_PUBLIC_API_URL}/api/vehicle_maintenance/${id}`,
-    {
-      method: "PUT",
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        fechaMantenimiento: data.fechaMantenimiento,
-        tipoMantenimiento: data.tipoMantenimiento,
-        descripcion: data.descripcion,
-        costo: data.costo,
-        proximoMantenimiento: data.proximoMantenimiento,
-      }),
-      cache: "no-store",
-    }
-  );
-
-  if (!res.ok) {
-    const errorData = await res.json().catch(() => ({}));
-    throw new Error(
-      errorData.message || "Error al actualizar el mantenimiento del vehículo"
+    return handleApiResponse(
+      res,
+      "Error al obtener el mantenimiento del vehículo"
     );
-  }
+  },
+  "Error al obtener el mantenimiento del vehículo"
+);
 
-  return res.status;
-}
+/**
+ * Obtiene todos los mantenimientos asociados a un vehículo específico
+ */
+export const getMantenimientosPorVehiculo = createServerAction(
+  async (vehiculoId: number) => {
+    const headers = await createAuthHeaders();
 
-export async function deleteMantenimientoVehiculo(id: number) {
-  const cookieStore = await cookies();
-  const token = cookieStore.get("token")?.value;
-
-  if (!token) throw new Error("Token no encontrado");
-
-  const res = await fetch(
-    `${process.env.NEXT_PUBLIC_API_URL}/api/vehicle_maintenance/${id}`,
-    {
-      method: "DELETE",
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-      cache: "no-store",
-    }
-  );
-
-  if (!res.ok) {
-    const errorData = await res.json().catch(() => ({}));
-    throw new Error(
-      errorData.message || "Error al eliminar el mantenimiento del vehículo"
+    const res = await fetch(
+      `${process.env.NEXT_PUBLIC_API_URL}/api/vehicle_maintenance/vehiculo/${vehiculoId}`,
+      {
+        headers,
+        cache: "no-store",
+      }
     );
-  }
 
-  return res.status;
-}
-
-export async function completarMantenimientoVehiculo(id: number) {
-  const cookieStore = await cookies();
-  const token = cookieStore.get("token")?.value;
-
-  if (!token) throw new Error("Token no encontrado");
-
-  const res = await fetch(
-    `${process.env.NEXT_PUBLIC_API_URL}/api/vehicle_maintenance/${id}/complete`,
-    {
-      method: "PATCH",
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-      cache: "no-store",
-    }
-  );
-
-  if (!res.ok) {
-    const errorData = await res.json().catch(() => ({}));
-    throw new Error(
-      errorData.message || "Error al completar el mantenimiento del vehículo"
+    return handleApiResponse(
+      res,
+      "Error al obtener mantenimientos del vehículo"
     );
-  }
+  },
+  "Error al obtener mantenimientos del vehículo"
+);
 
-  return res.status;
-}
+/**
+ * Crea un nuevo registro de mantenimiento para un vehículo
+ */
+export const createMantenimientoVehiculo = createServerAction(
+  async (data: CreateVehicleMaintenance) => {
+    const headers = await createAuthHeaders();
+
+    const res = await fetch(
+      `${process.env.NEXT_PUBLIC_API_URL}/api/vehicle_maintenance`,
+      {
+        method: "POST",
+        headers,
+        body: JSON.stringify({
+          vehiculoId: data.vehiculoId,
+          fechaMantenimiento: data.fechaMantenimiento,
+          tipoMantenimiento: data.tipoMantenimiento,
+          descripcion: data.descripcion,
+          costo: data.costo,
+          proximoMantenimiento: data.proximoMantenimiento,
+        }),
+        cache: "no-store",
+      }
+    );
+
+    return handleApiResponse(
+      res,
+      "Error al programar el mantenimiento del vehículo"
+    );
+  },
+  "Error al programar el mantenimiento del vehículo"
+);
+
+/**
+ * Actualiza un registro de mantenimiento existente
+ */
+export const editMantenimientoVehiculo = createServerAction(
+  async (id: number, data: UpdateVehicleMaintenance) => {
+    const headers = await createAuthHeaders();
+
+    const res = await fetch(
+      `${process.env.NEXT_PUBLIC_API_URL}/api/vehicle_maintenance/${id}`,
+      {
+        method: "PUT",
+        headers,
+        body: JSON.stringify({
+          fechaMantenimiento: data.fechaMantenimiento,
+          tipoMantenimiento: data.tipoMantenimiento,
+          descripcion: data.descripcion,
+          costo: data.costo,
+          proximoMantenimiento: data.proximoMantenimiento,
+        }),
+        cache: "no-store",
+      }
+    );
+
+    return handleApiResponse(
+      res,
+      "Error al actualizar el mantenimiento del vehículo"
+    );
+  },
+  "Error al actualizar el mantenimiento del vehículo"
+);
+
+/**
+ * Elimina un registro de mantenimiento
+ */
+export const deleteMantenimientoVehiculo = createServerAction(
+  async (id: number) => {
+    const headers = await createAuthHeaders();
+
+    const res = await fetch(
+      `${process.env.NEXT_PUBLIC_API_URL}/api/vehicle_maintenance/${id}`,
+      {
+        method: "DELETE",
+        headers,
+        cache: "no-store",
+      }
+    );
+
+    return handleApiResponse(
+      res,
+      "Error al eliminar el mantenimiento del vehículo"
+    );
+  },
+  "Error al eliminar el mantenimiento del vehículo"
+);
+
+/**
+ * Marca un mantenimiento como completado
+ */
+export const completarMantenimientoVehiculo = createServerAction(
+  async (id: number) => {
+    const headers = await createAuthHeaders();
+
+    const res = await fetch(
+      `${process.env.NEXT_PUBLIC_API_URL}/api/vehicle_maintenance/${id}/complete`,
+      {
+        method: "PATCH",
+        headers,
+        cache: "no-store",
+      }
+    );
+
+    return handleApiResponse(
+      res,
+      "Error al completar el mantenimiento del vehículo"
+    );
+  },
+  "Error al completar el mantenimiento del vehículo"
+);

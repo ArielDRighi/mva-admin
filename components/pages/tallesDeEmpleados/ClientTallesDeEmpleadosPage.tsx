@@ -2,19 +2,9 @@
 
 import { ClientsImg } from "@/assets/ImgDatabase";
 import { InfoCard } from "@/components/ui/local/InfoCard";
-import React, { useState, useEffect } from "react";
+import React from "react";
 
-const TallesDeEmpleadosPage = () => {
-  const [isMounted, setIsMounted] = useState(false);
-  
-  useEffect(() => {
-    setIsMounted(true);
-  }, []);
-  
-  if (!isMounted) {
-    return <div className="w-full h-screen bg-white"></div>;
-  }
-  
+const ClientTallesDeEmpleadosPage = () => {
   return (
     <main className="flex flex-1 flex-col gap-4 p-4 pt-0 items-center justify-center">
       <section className="max-w-4xl mx-auto mt-12 px-4 space-y-4">
@@ -33,4 +23,4 @@ const TallesDeEmpleadosPage = () => {
   );
 };
 
-export default TallesDeEmpleadosPage;
+export default ClientTallesDeEmpleadosPage;

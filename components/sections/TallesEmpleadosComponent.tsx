@@ -41,9 +41,9 @@ const TallesEmpleadosComponent = ({
   totalItems: number;
   currentPage: number;
   itemsPerPage: number;
-}) => {
-  const router = useRouter();
+}) => {  const router = useRouter();
   const searchParams = useSearchParams();
+  
   const [tallesEmpleados, setTallesEmpleados] = useState<RopaTalles[]>(data);
   const [total, setTotal] = useState<number>(totalItems);
   const [page, setPage] = useState<number>(currentPage);
@@ -223,10 +223,10 @@ const TallesEmpleadosComponent = ({
           : "No se pudieron crear los talles.",
       });
     }
-  };
-  const fetchTallesEmpleados = useCallback(async () => {
+  };  const fetchTallesEmpleados = useCallback(async () => {
     const currentPage = Number(searchParams.get("page")) || 1;
-    const search = searchParams.get("search") || "";
+    // Nota: Actualmente el backend no soporta búsqueda para talles, pero se mantiene la estructura
+    // para una futura implementación
     setLoading(true);
 
     try {
@@ -241,12 +241,18 @@ const TallesEmpleadosComponent = ({
         setTallesEmpleados([]);
         setTotal(0);
         setPage(1);
+        toast.error("Error", { 
+          description: "No se pudieron cargar los talles de empleados" 
+        });
       }
     } catch (error) {
       console.error("Error al cargar los talles:", error);
       setTallesEmpleados([]);
       setTotal(0);
       setPage(1);
+      toast.error("Error", { 
+        description: "Ocurrió un error al cargar los talles. Por favor, intenta nuevamente." 
+      });
     } finally {
       setLoading(false);
     }
@@ -254,8 +260,7 @@ const TallesEmpleadosComponent = ({
   useEffect(() => {
     console.log("Datos iniciales recibidos:", data);
     fetchTallesEmpleados();
-  }, [fetchTallesEmpleados]);
-
+  }, [fetchTallesEmpleados, data]);
   // Estado de depuración para mostrar cuando no hay datos
   useEffect(() => {
     if (tallesEmpleados.length === 0) {
@@ -263,9 +268,7 @@ const TallesEmpleadosComponent = ({
     } else {
       console.log("Talles de empleados cargados:", tallesEmpleados);
     }
-  }, [tallesEmpleados]);
-
-  if (loading) {
+  }, [tallesEmpleados]);  if (loading) {
     return (
       <div className="w-full h-screen flex justify-center items-center">
         <Loader />
@@ -344,101 +347,101 @@ const TallesEmpleadosComponent = ({
               { title: "Campera Polar", key: "campera_polar_bigNort_talle" },
               { title: "Mameluco", key: "mameluco_talle" },
               { title: "Acciones", key: "acciones" },
-            ]}
-            renderRow={(talles) => (
-              <>
-                <TableCell className="min-w-[220px]">
-                  <div className="flex items-center gap-3">
-                    <div className="h-10 w-10 rounded-full bg-slate-100 flex items-center justify-center">
-                      <User className="h-5 w-5 text-slate-600" />
-                    </div>
-                    <div>
-                      <div className="font-medium">
-                        {talles.empleado?.nombre || "Sin nombre"}{" "}
-                        {talles.empleado?.apellido || ""}
+            ]}            renderRow={(talles) => (
+                <>
+                  <TableCell className="min-w-[220px]">
+                    <div className="flex items-center gap-3">
+                      <div className="h-10 w-10 rounded-full bg-slate-100 flex items-center justify-center">
+                        <User className="h-5 w-5 text-slate-600" />
+                      </div>
+                      <div>
+                        <div className="font-medium">
+                          {talles.empleado?.nombre || "Sin nombre"}{" "}
+                          {talles.empleado?.apellido || ""}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                </TableCell>
-                <TableCell>
-                  <div className="flex items-center gap-2">
-                    <Shirt className="h-4 w-4 text-slate-500" />
-                    {talles.calzado_talle}
-                  </div>
-                </TableCell>
-                <TableCell>
-                  <div className="flex items-center gap-2">
-                    <Shirt className="h-4 w-4 text-slate-500" />
-                    {talles.pantalon_talle}
-                  </div>
-                </TableCell>
-                <TableCell>
-                  <div className="flex items-center gap-2">
-                    <Shirt className="h-4 w-4 text-slate-500" />
-                    {talles.camisa_talle}
-                  </div>
-                </TableCell>
-                <TableCell>
-                  <div className="flex items-center gap-2">
-                    <Shirt className="h-4 w-4 text-slate-500" />
-                    {talles.campera_bigNort_talle}
-                  </div>
-                </TableCell>
-                <TableCell>
-                  <div className="flex items-center gap-2">
-                    <Shirt className="h-4 w-4 text-slate-500" />
-                    {talles.pielBigNort_talle}
-                  </div>
-                </TableCell>
-                <TableCell>
-                  <div className="flex items-center gap-2">
-                    <Shirt className="h-4 w-4 text-slate-500" />
-                    {talles.medias_talle}
-                  </div>
-                </TableCell>
-                <TableCell>
-                  <div className="flex items-center gap-2">
-                    <Shirt className="h-4 w-4 text-slate-500" />
-                    {talles.pantalon_termico_bigNort_talle}
-                  </div>
-                </TableCell>
-                <TableCell>
-                  <div className="flex items-center gap-2">
-                    <Shirt className="h-4 w-4 text-slate-500" />
-                    {talles.campera_polar_bigNort_talle}
-                  </div>
-                </TableCell>
-                <TableCell>
-                  <div className="flex items-center gap-2">
-                    <Shirt className="h-4 w-4 text-slate-500" />
-                    {talles.mameluco_talle}
-                  </div>
-                </TableCell>
-                <TableCell className="flex gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleEditClick(talles)}
-                    className="cursor-pointer border-slate-200 hover:bg-slate-50 hover:text-slate-900"
-                  >
-                    <Edit2 className="h-3.5 w-3.5 mr-1" />
-                    Editar
-                  </Button>{" "}
-                  <Button
-                    variant="destructive"
-                    size="sm"
-                    onClick={() =>
-                      talles.empleado?.id &&
-                      handleDeleteClick(talles.empleado.id)
-                    }
-                    className="cursor-pointer bg-red-100 text-red-700 hover:bg-red-200 hover:text-red-800"
-                  >
-                    <Trash2 className="h-3.5 w-3.5 mr-1" />
-                    Eliminar
-                  </Button>
-                </TableCell>
-              </>
-            )}
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex items-center gap-2">
+                      <Shirt className="h-4 w-4 text-slate-500" />
+                      {talles.calzado_talle}
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex items-center gap-2">
+                      <Shirt className="h-4 w-4 text-slate-500" />
+                      {talles.pantalon_talle}
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex items-center gap-2">
+                      <Shirt className="h-4 w-4 text-slate-500" />
+                      {talles.camisa_talle}
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex items-center gap-2">
+                      <Shirt className="h-4 w-4 text-slate-500" />
+                      {talles.campera_bigNort_talle}
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex items-center gap-2">
+                      <Shirt className="h-4 w-4 text-slate-500" />
+                      {talles.pielBigNort_talle}
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex items-center gap-2">
+                      <Shirt className="h-4 w-4 text-slate-500" />
+                      {talles.medias_talle}
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex items-center gap-2">
+                      <Shirt className="h-4 w-4 text-slate-500" />
+                      {talles.pantalon_termico_bigNort_talle}
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex items-center gap-2">
+                      <Shirt className="h-4 w-4 text-slate-500" />
+                      {talles.campera_polar_bigNort_talle}
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex items-center gap-2">
+                      <Shirt className="h-4 w-4 text-slate-500" />
+                      {talles.mameluco_talle}
+                    </div>
+                  </TableCell>
+                  <TableCell className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleEditClick(talles)}
+                      className="cursor-pointer border-slate-200 hover:bg-slate-50 hover:text-slate-900"
+                    >
+                      <Edit2 className="h-3.5 w-3.5 mr-1" />
+                      Editar
+                    </Button>{" "}
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      onClick={() =>
+                        talles.empleado?.id &&
+                        handleDeleteClick(talles.empleado.id)
+                      }
+                      className="cursor-pointer bg-red-100 text-red-700 hover:bg-red-200 hover:text-red-800"
+                    >
+                      <Trash2 className="h-3.5 w-3.5 mr-1" />
+                      Eliminar
+                    </Button>
+                  </TableCell>
+                </>
+              )
+            }
           />
         </div>
       </CardContent>
@@ -656,4 +659,5 @@ const TallesEmpleadosComponent = ({
   );
 };
 
+// Ya no necesitamos el wrapper porque ahora la página se encarga de cargar los datos en el cliente
 export default TallesEmpleadosComponent;

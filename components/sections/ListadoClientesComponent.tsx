@@ -6,12 +6,6 @@ import { Badge } from "@/components/ui/badge";
 import { Cliente, ClienteFormulario } from "@/types/types";
 import { TableCell } from "../ui/table";
 import { useCallback, useEffect, useState } from "react";
-import {
-  createClient,
-  getClients,
-  deleteClient,
-  editClient,
-} from "@/app/actions/clientes";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { FormDialog } from "../ui/local/FormDialog";
@@ -20,6 +14,7 @@ import Loader from "../ui/local/Loader";
 import { z } from "zod";
 import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import React from "react";
 import {
   UserCheck,
   UserPlus,
@@ -43,6 +38,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { createClient, deleteClient, editClient, getClients } from "@/app/actions/clientes";
 
 export default function ListadoClientesComponent({
   data,
@@ -68,6 +64,8 @@ export default function ListadoClientesComponent({
   const [isCreating, setIsCreating] = useState(false);
   const [activeTab, setActiveTab] = useState("todos");
   const [isFirstLoad, setIsFirstLoad] = useState(true);
+  // Añadir estado para controlar la hidratación
+  const [isMounted, setIsMounted] = useState(false);
 
   const createClientSchema = z.object({
     nombre: z.string().min(1, "El nombre es obligatorio"),
@@ -217,7 +215,7 @@ export default function ListadoClientesComponent({
         currentPage,
         itemsPerPage,
         search
-      );
+      ) as { items: Cliente[]; total: number; page: number };
       setClients(fetchedClients.items);
       setTotal(fetchedClients.total);
       setPage(fetchedClients.page);
@@ -232,7 +230,7 @@ export default function ListadoClientesComponent({
     activeTab === "todos"
       ? clients
       : clients.filter((client) => client.estado === activeTab.toUpperCase());
-
+  // Utilizar useEffect para manejar la hidratación
   useEffect(() => {
     if (isFirstLoad) {
       setIsFirstLoad(false);
@@ -241,7 +239,22 @@ export default function ListadoClientesComponent({
     }
   }, [fetchClients, isFirstLoad]);
 
+  // Activar el estado de montaje cuando el componente se monte en el cliente
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
   if (loading) {
+    return (
+      <div className="w-full h-screen flex justify-center items-center">
+        <Loader />
+      </div>
+    );
+  }
+
+  // Solo mostrar el contenido cuando el componente esté montado en el cliente
+  // Esto previene problemas de hidratación
+  if (!isMounted) {
     return (
       <div className="w-full h-screen flex justify-center items-center">
         <Loader />
@@ -292,9 +305,7 @@ export default function ListadoClientesComponent({
             </TabsList>
           </Tabs>
         </div>
-      </CardHeader>
-
-      <CardContent className="p-6">
+      </CardHeader>      <CardContent className="p-6">
         <div className="rounded-md border">
           <ListadoTabla
             title=""
@@ -312,8 +323,7 @@ export default function ListadoClientesComponent({
               { title: "Información", key: "informacion" },
               { title: "Estado", key: "estado" },
               { title: "Acciones", key: "acciones" },
-            ]}
-            renderRow={(cliente) => (
+            ]}            renderRow={(cliente) => (
               <>
                 <TableCell className="min-w-[250px]">
                   <div className="flex items-center gap-3">

@@ -1,4 +1,4 @@
-import { useMemo, useState, ReactNode } from "react";
+import { useMemo, useState, ReactNode, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import {
@@ -49,9 +49,14 @@ export function ListadoTabla<T>({
   onEdit,
   onDelete,
   addButton,
-}: ListadoTablaProps<T>) {
-  const [searchTerm, setSearchTerm] = useState("");
+}: ListadoTablaProps<T>) {  const [searchTerm, setSearchTerm] = useState("");
   const [internalPage, setInternalPage] = useState(1);
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    // Esperar a que el componente esté montado en el cliente
+    setIsMounted(true);
+  }, []);
 
   const currentPage = remotePagination ? externalPage ?? 1 : internalPage;
 
@@ -91,6 +96,24 @@ export function ListadoTabla<T>({
       onSearchChange(searchTerm);
     }
   };
+  // Si no está montado en el cliente, mostramos un esqueleto
+  if (!isMounted) {
+    return (
+      <Card className="w-full shadow-md border @container">
+        <CardContent className="p-6 space-y-4">
+          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+            <div className="h-7 bg-gray-100 animate-pulse rounded w-40"></div>
+            <div className="h-10 bg-gray-100 animate-pulse rounded w-56"></div>
+          </div>
+          <div className="overflow-x-auto rounded-md border">
+            <div className="h-64 bg-gray-50 animate-pulse flex items-center justify-center">
+              <div className="text-gray-400">Cargando datos...</div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <Card className="w-full shadow-md border @container">

@@ -1,6 +1,11 @@
 "use server";
-import { cookies } from "next/headers";
+
 import { RopaTalles } from "@/types/types";
+import {
+  createAuthHeaders,
+  handleApiResponse,
+  createServerAction,
+} from "@/lib/actions";
 
 export interface CreateTallesDto {
   calzado_talle: string;
@@ -13,6 +18,7 @@ export interface CreateTallesDto {
   campera_polar_bigNort_talle: string;
   mameluco_talle: string;
 }
+
 export interface UpdateTallesDto {
   calzado_talle?: string;
   pantalon_talle?: string;
@@ -25,288 +31,302 @@ export interface UpdateTallesDto {
   mameluco_talle?: string;
 }
 
-export async function createMyClothing(
-  employeeId: number,
-  talles: CreateTallesDto
-) {
-  const cookieStore = await cookies();
-  const token = cookieStore.get("token")?.value;
-  const response = await fetch(
-    `${process.env.NEXT_PUBLIC_API_URL}/api/clothing/create/${employeeId}`,
-    {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify(talles),
-    }
-  );
-  return response.json();
-}
+/**
+ * Crea la información de tallas para mi usuario
+ */
+export const createMyClothing = createServerAction(
+  async (employeeId: number, talles: CreateTallesDto) => {
+    const headers = await createAuthHeaders();
 
-export async function getMyClothing(employeeId: number) {
-  const cookieStore = await cookies();
-  const token = cookieStore.get("token")?.value;
+    const response = await fetch(
+      `${process.env.NEXT_PUBLIC_API_URL}/api/clothing/create/${employeeId}`,
+      {
+        method: "POST",
+        headers,
+        body: JSON.stringify(talles),
+      }
+    );
+
+    return handleApiResponse(response, "Error al crear la vestimenta");
+  },
+  "Error al crear la vestimenta"
+);
+
+/**
+ * Obtiene la información de tallas para mi usuario
+ */
+export const getMyClothing = createServerAction(async (employeeId: number) => {
+  const headers = await createAuthHeaders();
+
   const response = await fetch(
     `${process.env.NEXT_PUBLIC_API_URL}/api/clothing/${employeeId}`,
     {
       method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
+      headers,
     }
   );
-  return response.json();
-}
 
-export async function updateMyClothing(
-  employeeId: number,
-  talles: UpdateTallesDto
-) {
-  const cookieStore = await cookies();
-  const token = cookieStore.get("token")?.value;
-  const response = await fetch(
-    `${process.env.NEXT_PUBLIC_API_URL}/api/clothing/modify/${employeeId}`,
-    {
-      method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify(talles),
-    }
+  return handleApiResponse(
+    response,
+    "Error al obtener la información de vestimenta"
   );
-  return response.json();
-}
+}, "Error al obtener la información de vestimenta");
 
-// Funciones para administración de talles (ADMIN/SUPERVISOR)
+/**
+ * Actualiza la información de tallas para mi usuario
+ */
+export const updateMyClothing = createServerAction(
+  async (employeeId: number, talles: UpdateTallesDto) => {
+    const headers = await createAuthHeaders();
 
-export async function getTallesEmpleados(
-  page: number = 1,
-  itemsPerPage: number = 10
-): Promise<{
+    const response = await fetch(
+      `${process.env.NEXT_PUBLIC_API_URL}/api/clothing/modify/${employeeId}`,
+      {
+        method: "PUT",
+        headers,
+        body: JSON.stringify(talles),
+      }
+    );
+
+    return handleApiResponse(response, "Error al actualizar la vestimenta");
+  },
+  "Error al actualizar la vestimenta"
+);
+
+/**
+ * Obtiene los talles de todos los empleados (con paginación)
+ */
+
+// Interfaces para los formatos de respuesta posibles
+interface DataPaginationResponse {
   data: RopaTalles[];
-  total: number;
-  page: number;
-  itemsPerPage: number;
-}> {
-  try {
-    const cookieStore = await cookies();
-    const token = cookieStore.get("token")?.value;
+  totalItems?: number;
+  currentPage?: number;
+  itemsPerPage?: number;
+}
+
+interface ItemsPaginationResponse {
+  items: RopaTalles[];
+  total?: number;
+  page?: number;
+  limit?: number;
+}
+
+// Type guards para verificar estructura
+function isDataPaginationResponse(obj: unknown): obj is DataPaginationResponse {
+  return (
+    typeof obj === "object" &&
+    obj !== null &&
+    "data" in obj &&
+    Array.isArray((obj as { data: unknown }).data)
+  );
+}
+
+function isItemsPaginationResponse(
+  obj: unknown
+): obj is ItemsPaginationResponse {
+  return (
+    typeof obj === "object" &&
+    obj !== null &&
+    "items" in obj &&
+    Array.isArray((obj as { items: unknown }).items)
+  );
+}
+
+interface RevalidationOptions {
+  revalidate?: boolean;
+  cache?: RequestCache;
+}
+
+export const getTallesEmpleados = createServerAction(
+  async (
+    page: number = 1,
+    itemsPerPage: number = 10,
+    options: RevalidationOptions = {}
+  ) => {
+    const headers = await createAuthHeaders();
     const searchParams = new URLSearchParams();
     searchParams.append("page", page.toString());
     searchParams.append("limit", itemsPerPage.toString());
-    console.log("searchParams", searchParams.toString());
 
+    // Añadimos un valor aleatorio al querystring para forzar la revalidación si es necesario
+    if (options.revalidate) {
+      searchParams.append("_t", Date.now().toString());
+    }
     const response = await fetch(
       `${
         process.env.NEXT_PUBLIC_API_URL
       }/api/clothing?${searchParams.toString()}`,
       {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-        cache: "no-store",
+        headers,
+        cache: options.cache || "no-store",
+        next: options.revalidate ? { revalidate: 0 } : undefined,
       }
     );
 
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(
-        error.message || "Error al obtener los talles de empleados"
-      );
-    }
+    const data: unknown = await handleApiResponse(
+      response,
+      "Error al obtener los talles de empleados"
+    );
 
-    const data = await response.json();
-    console.log("data", data);
     // Si es un array directamente, es la lista de talles sin paginación
     if (Array.isArray(data)) {
       return {
-        data: data,
+        data: data as RopaTalles[],
         total: data.length,
         page: 1,
         itemsPerPage: data.length,
       };
     }
 
-    // Si tiene estructura de paginación (como se esperaba inicialmente)
-    return {
-      data: data.data || [],
-      total: data?.totalItems || 0,
-      page: data?.currentPage || 1,
-      itemsPerPage: data?.itemsPerPage || 10,
-    };
-  } catch (error) {
-    console.error("Error al obtener los talles de empleados:", error);
-    return { data: [], total: 0, page: 1, itemsPerPage: 10 };
-  }
-}
+    // Verificar estructura { data, totalItems, currentPage, itemsPerPage }
+    if (isDataPaginationResponse(data)) {
+      return {
+        data: data.data,
+        total: data.totalItems || data.data.length,
+        page: data.currentPage || page,
+        itemsPerPage: data.itemsPerPage || itemsPerPage,
+      };
+    }
 
-export async function getTallesEmpleadoById(
-  empleadoId: number
-): Promise<RopaTalles | null> {
-  try {
-    const cookieStore = await cookies();
-    const token = cookieStore.get("token")?.value;
+    // Verificar estructura { items, total, page, limit }
+    if (isItemsPaginationResponse(data)) {
+      return {
+        data: data.items,
+        total: data.total || data.items.length,
+        page: data.page || page,
+        itemsPerPage: data.limit || itemsPerPage,
+      };
+    }
+
+    // Fallback para cualquier otro formato
+    console.warn(
+      "Formato de respuesta no reconocido en getTallesEmpleados:",
+      data
+    );
+    return {
+      data: [] as RopaTalles[],
+      total: 0,
+      page,
+      itemsPerPage,
+    };
+  },
+  "Error al obtener los talles de empleados"
+);
+/**
+ * Obtiene los talles de un empleado específico
+ */
+export const getTallesEmpleadoById = createServerAction(
+  async (empleadoId: number): Promise<RopaTalles | null> => {
+    const headers = await createAuthHeaders();
+
     const response = await fetch(
       `${process.env.NEXT_PUBLIC_API_URL}/api/clothing/${empleadoId}`,
       {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+        headers,
         cache: "no-store",
       }
     );
 
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(
-        error.message || "Error al obtener los talles del empleado"
-      );
-    }
-
-    return await response.json();
-  } catch (error) {
-    console.error(
-      `Error al obtener los talles del empleado ${empleadoId}:`,
-      error
+    return handleApiResponse(
+      response,
+      `Error al obtener los talles del empleado ${empleadoId}`
     );
-    return null;
-  }
-}
+  },
+  "Error al obtener los talles del empleado"
+);
 
-export async function createTallesEmpleado(
-  empleadoId: number,
-  talles: CreateTallesDto
-): Promise<RopaTalles | null> {
-  try {
-    const cookieStore = await cookies();
-    const token = cookieStore.get("token")?.value;
+/**
+ * Crea los talles para un empleado específico (ADMIN)
+ */
+export const createTallesEmpleado = createServerAction(
+  async (empleadoId: number, talles: CreateTallesDto): Promise<RopaTalles> => {
+    const headers = await createAuthHeaders();
+
     const response = await fetch(
       `${process.env.NEXT_PUBLIC_API_URL}/api/clothing/create/${empleadoId}`,
       {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
+        headers,
         body: JSON.stringify(talles),
       }
     );
 
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(
-        Array.isArray(error.message)
-          ? error.message.join(", ")
-          : error.message || "Error al crear los talles del empleado"
-      );
-    }
-
-    return await response.json();
-  } catch (error) {
-    console.error(
-      `Error al crear los talles del empleado ${empleadoId}:`,
-      error
+    return handleApiResponse(
+      response,
+      `Error al crear los talles del empleado ${empleadoId}`
     );
-    throw error;
-  }
-}
+  },
+  "Error al crear los talles del empleado"
+);
 
-export async function updateTallesEmpleado(
-  empleadoId: number,
-  talles: UpdateTallesDto
-): Promise<RopaTalles | null> {
-  try {
-    const cookieStore = await cookies();
-    const token = cookieStore.get("token")?.value;
+/**
+ * Actualiza los talles para un empleado específico (ADMIN)
+ */
+export const updateTallesEmpleado = createServerAction(
+  async (empleadoId: number, talles: UpdateTallesDto): Promise<RopaTalles> => {
+    const headers = await createAuthHeaders();
+
     const response = await fetch(
       `${process.env.NEXT_PUBLIC_API_URL}/api/clothing/modify/${empleadoId}`,
       {
         method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
+        headers,
         body: JSON.stringify(talles),
       }
     );
 
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(
-        Array.isArray(error.message)
-          ? error.message.join(", ")
-          : error.message || "Error al actualizar los talles del empleado"
-      );
-    }
-
-    return await response.json();
-  } catch (error) {
-    console.error(
-      `Error al actualizar los talles del empleado ${empleadoId}:`,
-      error
+    return handleApiResponse(
+      response,
+      `Error al actualizar los talles del empleado ${empleadoId}`
     );
-    throw error;
-  }
-}
+  },
+  "Error al actualizar los talles del empleado"
+);
 
-export async function deleteTallesEmpleado(
-  empleadoId: number
-): Promise<{ message: string }> {
-  try {
-    const cookieStore = await cookies();
-    const token = cookieStore.get("token")?.value;
+/**
+ * Elimina los talles de un empleado específico (ADMIN)
+ */
+export const deleteTallesEmpleado = createServerAction(
+  async (empleadoId: number): Promise<{ message: string }> => {
+    const headers = await createAuthHeaders();
+
     const response = await fetch(
       `${process.env.NEXT_PUBLIC_API_URL}/api/clothing/delete/${empleadoId}`,
       {
         method: "DELETE",
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+        headers,
       }
     );
 
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(
-        error.message || "Error al eliminar los talles del empleado"
-      );
-    }
-
-    return await response.json();
-  } catch (error) {
-    console.error(
-      `Error al eliminar los talles del empleado ${empleadoId}:`,
-      error
+    return handleApiResponse(
+      response,
+      `Error al eliminar los talles del empleado ${empleadoId}`
     );
-    throw error;
-  }
-}
+  },
+  "Error al eliminar los talles del empleado"
+);
 
-export async function exportTallesToExcel(): Promise<Blob> {
-  try {
-    const cookieStore = await cookies();
-    const token = cookieStore.get("token")?.value;
+/**
+ * Exporta los datos de talles a un archivo Excel (ADMIN)
+ */
+export const exportTallesToExcel = createServerAction(
+  async (): Promise<Blob> => {
+    const headers = await createAuthHeaders();
+
     const response = await fetch(
       `${process.env.NEXT_PUBLIC_API_URL}/api/clothing/export`,
       {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+        headers,
       }
     );
 
     if (!response.ok) {
-      const error = await response.json();
+      const error = await response.json().catch(() => ({}));
       throw new Error(error.message || "Error al exportar los talles a Excel");
     }
 
     return await response.blob();
-  } catch (error) {
-    console.error("Error al exportar los talles a Excel:", error);
-    throw error;
-  }
-}
+  },
+  "Error al exportar los talles a Excel"
+);

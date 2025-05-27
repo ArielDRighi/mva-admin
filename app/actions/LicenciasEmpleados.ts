@@ -1,247 +1,184 @@
 "use server";
 
 import { CreateEmployeeLeaveDto, UpdateEmployeeLeaveDto } from "@/types/types";
-import { cookies } from "next/headers";
+import {
+  createAuthHeaders,
+  handleApiResponse,
+  createServerAction,
+} from "@/lib/actions";
 
 /**
  * Get all employee leaves with optional pagination and search
  */
-export async function getEmployeeLeaves(
-  page: number = 1,
-  limit: number = 15,
-  search: string = ""
-) {
-  const cookieStore = await cookies();
-  const token = cookieStore.get("token")?.value;
+export const getEmployeeLeaves = createServerAction(
+  async (page: number = 1, limit: number = 15, search: string = "") => {
+    const headers = await createAuthHeaders();
+    const searchQuery = search ? `&search=${search}` : "";
 
-  if (!token) throw new Error("Token no encontrado");
+    const res = await fetch(
+      `${process.env.NEXT_PUBLIC_API_URL}/api/employee-leaves?page=${page}&limit=${limit}${searchQuery}`,
+      {
+        headers,
+        cache: "no-store",
+      }
+    );
 
-  const searchQuery = search ? `&search=${search}` : "";
-
-  const res = await fetch(
-    `${process.env.NEXT_PUBLIC_API_URL}/api/employee-leaves?page=${page}&limit=${limit}${searchQuery}`,
-    {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-      cache: "no-store",
-    }
-  );
-
-  if (!res.ok) throw new Error("Error al obtener licencias de empleados");
-
-  return await res.json();
-}
+    return handleApiResponse(res, "Error al obtener licencias de empleados");
+  },
+  "Error al obtener licencias de empleados"
+);
 
 /**
  * Get a specific employee leave by ID
  */
-export async function getEmployeeLeaveById(id: number) {
-  const cookieStore = await cookies();
-  const token = cookieStore.get("token")?.value;
-
-  if (!token) throw new Error("Token no encontrado");
+export const getEmployeeLeaveById = createServerAction(async (id: number) => {
+  const headers = await createAuthHeaders();
 
   const res = await fetch(
     `${process.env.NEXT_PUBLIC_API_URL}/api/employee-leaves/${id}`,
     {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
+      headers,
       cache: "no-store",
     }
   );
 
-  if (!res.ok) throw new Error("Error al obtener la licencia");
-
-  return await res.json();
-}
+  return handleApiResponse(res, "Error al obtener la licencia");
+}, "Error al obtener la licencia");
 
 /**
  * Get all leaves for a specific employee
  */
-export async function getLeavesByEmployee(employeeId: number) {
-  const cookieStore = await cookies();
-  const token = cookieStore.get("token")?.value;
+export const getLeavesByEmployee = createServerAction(
+  async (employeeId: number) => {
+    const headers = await createAuthHeaders();
 
-  if (!token) throw new Error("Token no encontrado");
+    const res = await fetch(
+      `${process.env.NEXT_PUBLIC_API_URL}/api/employee-leaves/employee/${employeeId}`,
+      {
+        headers,
+        cache: "no-store",
+      }
+    );
 
-  const res = await fetch(
-    `${process.env.NEXT_PUBLIC_API_URL}/api/employee-leaves/employee/${employeeId}`,
-    {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-      cache: "no-store",
-    }
-  );
-
-  if (!res.ok) throw new Error("Error al obtener licencias del empleado");
-
-  return await res.json();
-}
+    return handleApiResponse(res, "Error al obtener licencias del empleado");
+  },
+  "Error al obtener licencias del empleado"
+);
 
 /**
  * Create a new employee leave
  */
-export async function createEmployeeLeave(data: CreateEmployeeLeaveDto) {
-  const cookieStore = await cookies();
-  const token = cookieStore.get("token")?.value;
+export const createEmployeeLeave = createServerAction(
+  async (data: CreateEmployeeLeaveDto) => {
+    const headers = await createAuthHeaders();
 
-  if (!token) throw new Error("Token no encontrado");
+    const res = await fetch(
+      `${process.env.NEXT_PUBLIC_API_URL}/api/employee-leaves`,
+      {
+        method: "POST",
+        headers,
+        body: JSON.stringify(data),
+        cache: "no-store",
+      }
+    );
 
-  const res = await fetch(
-    `${process.env.NEXT_PUBLIC_API_URL}/api/employee-leaves`,
-    {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(data),
-      cache: "no-store",
-    }
-  );
-
-  if (!res.ok) {
-    const errorData = await res.json().catch(() => ({}));
-    throw new Error(errorData.message || "Error al crear la licencia");
-  }
-
-  return res.json();
-}
+    return handleApiResponse(res, "Error al crear la licencia");
+  },
+  "Error al crear la licencia"
+);
 
 /**
  * Update an existing employee leave
  */
-export async function updateEmployeeLeave(
-  id: number,
-  data: UpdateEmployeeLeaveDto
-) {
-  const cookieStore = await cookies();
-  const token = cookieStore.get("token")?.value;
+export const updateEmployeeLeave = createServerAction(
+  async (id: number, data: UpdateEmployeeLeaveDto) => {
+    const headers = await createAuthHeaders();
 
-  if (!token) throw new Error("Token no encontrado");
+    const res = await fetch(
+      `${process.env.NEXT_PUBLIC_API_URL}/api/employee-leaves/${id}`,
+      {
+        method: "PATCH",
+        headers,
+        body: JSON.stringify(data),
+        cache: "no-store",
+      }
+    );
 
-  const res = await fetch(
-    `${process.env.NEXT_PUBLIC_API_URL}/api/employee-leaves/${id}`,
-    {
-      method: "PATCH",
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(data),
-      cache: "no-store",
-    }
-  );
-
-  if (!res.ok) {
-    const errorData = await res.json().catch(() => ({}));
-    throw new Error(errorData.message || "Error al actualizar la licencia");
-  }
-
-  return res.status;
-}
+    return handleApiResponse(res, "Error al actualizar la licencia");
+  },
+  "Error al actualizar la licencia"
+);
 
 /**
  * Approve an employee leave request
  */
-export async function approveEmployeeLeave(id: number) {
-  const cookieStore = await cookies();
-  const token = cookieStore.get("token")?.value;
-
-  if (!token) throw new Error("Token no encontrado");
+export const approveEmployeeLeave = createServerAction(async (id: number) => {
+  const headers = await createAuthHeaders();
 
   const res = await fetch(
     `${process.env.NEXT_PUBLIC_API_URL}/api/employee-leaves/${id}/approve`,
     {
       method: "PATCH",
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
+      headers,
       cache: "no-store",
     }
   );
 
-  if (!res.ok) {
-    const errorData = await res.json().catch(() => ({}));
-    throw new Error(errorData.message || "Error al aprobar la licencia");
-  }
-
-  return res.status;
-}
+  return handleApiResponse(res, "Error al aprobar la licencia");
+}, "Error al aprobar la licencia");
 
 /**
  * Delete an employee leave
  */
-export async function deleteEmployeeLeave(id: number) {
-  const cookieStore = await cookies();
-  const token = cookieStore.get("token")?.value;
-
-  if (!token) throw new Error("Token no encontrado");
+export const deleteEmployeeLeave = createServerAction(async (id: number) => {
+  const headers = await createAuthHeaders();
 
   const res = await fetch(
     `${process.env.NEXT_PUBLIC_API_URL}/api/employee-leaves/${id}`,
     {
       method: "DELETE",
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
+      headers,
       cache: "no-store",
     }
   );
 
-  if (!res.ok) {
-    const errorData = await res.json().catch(() => ({}));
-    throw new Error(errorData.message || "Error al eliminar la licencia");
-  }
+  return handleApiResponse(res, "Error al eliminar la licencia");
+}, "Error al eliminar la licencia");
 
-  return res.status;
-}
-
-export async function rejectEmployeeLeave(id: number) {
-  const cookieStore = await cookies();
-  const token = cookieStore.get("token")?.value;
-
-  if (!token) throw new Error("Token no encontrado");
+/**
+ * Reject an employee leave request
+ */
+export const rejectEmployeeLeave = createServerAction(async (id: number) => {
+  const headers = await createAuthHeaders();
 
   const res = await fetch(
     `${process.env.NEXT_PUBLIC_API_URL}/api/employee-leaves/${id}/reject`,
     {
       method: "PATCH",
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
+      headers,
       cache: "no-store",
     }
   );
 
-  if (!res.ok) {
-    const errorData = await res.json().catch(() => ({}));
-    throw new Error(errorData.message || "Error al rechazar la licencia");
-  }
+  return handleApiResponse(res, "Error al rechazar la licencia");
+}, "Error al rechazar la licencia");
 
-  return res.status;
-}
+/**
+ * Get all leaves for a specific user
+ */
+export const getLicenciasByUserId = createServerAction(
+  async (userId: number) => {
+    const headers = await createAuthHeaders();
 
-export async function getLicenciasByUserId(userId: number) {
-  const cookieStore = await cookies();
-  const token = cookieStore.get("token")?.value;
+    const res = await fetch(
+      `${process.env.NEXT_PUBLIC_API_URL}/api/employee-leaves/employee/${userId}`,
+      {
+        headers,
+        cache: "no-store",
+      }
+    );
 
-  if (!token) throw new Error("Token no encontrado");
-
-  const res = await fetch(
-    `${process.env.NEXT_PUBLIC_API_URL}/api/employee-leaves/employee/${userId}`,
-    {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-      cache: "no-store",
-    }
-  );
-
-  if (!res.ok) throw new Error("Error al obtener licencias de empleados");
-
-  return await res.json();
-}
+    return handleApiResponse(res, "Error al obtener licencias del empleado");
+  },
+  "Error al obtener licencias del empleado"
+);

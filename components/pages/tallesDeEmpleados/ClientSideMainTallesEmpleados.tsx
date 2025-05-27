@@ -2,9 +2,9 @@
 
 import { ClientsImg } from "@/assets/ImgDatabase";
 import { InfoCard } from "@/components/ui/local/InfoCard";
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useState } from "react";
 
-const TallesDeEmpleadosPage = () => {
+export default function ClientSideMainTallesEmpleados() {
   const [isMounted, setIsMounted] = useState(false);
   
   useEffect(() => {
@@ -12,7 +12,7 @@ const TallesDeEmpleadosPage = () => {
   }, []);
   
   if (!isMounted) {
-    return <div className="w-full h-screen bg-white"></div>;
+    return <div className="w-full h-screen bg-white"></div>; // Una página en blanco mientras se carga
   }
   
   return (
@@ -31,6 +31,4 @@ const TallesDeEmpleadosPage = () => {
       </section>
     </main>
   );
-};
-
-export default TallesDeEmpleadosPage;
+}
