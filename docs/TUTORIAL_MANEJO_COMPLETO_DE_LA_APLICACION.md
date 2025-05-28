@@ -386,7 +386,7 @@ Content-Type: application/json
 }
 ```
 
-> **Nota**: Al programar un mantenimiento para la fecha actual, el estado del vehículo cambia automáticamente a "EN_MANTENIMIENTO".
+> **Nota**: Al programar un mantenimiento para la fecha actual, el estado del vehículo cambia automáticamente a "MANTENIMIENTO".
 
 #### Completar un mantenimiento
 
@@ -796,7 +796,7 @@ Content-Type: application/json
 
 > **Nota:** El sistema no asignará el vehículo 3 aunque esté en estado DISPONIBLE, porque tiene un mantenimiento programado para ese día.
 
-4. **El día del mantenimiento, el scheduler cambia automáticamente el estado a EN_MANTENIMIENTO**
+4. **El día del mantenimiento, el scheduler cambia automáticamente el estado a MANTENIMIENTO**
 
 5. **Al finalizar el mantenimiento, completarlo manualmente**
 
@@ -944,7 +944,7 @@ Content-Type: application/json
 }
 ```
 
-5. **Verificar que los baños han cambiado a estado EN_MANTENIMIENTO**
+5. **Verificar que los baños han cambiado a estado MANTENIMIENTO**
 
 ```http
 GET /api/chemical_toilets/10
@@ -952,7 +952,7 @@ GET /api/chemical_toilets/11
 Authorization: Bearer {{token}}
 ```
 
-> **Nota**: Al completar un servicio de RETIRO, el sistema cambia automáticamente el estado de los baños retirados de ASIGNADO a EN_MANTENIMIENTO para su limpieza y acondicionamiento antes de volver a estar disponibles.
+> **Nota**: Al completar un servicio de RETIRO, el sistema cambia automáticamente el estado de los baños retirados de ASIGNADO a MANTENIMIENTO para su limpieza y acondicionamiento antes de volver a estar disponibles.
 
 ## 9. Gestión de Informes
 

@@ -149,11 +149,20 @@ const ListadoUsuariosComponent: React.FC<ListadoUsuariosComponentProps> = ({
       toast.success("Usuario eliminado", {
         description: "El usuario ha sido eliminado correctamente.",
       });
-      await fetchUsers();
-    } catch (error) {
+      await fetchUsers();    } catch (error) {
       console.error("Error al eliminar el usuario:", error);
-      toast.error("Error", {
-        description: "No se pudo eliminar el usuario.",
+      
+      // Extraer el mensaje de error para mostrar información más precisa
+      let errorMessage = "No se pudo eliminar el usuario.";
+      
+      // Si es un error con mensaje personalizado, lo usamos
+      if (error instanceof Error) {
+        errorMessage = error.message || errorMessage;
+      }
+      
+      toast.error("Error al eliminar usuario", {
+        description: errorMessage,
+        duration: 5000, // Duración aumentada para mejor visibilidad
       });
     } finally {
       setUserToDelete(null);
@@ -171,11 +180,20 @@ const ListadoUsuariosComponent: React.FC<ListadoUsuariosComponentProps> = ({
           userToChangeStatus.estado === "ACTIVO" ? "activado" : "desactivado"
         } correctamente.`,
       });
-      await fetchUsers();
-    } catch (error) {
+      await fetchUsers();    } catch (error) {
       console.error("Error al cambiar el estado del usuario:", error);
-      toast.error("Error", {
-        description: "No se pudo cambiar el estado del usuario.",
+      
+      // Extraer el mensaje de error para mostrar información más precisa
+      let errorMessage = "No se pudo cambiar el estado del usuario.";
+      
+      // Si es un error con mensaje personalizado, lo usamos
+      if (error instanceof Error) {
+        errorMessage = error.message || errorMessage;
+      }
+      
+      toast.error("Error al actualizar estado", {
+        description: errorMessage,
+        duration: 5000, // Duración aumentada para mejor visibilidad
       });
     } finally {
       setUserToChangeStatus(null);
@@ -221,10 +239,10 @@ const ListadoUsuariosComponent: React.FC<ListadoUsuariosComponentProps> = ({
         });
       } else {
         // Modo creación
-        if (!formData.password) {
-          return toast.error("Error", {
-            description: "La contraseña es obligatoria para crear un usuario.",
-          });
+        if (!formData.password) {        return toast.error("Error de validación", {
+          description: "La contraseña es obligatoria para crear un usuario.",
+          duration: 5000, // Duración aumentada para mejor visibilidad
+        });
         }
 
         // Convertir roles al tipo correcto para la API
@@ -244,33 +262,55 @@ const ListadoUsuariosComponent: React.FC<ListadoUsuariosComponentProps> = ({
 
       await fetchUsers();
       setIsCreating(false);
-      setSelectedUser(null);
-    } catch (error) {
+      setSelectedUser(null);    } catch (error) {
       console.error("Error en el envío del formulario:", error);
-      toast.error("Error", {
-        description:
-          error instanceof Error
-            ? error.message
-            : selectedUser
-            ? "No se pudo actualizar el usuario."
-            : "No se pudo crear el usuario.",
+        // Ya se está haciendo una buena extracción del mensaje de error, solo mejoramos el formato del toast
+      const errorMessage = error instanceof Error
+        ? error.message
+        : selectedUser
+        ? "No se pudo actualizar el usuario."
+        : "No se pudo crear el usuario.";
+      
+      toast.error(selectedUser ? "Error al actualizar usuario" : "Error al crear usuario", {
+        description: errorMessage,
+        duration: 5000, // Duración aumentada para mejor visibilidad
       });
     }
-  };
-  const fetchUsers = useCallback(async () => {
+  };  const fetchUsers = useCallback(async () => {
     const currentPage = Number(searchParams.get("page")) || 1;
     const searchQuery = searchParams.get("search") || "";
     setLoading(true);
 
     try {
       const response = await getUsers(currentPage, itemsPerPage, searchQuery);
-      setUsers(response.data);
-      setTotal(response.totalItems);
-      setPage(response.currentPage);
+      
+      // Verificar que la respuesta tenga la estructura esperada
+      if (response && typeof response === 'object') {
+        type ApiResponse = {
+          data: User[];
+          totalItems: number;
+          currentPage: number;
+        };
+        
+        const typedResponse = response as ApiResponse;
+        setUsers(typedResponse.data || []);
+        setTotal(typedResponse.totalItems || 0);
+        setPage(typedResponse.currentPage || 1);
+      }
     } catch (error) {
       console.error("Error al cargar los usuarios:", error);
-      toast.error("Error", {
-        description: "No se pudieron cargar los usuarios.",
+      
+      // Extraer el mensaje de error para mostrar información más precisa
+      let errorMessage = "No se pudieron cargar los usuarios.";
+      
+      // Si es un error con mensaje personalizado, lo usamos
+      if (error instanceof Error) {
+        errorMessage = error.message || errorMessage;
+      }
+      
+      toast.error("Error al cargar usuarios", {
+        description: errorMessage,
+        duration: 5000, // Duración aumentada para mejor visibilidad
       });
     } finally {
       setLoading(false);

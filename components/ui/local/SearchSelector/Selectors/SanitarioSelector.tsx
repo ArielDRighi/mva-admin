@@ -5,6 +5,7 @@ import { Sanitario } from "@/types/types";
 import { Badge } from "@/components/ui/badge";
 import { SearchSelector } from "../SearchSelector";
 import { Bath, CalendarClock, Hash } from "lucide-react";
+import { toast } from "sonner";
 
 interface SanitarioSelectorProps {
   value: number;
@@ -22,27 +23,35 @@ export function SanitarioSelector({
   name,
   error,
   disabled = false,
-}: SanitarioSelectorProps) {
-  const searchSanitarios = async (term: string) => {
+}: SanitarioSelectorProps) {  const searchSanitarios = async (term: string) => {
     try {
+      console.log("Buscando sanitarios con término:", term);
+      
+      // Obtener todos los sanitarios
       const allToilets = await getToiletsList();
-
+      
+      // Filtrar sanitarios que están en mantenimiento o de baja
       const filteredSanitarios = allToilets.filter((sanitario: Sanitario) => {
+        // Estado válido: no está en mantenimiento ni de baja
         const validState =
-          sanitario.estado !== "EN_MANTENIMIENTO" &&
+          sanitario.estado !== "MANTENIMIENTO" &&
+          sanitario.estado !== "MANTENIMIENTO" &&
           sanitario.estado !== "BAJA";
-
+          
+        // Si no hay término de búsqueda o es muy corto, solo validamos por estado
         if (!term || term.length < 2) return validState;
-
+        
+        // Si hay término, filtramos por coincidencia además del estado
         const matchesTerm =
-          sanitario.codigo_interno
-            ?.toLowerCase()
-            .includes(term.toLowerCase()) ||
+          sanitario.codigo_interno?.toLowerCase().includes(term.toLowerCase()) ||
           sanitario.modelo?.toLowerCase().includes(term.toLowerCase());
-
+          
         return validState && matchesTerm;
       });
-
+      
+      console.log("Sanitarios filtrados:", filteredSanitarios.length);
+      
+      // Mapear para asegurar que todos tengan un ID numérico
       const mappedSanitarios = filteredSanitarios.map(
         (sanitario: Sanitario) => ({
           ...sanitario,
@@ -50,13 +59,26 @@ export function SanitarioSelector({
         })
       );
 
-      return mappedSanitarios;
-    } catch (error) {
+      return mappedSanitarios;    } catch (error) {
       console.error("Error al buscar sanitarios:", error);
+      
+      // Extraer el mensaje de error para mostrar información más precisa
+      let errorMessage = "Intente nuevamente o contacte al administrador.";
+      
+      // Si es un error con mensaje personalizado, lo usamos
+      if (error instanceof Error) {
+        errorMessage = error.message || errorMessage;
+      }
+      
+      // Mostrar toast con el error
+      toast.error("No se pudieron cargar los sanitarios", {
+        description: errorMessage,
+        duration: 5000, // Duración aumentada para mejor visibilidad
+      });
+      
       return [];
     }
-  };
-  const getSanitarioById = async (id: number) => {
+  };  const getSanitarioById = async (id: number) => {
     try {
       const allToilets = await getToiletsList();
 
@@ -78,9 +100,23 @@ export function SanitarioSelector({
       return {
         ...sanitario,
         id: parseInt(sanitario.baño_id || "0"),
-      };
-    } catch (error) {
+      };    } catch (error) {
       console.error(`Error al cargar el sanitario con ID ${id}:`, error);
+      
+      // Extraer el mensaje de error para mostrar información más precisa
+      let errorMessage = `No se pudo cargar el sanitario con ID ${id}`;
+      
+      // Si es un error con mensaje personalizado, lo usamos
+      if (error instanceof Error) {
+        errorMessage = error.message || errorMessage;
+      }
+      
+      // Mostrar toast con el error
+      toast.error("Error al cargar sanitario", {
+        description: errorMessage,
+        duration: 5000, // Duración aumentada para mejor visibilidad
+      });
+      
       return {
         baño_id: id.toString(),
         codigo_interno: `ID: ${id}`,

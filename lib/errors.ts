@@ -22,12 +22,14 @@ export function getErrorMessage(error: unknown): string {
     // Intentar extraer mensajes de error de respuestas de API
     const errorResponse = error as ApiErrorResponse;
 
+    // Verifica si hay propiedad message directamente
     if (errorResponse.message) {
-      return errorResponse.message;
+      return String(errorResponse.message);
     }
 
+    // Verifica si hay propiedad error directamente
     if (errorResponse.error) {
-      return errorResponse.error;
+      return String(errorResponse.error);
     }
 
     // Si hay errores de validación, formatearlos
@@ -36,6 +38,13 @@ export function getErrorMessage(error: unknown): string {
       if (errorMessages.length > 0) {
         return errorMessages.join(", ");
       }
+    }
+
+    // Si error es un objeto pero no tiene propiedades reconocibles, intenta convertirlo a string
+    try {
+      return JSON.stringify(error);
+    } catch {
+      // Si no se puede convertir a JSON
     }
   }
 
@@ -48,29 +57,17 @@ export function getErrorMessage(error: unknown): string {
 }
 
 /**
- * Maneja errores HTTP y muestra un toast con el mensaje apropiado
+ * Procesa errores HTTP y extrae el mensaje adecuado para presentar al usuario
  * @param error El error capturado
  * @param defaultMessage Mensaje predeterminado si no se puede extraer uno del error
- * @returns El mensaje de error para uso adicional si es necesario
+ * @returns El mensaje de error procesado para mostrar al usuario
  */
 export function handleApiError(
   error: unknown,
   defaultMessage: string = "Ha ocurrido un error en la operación"
 ): string {
   const message = getErrorMessage(error) || defaultMessage;
-
-  // Solo intentar mostrar toast si estamos en el cliente
-  if (typeof window !== "undefined") {
-    // En el cliente, podemos usar el toast
-    import("sonner").then((sonnerModule) => {
-      const { toast } = sonnerModule;
-      toast.error("Error", {
-        description: message,
-      });
-    }).catch(() => {
-      console.error("No se pudo cargar el módulo de toast");
-    });
-  }
+  console.log("Mensaje de error procesado:", message);
 
   // Siempre registramos el error en la consola para depuración
   console.error("API Error:", error);

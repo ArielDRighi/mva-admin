@@ -187,11 +187,20 @@ const MantenimientoSanitariosComponent = ({
         description:
           "El registro de mantenimiento se ha eliminado correctamente.",
       });
-      await fetchSanitariosMantenimiento();
-    } catch (error) {
+      await fetchSanitariosMantenimiento();    } catch (error) {
       console.error("Error al eliminar el mantenimiento:", error);
-      toast.error("Error", {
-        description: "No se pudo eliminar el registro de mantenimiento.",
+      
+      // Extraer el mensaje de error para mostrar información más precisa
+      let errorMessage = "No se pudo eliminar el registro de mantenimiento.";
+      
+      // Si es un error con mensaje personalizado, lo usamos
+      if (error instanceof Error) {
+        errorMessage = error.message || errorMessage;
+      }
+      
+      toast.error("Error al eliminar mantenimiento", {
+        description: errorMessage,
+        duration: 5000, // Duración aumentada para mejor visibilidad
       });
     }
   };
@@ -202,11 +211,20 @@ const MantenimientoSanitariosComponent = ({
       toast.success("Mantenimiento completado", {
         description: "El mantenimiento se ha marcado como completado.",
       });
-      await fetchSanitariosMantenimiento();
-    } catch (error) {
+      await fetchSanitariosMantenimiento();    } catch (error) {
       console.error("Error al completar el mantenimiento:", error);
-      toast.error("Error", {
-        description: "No se pudo completar el mantenimiento.",
+      
+      // Extraer el mensaje de error para mostrar información más precisa
+      let errorMessage = "No se pudo completar el mantenimiento.";
+      
+      // Si es un error con mensaje personalizado, lo usamos
+      if (error instanceof Error) {
+        errorMessage = error.message || errorMessage;
+      }
+      
+      toast.error("Error al completar mantenimiento", {
+        description: errorMessage,
+        duration: 5000, // Duración aumentada para mejor visibilidad
       });
     }
   };
@@ -233,32 +251,66 @@ const MantenimientoSanitariosComponent = ({
 
       await fetchSanitariosMantenimiento();
       setIsCreating(false);
-      setSelectedMantenimientoSanitario(null);
-    } catch (error) {
+      setSelectedMantenimientoSanitario(null);    } catch (error) {
       console.error("Error en el envío del formulario:", error);
-      toast.error("Error", {
-        description: selectedMantenimientoSanitario
+      
+      // Extraer el mensaje de error para mostrar información más precisa
+      let errorMessage = selectedMantenimientoSanitario
           ? "No se pudo actualizar el mantenimiento."
-          : "No se pudo crear el mantenimiento.",
+          : "No se pudo crear el mantenimiento.";
+      
+      // Si es un error con mensaje personalizado, lo usamos
+      if (error instanceof Error) {
+        errorMessage = error.message || errorMessage;
+      }
+      
+      toast.error(selectedMantenimientoSanitario ? "Error al actualizar" : "Error al crear", {
+        description: errorMessage,
+        duration: 5000, // Duración aumentada para mejor visibilidad
       });
     }
-  };
-  const fetchSanitariosMantenimiento = useCallback(async () => {
+  };  const fetchSanitariosMantenimiento = useCallback(async () => {
     const currentPage = Number(searchParams.get("page")) || 1;
     const search = searchParams.get("search") || "";
     setLoading(true);
 
     try {
-      const fetchedSanitariosMantenimiento = await getSanitariosEnMantenimiento(
+      const result = await getSanitariosEnMantenimiento(
         currentPage,
         itemsPerPage,
         search
       );
-      setMantenimientoSanitarios(fetchedSanitariosMantenimiento.data);
-      setTotal(fetchedSanitariosMantenimiento.total);
-      setPage(fetchedSanitariosMantenimiento.page);
+      
+      // Verificar que la respuesta tenga la estructura esperada
+      if (result && typeof result === 'object') {        // Usar el tipo correcto para los mantenimientos
+        import type { MantenimientoSanitarioForm } from "@/types/types"; // Esta línea debe ser movida al inicio del archivo
+        
+        type ApiResponse = {
+          data: MantenimientoSanitarioForm[];
+          total: number;
+          page: number;
+        };
+        
+        const typedResult = result as ApiResponse;
+        setMantenimientoSanitarios(typedResult.data || []);
+        setTotal(typedResult.total || 0);
+        setPage(typedResult.page || 1);
+      }
     } catch (error) {
       console.error("Error al cargar los mantenimientos:", error);
+      
+      // Extraer el mensaje de error para mostrar información más precisa
+      let errorMessage = "No se pudieron cargar los mantenimientos de sanitarios.";
+      
+      // Si es un error con mensaje personalizado, lo usamos
+      if (error instanceof Error) {
+        errorMessage = error.message || errorMessage;
+      }
+      
+      toast.error("Error al cargar mantenimientos", {
+        description: errorMessage,
+        duration: 5000, // Duración aumentada para mejor visibilidad
+      });
     } finally {
       setLoading(false);
     }

@@ -10,6 +10,7 @@ import {
   VehicleMaintenance,
   CreateVehicleMaintenance,
   UpdateVehicleMaintenance,
+  Vehiculo,
 } from "@/types/types";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -17,6 +18,7 @@ import React, { useCallback, useEffect, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
+import { useMaintenanceVehicleStore } from "@/store/maintenanceVehicleStore";
 import Loader from "../ui/local/Loader";
 import { ListadoTabla } from "../ui/local/ListadoTabla";
 import { TableCell } from "../ui/table";
@@ -45,6 +47,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { getVehicleById } from "@/app/actions/vehiculos";
 
 const MantenimientoVehiculosComponent = ({
   data,
@@ -67,8 +70,16 @@ const MantenimientoVehiculosComponent = ({
   const [loading, setLoading] = useState<boolean>(false);
   const [selectedMantenimiento, setSelectedMantenimiento] =
     useState<VehicleMaintenance | null>(null);
+  const [vehiculosInfo, setVehiculosInfo] = useState<Record<number, Vehiculo>>(
+    {}
+  );
   const [isCreating, setIsCreating] = useState(false);
   const [activeTab, setActiveTab] = useState("todos");
+  const [isFirstLoad, setIsFirstLoad] = useState(true);
+  const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
+  const [mantenimientoToDelete, setMantenimientoToDelete] = useState<
+    number | null
+  >(null);
 
   const mantenimientoSchema = z.object({
     vehiculoId: z.number({
@@ -126,6 +137,63 @@ const MantenimientoVehiculosComponent = ({
     // Implementar filtrado por estado de completado
   };
 
+  const loadVehiclesInfo = React.useCallback(
+    async (mantenimientos: VehicleMaintenance[]) => {
+      try {
+        // Obtener IDs únicos de vehículos para evitar cargas duplicadas
+        const vehiculoIds = Array.from(
+          new Set(mantenimientos.map((m) => m.vehiculoId))
+        );
+
+        // Filtrar solo los vehículos que no tenemos ya
+        const idsACargar = vehiculoIds.filter((id) => !vehiculosInfo[id]);
+
+        // Si no hay nuevos vehículos para cargar, salimos
+        if (idsACargar.length === 0) return;
+
+        // Cargar información solo para vehículos nuevos
+        const vehiculosPromises = idsACargar.map(async (id) => {
+          try {
+            const vehiculo = await getVehicleById(id);
+            return { id, vehiculo };
+          } catch (error) {
+            console.error(`Error al cargar vehículo con ID ${id}:`, error);
+            return { id, vehiculo: null };
+          }
+        });
+
+        // Esperar a que todas las promesas se resuelvan
+        const resultados = await Promise.all(vehiculosPromises);
+
+        // Actualizar el estado con los nuevos datos sin crear un nuevo objeto
+        // a menos que sea necesario
+        setVehiculosInfo((prevState) => {
+          const nuevosVehiculos = { ...prevState };
+          let actualizado = false;
+
+          resultados.forEach(({ id, vehiculo }) => {
+            if (
+              vehiculo &&
+              typeof vehiculo === "object" &&
+              "id" in vehiculo &&
+              "numeroInterno" in vehiculo &&
+              "placa" in vehiculo
+            ) {
+              nuevosVehiculos[id] = vehiculo as unknown as Vehiculo;
+              actualizado = true;
+            }
+          });
+
+          // Solo devolver un nuevo objeto si realmente se actualizó algo
+          return actualizado ? nuevosVehiculos : prevState;
+        });
+      } catch (error) {
+        console.error("Error al cargar información de vehículos:", error);
+      }
+    },
+    [vehiculosInfo]
+  );
+
   const handleEditClick = (mantenimiento: VehicleMaintenance) => {
     setSelectedMantenimiento(mantenimiento);
     setIsCreating(false);
@@ -148,7 +216,6 @@ const MantenimientoVehiculosComponent = ({
       );
     }
   };
-
   const handleCreateClick = () => {
     reset({
       vehiculoId: 0,
@@ -160,26 +227,46 @@ const MantenimientoVehiculosComponent = ({
     });
     setSelectedMantenimiento(null);
     setIsCreating(true);
+
+    // Resetear el store para asegurarnos de que no hay estado persistente
+    useMaintenanceVehicleStore.getState().reset();
   };
 
-  const handleDeleteClick = async (id: number) => {
-    if (confirm("¿Está seguro de que desea eliminar este mantenimiento?")) {
-      try {
-        await deleteMantenimientoVehiculo(id);
-        toast.success("Mantenimiento eliminado", {
-          description:
-            "El registro de mantenimiento se ha eliminado correctamente.",
-        });
-        await fetchMantenimientos();
-      } catch (error) {
-        console.error("Error al eliminar el mantenimiento:", error);
-        toast.error("Error", {
-          description: "No se pudo eliminar el mantenimiento.",
-        });
+  const handleDeleteClick = (id: number) => {
+    setMantenimientoToDelete(id);
+    setConfirmDialogOpen(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!mantenimientoToDelete) return;
+
+    try {
+      await deleteMantenimientoVehiculo(mantenimientoToDelete);
+      toast.success("Mantenimiento eliminado", {
+        description:
+          "El registro de mantenimiento se ha eliminado correctamente.",
+      });
+      await fetchMantenimientos();
+    } catch (error) {
+      console.error("Error al eliminar el mantenimiento:", error);
+
+      // Extraer el mensaje de error para mostrar información más precisa
+      let errorMessage = "No se pudo eliminar el mantenimiento.";
+
+      // Si es un error con mensaje personalizado, lo usamos
+      if (error instanceof Error) {
+        errorMessage = error.message || errorMessage;
       }
+
+      toast.error("Error", {
+        description: errorMessage,
+        duration: 5000, // Duración aumentada para mejor visibilidad
+      });
+    } finally {
+      setConfirmDialogOpen(false);
+      setMantenimientoToDelete(null);
     }
   };
-
   const handleCompletarClick = async (id: number) => {
     try {
       await completarMantenimientoVehiculo(id);
@@ -190,12 +277,21 @@ const MantenimientoVehiculosComponent = ({
       await fetchMantenimientos();
     } catch (error) {
       console.error("Error al completar el mantenimiento:", error);
+
+      // Extraer el mensaje de error para mostrar información más precisa
+      let errorMessage = "No se pudo completar el mantenimiento.";
+
+      // Si es un error con mensaje personalizado, lo usamos
+      if (error instanceof Error) {
+        errorMessage = error.message || errorMessage;
+      }
+
       toast.error("Error", {
-        description: "No se pudo completar el mantenimiento.",
+        description: errorMessage,
+        duration: 5000, // Duración aumentada para mejor visibilidad
       });
     }
   };
-
   const onSubmit = async (data: z.infer<typeof mantenimientoSchema>) => {
     try {
       if (selectedMantenimiento) {
@@ -212,47 +308,123 @@ const MantenimientoVehiculosComponent = ({
           description: "El mantenimiento se ha programado correctamente.",
         });
       }
-
       await fetchMantenimientos();
       setIsCreating(false);
       setSelectedMantenimiento(null);
+
+      // Resetear el estado en el store global
+      useMaintenanceVehicleStore.getState().reset();
     } catch (error) {
       console.error("Error en el envío del formulario:", error);
+
+      // Extraer el mensaje de error para mostrar información más precisa
+      let errorMessage = selectedMantenimiento
+        ? "No se pudo actualizar el mantenimiento."
+        : "No se pudo programar el mantenimiento.";
+
+      // Si es un error con mensaje personalizado, lo usamos
+      if (error instanceof Error) {
+        errorMessage = error.message || errorMessage;
+      }
+
       toast.error("Error", {
-        description: selectedMantenimiento
-          ? "No se pudo actualizar el mantenimiento."
-          : "No se pudo programar el mantenimiento.",
+        description: errorMessage,
+        duration: 5000, // Duración aumentada para mejor visibilidad
       });
     }
   };
-
   const fetchMantenimientos = useCallback(async () => {
     const currentPage = Number(searchParams.get("page")) || 1;
     const search = searchParams.get("search") || "";
     setLoading(true);
 
     try {
-      const fetchedMantenimientos = await getMantenimientosVehiculos(
+      const fetchedMantenimientos = (await getMantenimientosVehiculos(
         currentPage,
         itemsPerPage,
         search
-      );
+      )) as {
+        data: VehicleMaintenance[];
+        totalItems: number;
+        currentPage: number;
+      };
       setMantenimientos(fetchedMantenimientos.data);
       setTotal(fetchedMantenimientos.totalItems);
       setPage(fetchedMantenimientos.currentPage);
+
+      // Cargar información de vehículos
+      loadVehiclesInfo(fetchedMantenimientos.data);
     } catch (error) {
       console.error("Error al cargar los mantenimientos:", error);
+
+      let errorMessage = "No se pudieron cargar los mantenimientos.";
+      if (error instanceof Error) {
+        errorMessage = error.message || errorMessage;
+      }
+
       toast.error("Error", {
-        description: "No se pudieron cargar los mantenimientos.",
+        description: errorMessage,
+        duration: 5000,
       });
     } finally {
       setLoading(false);
     }
-  }, [searchParams, itemsPerPage]);
+  }, [searchParams, itemsPerPage, loadVehiclesInfo]);
 
+  // useEffect para manejar la carga de mantenimientos
   useEffect(() => {
-    fetchMantenimientos();
-  }, [fetchMantenimientos]);
+    if (!isFirstLoad) {
+      fetchMantenimientos();
+    } else {
+      setIsFirstLoad(false);
+    }
+  }, [searchParams, fetchMantenimientos, isFirstLoad]);
+
+  // useEffect para manejar el estado del store de Zustand
+  useEffect(() => {
+    // Verificar el estado inicial del store
+    const {
+      isCreateModalOpen,
+      selectedVehicleId,
+      reset: resetStore,
+    } = useMaintenanceVehicleStore.getState();
+
+    // Si hay datos en el store, procesar y limpiar
+    if (isCreateModalOpen && selectedVehicleId) {
+      reset({
+        vehiculoId: selectedVehicleId,
+        fechaMantenimiento: new Date().toISOString().split("T")[0],
+        tipoMantenimiento: "Preventivo",
+        descripcion: "",
+        costo: 0,
+        proximoMantenimiento: "",
+      });
+      setSelectedMantenimiento(null);
+      setIsCreating(true);
+
+      // Cargar detalles del vehículo solo una vez
+      getVehicleById(selectedVehicleId)
+        .then((vehiculoResult) => {
+          if (
+            vehiculoResult &&
+            typeof vehiculoResult === "object" &&
+            "placa" in vehiculoResult
+          ) {
+            toast.info("Creando mantenimiento", {
+              description: `Programando mantenimiento para ${
+                (vehiculoResult as Vehiculo).placa
+              } ${(vehiculoResult as Vehiculo).marca || ""} ${
+                (vehiculoResult as Vehiculo).modelo || ""
+              }`,
+            });
+          }
+        })
+        .catch((error) => console.error("Error al cargar detalles:", error));
+
+      // Limpiar el store
+      resetStore();
+    }
+  }, [reset]);
 
   const filteredMantenimientos =
     activeTab === "todos"
@@ -313,7 +485,6 @@ const MantenimientoVehiculosComponent = ({
           </Tabs>
         </div>
       </CardHeader>
-
       <CardContent className="p-6">
         <div className="rounded-md border">
           <ListadoTabla
@@ -341,10 +512,28 @@ const MantenimientoVehiculosComponent = ({
                       <Car className="h-5 w-5 text-slate-600" />
                     </div>
                     <div>
-                      <div className="font-medium">
-                        ID Vehículo: {mantenimiento.vehiculoId}
-                      </div>
-                      <div className="text-sm text-muted-foreground">
+                      {vehiculosInfo[mantenimiento.vehiculoId] ? (
+                        <>
+                          <div className="font-medium">
+                            {vehiculosInfo[mantenimiento.vehiculoId].placa}
+                          </div>
+                          {vehiculosInfo[mantenimiento.vehiculoId]
+                            .numeroInterno && (
+                            <div className="text-xs font-medium text-gray-500">
+                              N° Interno:{" "}
+                              {
+                                vehiculosInfo[mantenimiento.vehiculoId]
+                                  .numeroInterno
+                              }
+                            </div>
+                          )}
+                        </>
+                      ) : (
+                        <div className="font-medium">
+                          ID Vehículo: {mantenimiento.vehiculoId}
+                        </div>
+                      )}
+                      <div className="text-sm text-muted-foreground flex items-center">
                         <Tag className="h-3.5 w-3.5 mr-1" />#{mantenimiento.id}
                       </div>
                     </div>
@@ -454,14 +643,15 @@ const MantenimientoVehiculosComponent = ({
             )}
           />
         </div>
-      </CardContent>
-
+      </CardContent>{" "}
       <FormDialog
         open={isCreating || selectedMantenimiento !== null}
         onOpenChange={(open) => {
           if (!open) {
             setIsCreating(false);
             setSelectedMantenimiento(null);
+            // Asegurarse de que el store también se resetee
+            useMaintenanceVehicleStore.getState().reset();
           }
         }}
         title={
@@ -574,6 +764,31 @@ const MantenimientoVehiculosComponent = ({
               />
             )}
           />
+        </div>
+      </FormDialog>
+      <FormDialog
+        open={confirmDialogOpen}
+        submitButtonText="Eliminar"
+        submitButtonVariant="destructive"
+        onOpenChange={(open) => {
+          if (!open) {
+            setConfirmDialogOpen(false);
+            setMantenimientoToDelete(null);
+          }
+        }}
+        title="Confirmar eliminación"
+        onSubmit={(e) => {
+          e.preventDefault();
+          confirmDelete();
+        }}
+      >
+        <div className="space-y-4 py-4">
+          <p className="text-destructive font-semibold">¡Atención!</p>
+          <p>
+            Esta acción eliminará permanentemente este registro de
+            mantenimiento. Esta operación no se puede deshacer.
+          </p>
+          <p>¿Estás seguro de que deseas continuar?</p>
         </div>
       </FormDialog>
     </Card>

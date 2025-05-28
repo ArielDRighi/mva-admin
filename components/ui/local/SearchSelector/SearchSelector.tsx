@@ -70,9 +70,10 @@ export function SearchSelector<T extends Selectable>({
         setLoading(true);
         try {
           const item = await getItemById(value);
-          setSelectedItem(item);
-        } catch (error) {
+          setSelectedItem(item);        } catch (error) {
           console.error(`Error al cargar el elemento con ID ${value}:`, error);
+          
+          // El manejo de errores específico ahora se realiza en cada implementación de getItemById
         } finally {
           setLoading(false);
         }
@@ -91,9 +92,9 @@ export function SearchSelector<T extends Selectable>({
     setLoading(true);
     try {
       const results = await searchFn(term);
-      setItems(results);
-    } catch (error) {
+      setItems(results);    } catch (error) {
       console.error("Error al buscar:", error);
+      // El manejo de errores específico ahora se realiza en cada implementación de searchFn
       setItems([]);
     } finally {
       setLoading(false);

@@ -25,9 +25,13 @@ export function createServerAction<Args extends unknown[], Result>(
     try {
       return await action(...args);
     } catch (error) {
-      // Gestionar el error y mostrar toast
-      handleApiError(error, defaultErrorMessage);
-      throw error; // Re-lanzar para que el cliente pueda manejarlo si es necesario
+      // Gestionar el error y obtener el mensaje
+      const errorMessage = handleApiError(error, defaultErrorMessage);
+      // Creamos un nuevo error con el mensaje procesado
+      const enhancedError = new Error(errorMessage);
+      // Adjuntamos la información original para debugging
+      (enhancedError as { originalError?: unknown }).originalError = error;
+      throw enhancedError; // Re-lanzar con mensaje mejorado para que el cliente lo muestre
     }
   };
 }

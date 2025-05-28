@@ -122,15 +122,14 @@ export function ListadoTabla<T>({
           <div className="flex items-center gap-4 flex-col lg:flex-row">
             <h2 className="text-xl font-semibold">{title}</h2>
             {addButton}
-          </div>
-          {searchableKeys.length > 0 && (
+          </div>          {searchableKeys.length > 0 && (
             <form onSubmit={handleSearchSubmit}>
               <Input
                 type="text"
-                placeholder="Buscar..."
+                placeholder="Buscar por placa, marca o modelo..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="max-w-sm"
+                className="w-80 max-w-sm"
               />
             </form>
           )}

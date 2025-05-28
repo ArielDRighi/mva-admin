@@ -119,13 +119,13 @@ Content-Type: application/json
 
 **Parámetros de consulta opcionales:**
 
-| Parámetro     | Tipo               | Descripción                                                       |
-| ------------- | ------------------ | ----------------------------------------------------------------- |
-| estado        | string             | Filtrar por estado (DISPONIBLE, ASIGNADO, EN_MANTENIMIENTO, etc.) |
-| modelo        | string             | Filtrar por modelo (búsqueda parcial)                             |
-| codigoInterno | string             | Filtrar por código interno (búsqueda parcial)                     |
-| fechaDesde    | string (fecha ISO) | Filtrar por fecha de adquisición desde                            |
-| fechaHasta    | string (fecha ISO) | Filtrar por fecha de adquisición hasta                            |
+| Parámetro     | Tipo               | Descripción                                                    |
+| ------------- | ------------------ | -------------------------------------------------------------- |
+| estado        | string             | Filtrar por estado (DISPONIBLE, ASIGNADO, MANTENIMIENTO, etc.) |
+| modelo        | string             | Filtrar por modelo (búsqueda parcial)                          |
+| codigoInterno | string             | Filtrar por código interno (búsqueda parcial)                  |
+| fechaDesde    | string (fecha ISO) | Filtrar por fecha de adquisición desde                         |
+| fechaHasta    | string (fecha ISO) | Filtrar por fecha de adquisición hasta                         |
 
 **Ejemplos:**
 
@@ -290,7 +290,7 @@ GET /api/chemical_toilets/stats/1
 }
 ```
 
-**Nota:** Si el mantenimiento se programa para la fecha actual o una fecha pasada, el estado del baño cambiará automáticamente a "EN_MANTENIMIENTO". Si se programa para una fecha futura, el baño permanecerá en su estado actual.
+**Nota:** Si el mantenimiento se programa para la fecha actual o una fecha pasada, el estado del baño cambiará automáticamente a "MANTENIMIENTO". Si se programa para una fecha futura, el baño permanecerá en su estado actual.
 
 ### 2. Obtener Todos los Mantenimientos
 
@@ -513,7 +513,7 @@ Los baños químicos pueden tener los siguientes estados:
 | ----------------- | ---------------------------------------- | --------------------- |
 | DISPONIBLE        | Baño listo para ser asignado a servicios | Sí                    |
 | ASIGNADO          | Baño actualmente asignado a un servicio  | No                    |
-| EN_MANTENIMIENTO  | Baño en mantenimiento                    | No                    |
+| MANTENIMIENTO     | Baño en mantenimiento                    | No                    |
 | FUERA_DE_SERVICIO | Baño temporalmente fuera de servicio     | No                    |
 | BAJA              | Baño permanentemente fuera de servicio   | No                    |
 
@@ -611,12 +611,12 @@ Los baños químicos pueden tener los siguientes estados:
 
 ### 3. Mantenimiento No Planificado
 
-1. **Marcar un baño como "EN_MANTENIMIENTO"**
+1. **Marcar un baño como "MANTENIMIENTO"**
 
    ```
    PUT /api/chemical_toilets/2
    {
-     "estado": "EN_MANTENIMIENTO"
+     "estado": "MANTENIMIENTO"
    }
    ```
 

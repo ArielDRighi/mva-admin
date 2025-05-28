@@ -5,6 +5,7 @@ import { Empleado } from "@/types/types";
 import { Badge } from "@/components/ui/badge";
 import { SearchSelector } from "../SearchSelector";
 import { Calendar, UserRound } from "lucide-react";
+import { toast } from "sonner";
 
 interface EmpleadoSelectorProps {
   value: number;
@@ -22,14 +23,89 @@ export function EmpleadoSelector({
   name,
   error,
   disabled = false,
-}: EmpleadoSelectorProps) {
-  const searchEmpleados = async (term: string) => {
+}: EmpleadoSelectorProps) {  const searchEmpleados = async (term: string) => {
     try {
-      const result = await getEmployees(1, 5, term);
-      return result.data || result.items || [];
+      console.log("Buscando empleados con término:", term);
+      
+      // Ahora obtenemos 15 resultados en lugar de 5 para mostrar más opciones 
+      const result = await getEmployees(1, 15, term);
+      
+      // Añadimos una validación de tipo para asegurar que result tenga la estructura esperada
+      if (result && typeof result === 'object') {
+        // Definir tipos específicos en lugar de usar any
+        type EmpleadosResponse = { 
+          data?: Empleado[]; 
+          items?: Empleado[];
+        };
+        
+        // Intentamos acceder a data o items con verificación de tipo
+        const typedResult = (result as unknown) as EmpleadosResponse;
+        const items = typedResult.data || typedResult.items || [];
+        
+        // Filtrar solo empleados disponibles (no en licencia, de baja, etc.)
+        const filteredItems = items.filter(emp => 
+          emp.estado === "DISPONIBLE" || emp.estado === "ASIGNADO"
+        );
+        
+        console.log("Empleados filtrados:", filteredItems.length);
+        return filteredItems;
+      }
+      return [];
     } catch (error) {
       console.error("Error al buscar empleados:", error);
+      
+      // Extraer el mensaje de error para mostrar información más precisa
+      let errorMessage = "Intente nuevamente o contacte al administrador.";
+      
+      // Si es un error con mensaje personalizado, lo usamos
+      if (error instanceof Error) {
+        errorMessage = error.message || errorMessage;
+      }
+      
+      // Mostrar toast con el error
+      toast.error("No se pudieron cargar los empleados", {
+        description: errorMessage,
+        duration: 5000, // Duración aumentada para mejor visibilidad
+      });
+      
       return [];
+    }
+  };const getEmpleadoById = async (id: number): Promise<Empleado> => {
+    try {
+      const empleado = await getEmployeeById(id.toString());
+      return empleado as Empleado;
+    } catch (error) {
+      console.error(`Error al cargar el empleado con ID ${id}:`, error);
+      
+      // Extraer el mensaje de error para mostrar información más precisa
+      let errorMessage = `No se pudo cargar el empleado con ID ${id}`;
+      
+      // Si es un error con mensaje personalizado, lo usamos
+      if (error instanceof Error) {
+        errorMessage = error.message || errorMessage;
+      }
+      
+      // Mostrar toast con el error
+      toast.error("Error al cargar empleado", {
+        description: errorMessage,
+        duration: 5000, // Duración aumentada para mejor visibilidad
+      });
+      
+      // Devolvemos un objeto empleado con datos mínimos para evitar errores en la UI
+      return {
+        id: id,
+        nombre: "Error al cargar",
+        apellido: "",
+        documento: `ID: ${id}`,
+        cargo: "No disponible",
+        estado: "NO_DISPONIBLE",
+        fecha_contratacion: new Date().toISOString(),
+        telefono: "",
+        email: "",
+        cuil: "",
+        cbu: "",
+        numero_legajo: 0
+      };
     }
   };
 
@@ -43,7 +119,7 @@ export function EmpleadoSelector({
       disabled={disabled}
       placeholder="Buscar por nombre o documento"
       searchFn={searchEmpleados}
-      getItemById={(id) => getEmployeeById(id.toString())}
+      getItemById={getEmpleadoById}
       minSearchLength={2}
       renderSelected={(empleado) => (
         <div className="flex flex-1 items-center justify-between">

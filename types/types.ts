@@ -275,7 +275,7 @@ export type Sanitario = {
   estado:
     | "DISPONIBLE"
     | "ASIGNADO"
-    | "EN_MANTENIMIENTO"
+    | "MANTENIMIENTO"
     | "FUERA_DE_SERVICIO"
     | "BAJA"
     | string;
@@ -388,3 +388,12 @@ export interface RopaTalles {
   createdAt: Date;
   updatedAt: Date;
 }
+
+/**
+ * Tipo para manejar errores provenientes del backend
+ */
+export type ApiError = {
+  message: string;
+  error: string;
+  statusCode: number;
+};

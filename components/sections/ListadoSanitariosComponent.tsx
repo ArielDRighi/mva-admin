@@ -81,7 +81,7 @@ const ListadoSanitariosComponent = ({
       [
         "DISPONIBLE",
         "ASIGNADO",
-        "EN_MANTENIMIENTO",
+        "MANTENIMIENTO",
         "FUERA_DE_SERVICIO",
         "BAJA",
       ],
@@ -217,7 +217,7 @@ const ListadoSanitariosComponent = ({
           if (activeTab === "disponible") return san.estado === "DISPONIBLE";
           if (activeTab === "asignado") return san.estado === "ASIGNADO";
           if (activeTab === "mantenimiento")
-            return san.estado === "EN_MANTENIMIENTO";
+            return san.estado === "MANTENIMIENTO";
           if (activeTab === "fuera_servicio")
             return san.estado === "FUERA_DE_SERVICIO";
           if (activeTab === "baja") return san.estado === "BAJA";
@@ -343,7 +343,7 @@ const ListadoSanitariosComponent = ({
                         ? "bg-green-100 text-green-800 hover:bg-green-100"
                         : sanitario.estado === "BAJA"
                         ? "bg-red-100 text-red-800 hover:bg-red-100"
-                        : sanitario.estado === "EN_MANTENIMIENTO"
+                        : sanitario.estado === "MANTENIMIENTO"
                         ? "bg-amber-100 text-amber-800 hover:bg-amber-100"
                         : sanitario.estado === "FUERA_DE_SERVICIO"
                         ? "bg-red-50 text-red-600 hover:bg-red-50"
@@ -458,7 +458,7 @@ const ListadoSanitariosComponent = ({
                 options={[
                   { label: "Disponible", value: "DISPONIBLE" },
                   { label: "Asignado", value: "ASIGNADO" },
-                  { label: "En mantenimiento", value: "EN_MANTENIMIENTO" },
+                  { label: "En mantenimiento", value: "MANTENIMIENTO" },
                   { label: "Fuera de servicio", value: "FUERA_DE_SERVICIO" },
                   { label: "Baja", value: "BAJA" },
                 ]}

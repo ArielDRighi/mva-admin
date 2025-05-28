@@ -20,7 +20,7 @@ const dataSideBar = {
   navMain: [
     {
       title: "Vehículos",
-      url: "#",
+      url: "/admin/dashboard/vehiculos",
       icon: Car,
       items: [
         { title: "Listado", url: "/admin/dashboard/vehiculos/listado" },
