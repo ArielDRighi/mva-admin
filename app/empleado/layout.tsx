@@ -1,4 +1,6 @@
 import { Toaster } from "sonner";
+import AuthWrapper from "@/components/auth/AuthWrapper";
+import AuthErrorHandler from "@/components/auth/AuthErrorHandler";
 
 export default function DashboardEmployeeLayout({
   children,
@@ -6,9 +8,12 @@ export default function DashboardEmployeeLayout({
   children: React.ReactNode;
 }) {
   return (
-    <main>
-      {children}
-      <Toaster richColors closeButton />
-    </main>
+    <AuthWrapper>
+      <main>
+        <AuthErrorHandler />
+        {children}
+        <Toaster richColors closeButton />
+      </main>
+    </AuthWrapper>
   );
 }

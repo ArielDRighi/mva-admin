@@ -7,7 +7,7 @@ import {
   getSanitariosEnMantenimiento,
 } from "@/app/actions/sanitarios";
 import { SanitarioSelector } from "@/components/ui/local/SearchSelector/Selectors/SanitarioSelector";
-import { MantenimientoSanitarioForm } from "@/types/types";
+import { MantenimientoSanitario } from "@/types/types";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter, useSearchParams } from "next/navigation";
 import React, { useCallback, useEffect, useState } from "react";
@@ -38,6 +38,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useMaintenanceToiletStore } from "@/store/maintenanceToiletStore";
 
 const MantenimientoSanitariosComponent = ({
   data,
@@ -45,7 +46,7 @@ const MantenimientoSanitariosComponent = ({
   currentPage,
   itemsPerPage,
 }: {
-  data: MantenimientoSanitarioForm[];
+  data: MantenimientoSanitario[];
   totalItems: number;
   currentPage: number;
   itemsPerPage: number;
@@ -54,18 +55,23 @@ const MantenimientoSanitariosComponent = ({
   const searchParams = useSearchParams();
 
   const [mantenimientoSanitarios, setMantenimientoSanitarios] =
-    useState<MantenimientoSanitarioForm[]>(data);
+    useState<MantenimientoSanitario[]>(data);
   const [total, setTotal] = useState<number>(totalItems);
   const [page, setPage] = useState<number>(currentPage);
   const [loading, setLoading] = useState<boolean>(false);
   const [selectedMantenimientoSanitario, setSelectedMantenimientoSanitario] =
-    useState<MantenimientoSanitarioForm | null>(null);
+    useState<MantenimientoSanitario | null>(null);
   const [isCreating, setIsCreating] = useState(false);
   const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
   const [mantenimientoToComplete, setMantenimientoToComplete] = useState<
     number | null
   >(null);
+  const [confirmDeleteDialogOpen, setConfirmDeleteDialogOpen] = useState(false);
+  const [mantenimientoToDelete, setMantenimientoToDelete] = useState<
+    number | null
+  >(null);
   const [activeTab, setActiveTab] = useState("todos");
+  const [isFirstLoad, setIsFirstLoad] = useState(true);
 
   const createSanitarioSchema = z.object({
     baño_id: z.number({
@@ -115,10 +121,17 @@ const MantenimientoSanitariosComponent = ({
     params.set("page", String(page));
     router.replace(`?${params.toString()}`);
   };
-
   const handleSearchChange = (search: string) => {
     const params = new URLSearchParams(searchParams.toString());
-    params.set("search", search);
+
+    // Si no hay término de búsqueda, eliminar el parámetro
+    if (!search || search.trim() === "") {
+      params.delete("search");
+    } else {
+      params.set("search", search);
+    }
+
+    // Siempre volver a la primera página al buscar
     params.set("page", "1");
     router.replace(`?${params.toString()}`);
   };
@@ -145,12 +158,10 @@ const MantenimientoSanitariosComponent = ({
           return true;
         });
 
-  const handleEditClick = (
-    mantenimientoSanitario: MantenimientoSanitarioForm
-  ) => {
+  const handleEditClick = (mantenimientoSanitario: MantenimientoSanitario) => {
     setSelectedMantenimientoSanitario(mantenimientoSanitario);
     setIsCreating(false);
-    setValue("baño_id", mantenimientoSanitario.baño_id);
+    setValue("baño_id", mantenimientoSanitario.baño_id ?? 0);
     setValue(
       "fecha_mantenimiento",
       mantenimientoSanitario.fecha_mantenimiento ||
@@ -179,118 +190,147 @@ const MantenimientoSanitariosComponent = ({
     setSelectedMantenimientoSanitario(null);
     setIsCreating(true);
   };
+  // Esta función ahora solo muestra el diálogo de confirmación
+  const handleDeleteClick = (id: number) => {
+    setMantenimientoToDelete(id);
+    setConfirmDeleteDialogOpen(true);
+  };
 
-  const handleDeleteClick = async (id: number) => {
+  // Función que realmente elimina después de la confirmación
+  const confirmDelete = async () => {
+    if (!mantenimientoToDelete) return;
+
     try {
-      await deleteSanitarioEnMantenimiento(id);
+      setLoading(true);
+      await deleteSanitarioEnMantenimiento(mantenimientoToDelete);
+
       toast.success("Mantenimiento eliminado", {
         description:
           "El registro de mantenimiento se ha eliminado correctamente.",
+        duration: 3000,
       });
-      await fetchSanitariosMantenimiento();    } catch (error) {
+
+      await fetchSanitariosMantenimiento();
+    } catch (error) {
       console.error("Error al eliminar el mantenimiento:", error);
-      
+
       // Extraer el mensaje de error para mostrar información más precisa
-      let errorMessage = "No se pudo eliminar el registro de mantenimiento.";
-      
-      // Si es un error con mensaje personalizado, lo usamos
-      if (error instanceof Error) {
-        errorMessage = error.message || errorMessage;
-      }
-      
+      const errorMessage =
+        error instanceof Error ? error.message : "Error desconocido";
+
       toast.error("Error al eliminar mantenimiento", {
         description: errorMessage,
-        duration: 5000, // Duración aumentada para mejor visibilidad
+        duration: 5000,
       });
+    } finally {
+      setLoading(false);
+      setConfirmDeleteDialogOpen(false);
+      setMantenimientoToDelete(null);
     }
   };
-
   const handleCompleteClick = async (id: number) => {
     try {
+      setLoading(true);
       await completarMantenimientoSanitario(id);
+
       toast.success("Mantenimiento completado", {
         description: "El mantenimiento se ha marcado como completado.",
+        duration: 3000,
       });
-      await fetchSanitariosMantenimiento();    } catch (error) {
+
+      await fetchSanitariosMantenimiento();
+    } catch (error) {
       console.error("Error al completar el mantenimiento:", error);
-      
+
       // Extraer el mensaje de error para mostrar información más precisa
-      let errorMessage = "No se pudo completar el mantenimiento.";
-      
-      // Si es un error con mensaje personalizado, lo usamos
-      if (error instanceof Error) {
-        errorMessage = error.message || errorMessage;
-      }
-      
+      const errorMessage =
+        error instanceof Error ? error.message : "Error desconocido";
+
       toast.error("Error al completar mantenimiento", {
         description: errorMessage,
-        duration: 5000, // Duración aumentada para mejor visibilidad
+        duration: 5000,
       });
+    } finally {
+      setLoading(false);
     }
   };
-
   const onSubmit = async (data: z.infer<typeof createSanitarioSchema>) => {
     try {
+      setLoading(true);
+
       if (
         selectedMantenimientoSanitario &&
-        selectedMantenimientoSanitario.baño_id
+        selectedMantenimientoSanitario.mantenimiento_id
       ) {
-        await editSanitarioEnMantenimiento(
-          selectedMantenimientoSanitario.mantenimiento_id!,
+        // Actualizar mantenimiento existente
+        const result = await editSanitarioEnMantenimiento(
+          selectedMantenimientoSanitario.mantenimiento_id,
           data
         );
-        toast.success("Mantenimiento actualizado", {
-          description: "Los cambios se han guardado correctamente.",
-        });
+
+        // Verificar resultado
+        if (result) {
+          toast.success("Mantenimiento actualizado", {
+            description: "Los cambios se han guardado correctamente.",
+            duration: 3000,
+          });
+        }
       } else {
-        await createSanitarioEnMantenimiento(data);
-        toast.success("Mantenimiento creado", {
-          description: "El mantenimiento se ha registrado correctamente.",
-        });
+        // Crear nuevo mantenimiento
+        const result = await createSanitarioEnMantenimiento(data);
+
+        // Verificar resultado
+        if (result) {
+          toast.success("Mantenimiento creado", {
+            description: "El mantenimiento se ha registrado correctamente.",
+            duration: 3000,
+          });
+        }
       }
 
       await fetchSanitariosMantenimiento();
       setIsCreating(false);
-      setSelectedMantenimientoSanitario(null);    } catch (error) {
+      setSelectedMantenimientoSanitario(null);
+    } catch (error) {
       console.error("Error en el envío del formulario:", error);
-      
-      // Extraer el mensaje de error para mostrar información más precisa
-      let errorMessage = selectedMantenimientoSanitario
-          ? "No se pudo actualizar el mantenimiento."
-          : "No se pudo crear el mantenimiento.";
-      
-      // Si es un error con mensaje personalizado, lo usamos
-      if (error instanceof Error) {
-        errorMessage = error.message || errorMessage;
-      }
-      
-      toast.error(selectedMantenimientoSanitario ? "Error al actualizar" : "Error al crear", {
-        description: errorMessage,
-        duration: 5000, // Duración aumentada para mejor visibilidad
-      });
-    }
-  };  const fetchSanitariosMantenimiento = useCallback(async () => {
-    const currentPage = Number(searchParams.get("page")) || 1;
-    const search = searchParams.get("search") || "";
-    setLoading(true);
 
+      // Extraer el mensaje de error para mostrar información más precisa
+      const errorMessage =
+        error instanceof Error ? error.message : "Error desconocido";
+
+      toast.error(
+        selectedMantenimientoSanitario
+          ? "Error al actualizar mantenimiento"
+          : "Error al crear mantenimiento",
+        {
+          description: errorMessage,
+          duration: 5000,
+        }
+      );
+    } finally {
+      setLoading(false);
+    }
+  }; // Definición del tipo fuera de la función para evitar errores de importación
+  type ApiResponse = {
+    data: MantenimientoSanitario[];
+    total: number;
+    page: number;
+  };
+  const fetchSanitariosMantenimiento = useCallback(async () => {
     try {
+      setLoading(true);
+      const currentPage = Number(searchParams.get("page")) || 1;
+      const searchTerm = searchParams.get("search") || "";
+
+      // Realizar la petición para obtener los mantenimientos
       const result = await getSanitariosEnMantenimiento(
         currentPage,
         itemsPerPage,
-        search
+        searchTerm
       );
-      
+
       // Verificar que la respuesta tenga la estructura esperada
-      if (result && typeof result === 'object') {        // Usar el tipo correcto para los mantenimientos
-        import type { MantenimientoSanitarioForm } from "@/types/types"; // Esta línea debe ser movida al inicio del archivo
-        
-        type ApiResponse = {
-          data: MantenimientoSanitarioForm[];
-          total: number;
-          page: number;
-        };
-        
+      if (result && typeof result === "object") {
         const typedResult = result as ApiResponse;
         setMantenimientoSanitarios(typedResult.data || []);
         setTotal(typedResult.total || 0);
@@ -298,18 +338,13 @@ const MantenimientoSanitariosComponent = ({
       }
     } catch (error) {
       console.error("Error al cargar los mantenimientos:", error);
-      
-      // Extraer el mensaje de error para mostrar información más precisa
-      let errorMessage = "No se pudieron cargar los mantenimientos de sanitarios.";
-      
-      // Si es un error con mensaje personalizado, lo usamos
-      if (error instanceof Error) {
-        errorMessage = error.message || errorMessage;
-      }
-      
+
+      // Los errores de autenticación ya son manejados por AuthErrorHandler
+      // Solo mostramos el mensaje de error genérico
       toast.error("Error al cargar mantenimientos", {
-        description: errorMessage,
-        duration: 5000, // Duración aumentada para mejor visibilidad
+        description:
+          error instanceof Error ? error.message : "Error desconocido",
+        duration: 5000,
       });
     } finally {
       setLoading(false);
@@ -318,6 +353,43 @@ const MantenimientoSanitariosComponent = ({
   useEffect(() => {
     fetchSanitariosMantenimiento();
   }, [fetchSanitariosMantenimiento]);
+  // Efecto para manejar la apertura del modal de creación a partir del store
+  useEffect(() => {
+    // Solo ejecutar en el primer renderizado
+    if (isFirstLoad) {
+      setIsFirstLoad(false);
+
+      // Verificar el estado inicial del store
+      const { isCreateModalOpen, selectedToiletId } =
+        useMaintenanceToiletStore.getState();
+
+      // Si hay datos en el store, mostrar el formulario de creación
+      if (isCreateModalOpen && selectedToiletId) {
+        // Resetear el formulario
+        reset({
+          baño_id: Number(selectedToiletId),
+          fecha_mantenimiento: new Date().toISOString().split("T")[0],
+          tipo_mantenimiento: "Preventivo",
+          descripcion: "",
+          tecnico_responsable: "",
+          costo: 0,
+        });
+
+        // Mostrar el formulario de creación
+        setIsCreating(true);
+
+        // Notificar al usuario
+        toast.info("Programar mantenimiento", {
+          description: `Creando mantenimiento para el sanitario seleccionado`,
+          duration: 3000,
+        });
+
+        // Importante: Resetear el store después de procesarlo para evitar que
+        // se vuelva a abrir el modal al volver a la página
+        useMaintenanceToiletStore.getState().reset();
+      }
+    }
+  }, [isFirstLoad, reset]);
 
   if (loading) {
     return (
@@ -375,7 +447,6 @@ const MantenimientoSanitariosComponent = ({
           </Tabs>
         </div>
       </CardHeader>
-
       <CardContent className="p-6">
         <div className="rounded-md border">
           <ListadoTabla
@@ -386,12 +457,16 @@ const MantenimientoSanitariosComponent = ({
               "tipo_mantenimiento",
               "tecnico_responsable",
               "descripcion",
+              "baño_id",
+              "completado",
+              "toilet.codigo_interno",
             ]}
             remotePagination
             totalItems={total}
             currentPage={page}
             onPageChange={handlePageChange}
             onSearchChange={handleSearchChange}
+            searchPlaceholder="Buscar por tipo, descripción, técnico, ID de baño, código o estado..."
             columns={[
               { title: "Sanitario", key: "codigo_interno" },
               { title: "Fecha", key: "fecha_mantenimiento" },
@@ -532,7 +607,6 @@ const MantenimientoSanitariosComponent = ({
           />
         </div>
       </CardContent>
-
       <FormDialog
         open={isCreating || selectedMantenimientoSanitario !== null}
         onOpenChange={(open) => {
@@ -656,8 +730,7 @@ const MantenimientoSanitariosComponent = ({
             )}
           />
         </div>
-      </FormDialog>
-
+      </FormDialog>{" "}
       <FormDialog
         open={confirmDialogOpen}
         submitButtonText="Confirmar"
@@ -683,6 +756,32 @@ const MantenimientoSanitariosComponent = ({
             Esta acción marcará el mantenimiento como completado y no será
             reversible. ¿Estás seguro de que deseas continuar?
           </p>
+        </div>
+      </FormDialog>
+      {/* Diálogo de confirmación para eliminación */}
+      <FormDialog
+        open={confirmDeleteDialogOpen}
+        submitButtonText="Eliminar"
+        submitButtonVariant="destructive"
+        onOpenChange={(open) => {
+          if (!open) {
+            setConfirmDeleteDialogOpen(false);
+            setMantenimientoToDelete(null);
+          }
+        }}
+        title="Confirmar eliminación"
+        onSubmit={(e) => {
+          e.preventDefault();
+          confirmDelete();
+        }}
+      >
+        <div className="space-y-4 py-4">
+          <p className="text-destructive font-semibold">¡Atención!</p>
+          <p>
+            Esta acción eliminará permanentemente este registro de
+            mantenimiento. Esta operación no se puede deshacer.
+          </p>
+          <p>¿Estás seguro de que deseas continuar?</p>
         </div>
       </FormDialog>
     </Card>

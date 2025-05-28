@@ -9,42 +9,28 @@ import {
 
 /**
  * Obtiene una lista paginada de sanitarios con posibilidad de filtrado
- * Esta función maneja errores de manera especial para devolver un objeto vacío en caso de error
- * en lugar de lanzar una excepción
+ * @param page Número de página
+ * @param limit Límite de resultados por página
+ * @param search Término de búsqueda opcional
+ * @returns Lista paginada de sanitarios
  */
-export async function getSanitarios(
-  page: number = 1,
-  limit: number = 15,
-  search: string = ""
-) {
-  try {
+export const getSanitarios = createServerAction(
+  async (page: number = 1, limit: number = 15, search: string = "") => {
     const headers = await createAuthHeaders();
     const searchQuery = search ? `&search=${search}` : "";
-    const apiUrl = `${process.env.NEXT_PUBLIC_API_URL}/api/chemical_toilets?page=${page}&limit=${limit}${searchQuery}`;
 
-    console.log(`Fetching sanitarios from: ${apiUrl}`);
+    const res = await fetch(
+      `${process.env.NEXT_PUBLIC_API_URL}/api/chemical_toilets?page=${page}&limit=${limit}${searchQuery}`,
+      {
+        headers,
+        cache: "no-store",
+      }
+    );
 
-    const res = await fetch(apiUrl, {
-      headers,
-      cache: "no-store",
-    });
-
-    if (!res.ok) {
-      const errorText = await res.text().catch(() => "");
-      console.error(
-        `Error en getSanitarios: Status ${res.status}, Error: ${errorText}`
-      );
-      // En lugar de lanzar un error, retornamos un objeto vacío pero válido
-      return { items: [], total: 0, page: page, limit: limit, totalPages: 0 };
-    }
-
-    return await res.json();
-  } catch (error) {
-    console.error("Error en getSanitarios:", error);
-    // Devolvemos un objeto vacío pero con la estructura esperada
-    return { items: [], total: 0, page: page, limit: limit, totalPages: 0 };
-  }
-}
+    return handleApiResponse(res, "Error al obtener los sanitarios");
+  },
+  "Error al obtener los sanitarios"
+);
 
 /**
  * Edita un sanitario existente

@@ -80,6 +80,11 @@ const MantenimientoVehiculosComponent = ({
   const [mantenimientoToDelete, setMantenimientoToDelete] = useState<
     number | null
   >(null);
+  const [confirmCompleteDialogOpen, setConfirmCompleteDialogOpen] =
+    useState(false);
+  const [mantenimientoToComplete, setMantenimientoToComplete] = useState<
+    number | null
+  >(null);
 
   const mantenimientoSchema = z.object({
     vehiculoId: z.number({
@@ -266,14 +271,27 @@ const MantenimientoVehiculosComponent = ({
       setConfirmDialogOpen(false);
       setMantenimientoToDelete(null);
     }
+  }; // Estado para el manejo de la confirmación de completado
+  // Esta función ahora solo muestra el diálogo de confirmación
+  const handleCompletarClick = (id: number) => {
+    setMantenimientoToComplete(id);
+    setConfirmCompleteDialogOpen(true);
   };
-  const handleCompletarClick = async (id: number) => {
+
+  // Función que realmente completa el mantenimiento después de la confirmación
+  const confirmComplete = async () => {
+    if (!mantenimientoToComplete) return;
+
     try {
-      await completarMantenimientoVehiculo(id);
+      setLoading(true);
+      await completarMantenimientoVehiculo(mantenimientoToComplete);
+
       toast.success("Mantenimiento completado", {
         description:
           "El mantenimiento se ha marcado como completado correctamente.",
+        duration: 3000,
       });
+
       await fetchMantenimientos();
     } catch (error) {
       console.error("Error al completar el mantenimiento:", error);
@@ -290,6 +308,10 @@ const MantenimientoVehiculosComponent = ({
         description: errorMessage,
         duration: 5000, // Duración aumentada para mejor visibilidad
       });
+    } finally {
+      setLoading(false);
+      setConfirmCompleteDialogOpen(false);
+      setMantenimientoToComplete(null);
     }
   };
   const onSubmit = async (data: z.infer<typeof mantenimientoSchema>) => {
@@ -788,7 +810,31 @@ const MantenimientoVehiculosComponent = ({
             Esta acción eliminará permanentemente este registro de
             mantenimiento. Esta operación no se puede deshacer.
           </p>
-          <p>¿Estás seguro de que deseas continuar?</p>
+          <p>¿Estás seguro de que deseas continuar?</p>{" "}
+        </div>
+      </FormDialog>
+      {/* Diálogo de confirmación para completar mantenimiento */}
+      <FormDialog
+        open={confirmCompleteDialogOpen}
+        submitButtonText="Confirmar"
+        onOpenChange={(open) => {
+          if (!open) {
+            setConfirmCompleteDialogOpen(false);
+            setMantenimientoToComplete(null);
+          }
+        }}
+        title="Confirmar completado del mantenimiento"
+        onSubmit={(e) => {
+          e.preventDefault();
+          confirmComplete();
+        }}
+      >
+        <div className="space-y-4 py-4">
+          <p className="text-destructive font-semibold">¡Atención!</p>
+          <p>
+            Esta acción marcará el mantenimiento como completado y no será
+            reversible. ¿Estás seguro de que deseas continuar?
+          </p>
         </div>
       </FormDialog>
     </Card>

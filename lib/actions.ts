@@ -79,12 +79,68 @@ export async function getAuthToken(): Promise<string> {
 export async function createAuthHeaders(
   contentType: string = "application/json"
 ): Promise<HeadersInit> {
-  const token = await getAuthToken();
+  try {
+    // Importar las utilidades de token solo en el cliente
+    if (typeof window !== "undefined") {
+      const { isTokenExpiring, refreshAuthToken } = await import(
+        "./tokenUtils"
+      );
+      const { getCookie } = await import("cookies-next");
+      const token = getCookie("token") as string | undefined;
 
-  return {
-    Authorization: `Bearer ${token}`,
-    "Content-Type": contentType,
-  };
+      // Si el token existe y está por expirar, intentar refrescarlo
+      if (token && isTokenExpiring(token)) {
+        const refreshed = await refreshAuthToken();
+        console.log("Token refreshed:", refreshed);
+
+        // Si no se pudo refrescar, redirigir al login
+        if (!refreshed) {
+          window.location.href = "/login";
+          throw new Error(
+            "No se pudo refrescar el token. Por favor, inicia sesión nuevamente."
+          );
+        }
+
+        // Obtener el nuevo token después del refresh
+        const newToken = getCookie("token") as string | undefined;
+        if (newToken) {
+          return {
+            Authorization: `Bearer ${newToken}`,
+            "Content-Type": contentType,
+          };
+        }
+      }
+    }
+
+    // Obtener el token de forma normal (para servidor o cliente)
+    const token = await getAuthToken();
+
+    // Validar si el token parece expirado o inválido (verificación básica)
+    if (typeof token !== "string" || token.trim() === "") {
+      console.error("Token inválido detectado en createAuthHeaders");
+
+      // En el cliente, redirigir al login
+      if (typeof window !== "undefined") {
+        window.location.href = "/login";
+      }
+
+      throw new Error("Token inválido. Por favor, inicia sesión nuevamente.");
+    }
+
+    return {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": contentType,
+    };
+  } catch (error) {
+    console.error("Error al crear headers de autenticación:", error);
+
+    // En el cliente, redirigir al login
+    if (typeof window !== "undefined") {
+      window.location.href = "/login";
+    }
+
+    throw error;
+  }
 }
 
 /**

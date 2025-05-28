@@ -1,9 +1,10 @@
 import React from "react";
 import { getSanitarios } from "@/app/actions/sanitarios";
 import ListadoSanitariosComponent from "@/components/sections/ListadoSanitariosComponent";
+import { SanitariosResponse } from "@/types/types";
 
 export default async function ListadoSanitariosPage() {
-  const sanitarios = await getSanitarios();
+  const sanitarios = await getSanitarios() as SanitariosResponse;
 
   return (
     <main className="flex flex-1 flex-col gap-4 p-4 pt-0">
@@ -11,8 +12,8 @@ export default async function ListadoSanitariosPage() {
         <ListadoSanitariosComponent
           data={sanitarios.items}
           totalItems={sanitarios.total}
-          currentPage={sanitarios.currentPage}
-          itemsPerPage={sanitarios.itemsPerPage}
+          currentPage={sanitarios.page}
+          itemsPerPage={sanitarios.limit}
         />
       </div>
     </main>

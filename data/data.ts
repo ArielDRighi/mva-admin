@@ -52,7 +52,7 @@ const dataSideBar = {
     },
     {
       title: "Sanitarios",
-      url: "#",
+      url: "/admin/dashboard/sanitarios",
       icon: Toilet,
       items: [
         { title: "Listado", url: "/admin/dashboard/sanitarios/listado" },
@@ -70,7 +70,7 @@ const dataSideBar = {
     },
     {
       title: "Servicios",
-      url: "#",
+      url: "/admin/dashboard/servicios",
       icon: Hammer,
       items: [
         {

@@ -13,12 +13,13 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { loginUser } from "@/app/actions/login";
 import { setCookie } from "cookies-next";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Image from "next/image";
 import Loader from "../ui/local/Loader";
+import { toast } from "sonner";
 
 const formSchema = z.object({
   email: z.string().min(3, { message: "El mail es obligatorio" }),
@@ -27,8 +28,20 @@ const formSchema = z.object({
 
 const LoginComponent = () => {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [formError, setFormError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+
+  // Verificar si el usuario fue redirigido por sesión expirada
+  useEffect(() => {
+    const expired = searchParams.get("expired");
+    if (expired === "true") {
+      toast.error("Sesión expirada", {
+        description: "Por favor, inicia sesión nuevamente",
+        duration: 4000,
+      });
+    }
+  }, [searchParams]);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
