@@ -6,14 +6,18 @@ import {
   handleApiResponse,
   createServerAction,
 } from "@/lib/actions";
+import { LicenciasEmpleadosResponse } from "@/types/licenciasTypes";
 
 /**
- * Get all employee leaves with optional pagination and search
+ * Obtiene todas las licencias (vacaciones, licencias médicas, etc.) de los empleados
+ * @returns Una respuesta paginada con las licencias de los empleados
  */
 export const getEmployeeLeaves = createServerAction(
   async (page: number = 1, limit: number = 15, search: string = "") => {
     const headers = await createAuthHeaders();
-    const searchQuery = search ? `&search=${search}` : "";
+
+    // Procesamos el término de búsqueda para el API
+    const searchQuery = search ? `&search=${encodeURIComponent(search)}` : "";
 
     const res = await fetch(
       `${process.env.NEXT_PUBLIC_API_URL}/api/employee-leaves?page=${page}&limit=${limit}${searchQuery}`,
@@ -23,9 +27,12 @@ export const getEmployeeLeaves = createServerAction(
       }
     );
 
-    return handleApiResponse(res, "Error al obtener licencias de empleados");
+    return handleApiResponse<LicenciasEmpleadosResponse>(
+      res,
+      "Error al obtener las licencias de los empleados"
+    );
   },
-  "Error al obtener licencias de empleados"
+  "Error al obtener las licencias de los empleados"
 );
 
 /**
@@ -46,14 +53,23 @@ export const getEmployeeLeaveById = createServerAction(async (id: number) => {
 }, "Error al obtener la licencia");
 
 /**
- * Get all leaves for a specific employee
+ * Get all leaves for a specific employee with optional pagination and search
  */
 export const getLeavesByEmployee = createServerAction(
-  async (employeeId: number) => {
+  async (
+    employeeId: number,
+    page: number = 1,
+    limit: number = 15,
+    search: string = ""
+  ) => {
     const headers = await createAuthHeaders();
 
+    // Procesamos el término de búsqueda para el API
+    const searchQuery = search ? `&search=${encodeURIComponent(search)}` : "";
+    const paginationQuery = `?page=${page}&limit=${limit}`;
+
     const res = await fetch(
-      `${process.env.NEXT_PUBLIC_API_URL}/api/employee-leaves/employee/${employeeId}`,
+      `${process.env.NEXT_PUBLIC_API_URL}/api/employee-leaves/employee/${employeeId}${paginationQuery}${searchQuery}`,
       {
         headers,
         cache: "no-store",
@@ -164,14 +180,23 @@ export const rejectEmployeeLeave = createServerAction(async (id: number) => {
 }, "Error al rechazar la licencia");
 
 /**
- * Get all leaves for a specific user
+ * Get all leaves for a specific user with pagination and search support
  */
 export const getLicenciasByUserId = createServerAction(
-  async (userId: number) => {
+  async (
+    userId: number,
+    page: number = 1,
+    limit: number = 15,
+    search: string = ""
+  ) => {
     const headers = await createAuthHeaders();
 
+    // Procesamos el término de búsqueda para el API
+    const searchQuery = search ? `&search=${encodeURIComponent(search)}` : "";
+    const paginationQuery = `?page=${page}&limit=${limit}`;
+
     const res = await fetch(
-      `${process.env.NEXT_PUBLIC_API_URL}/api/employee-leaves/employee/${userId}`,
+      `${process.env.NEXT_PUBLIC_API_URL}/api/employee-leaves/employee/${userId}${paginationQuery}${searchQuery}`,
       {
         headers,
         cache: "no-store",

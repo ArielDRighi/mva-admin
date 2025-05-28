@@ -69,19 +69,11 @@ export type resumeService = {
   completados: number;
 };
 
-export interface LicenciaConducir {
-  licencia_id: number;
-  categoria: string;
-  fecha_expedicion: Date;
-  fecha_vencimiento: Date;
-  empleado: Empleado;
-}
-export type LicenciasToExpireResponse = {
-  data: LicenciaConducir[];
-  totalItems: number;
-  currentPage: number;
-  totalPages: number;
-};
+// Importar LicenciaConducir y LicenciasConducirResponse desde el archivo de tipos centralizado
+import { LicenciaConducir, LicenciaConducirWithEmpleado, LicenciasConducirResponse } from "@/types/licenciasConducirTypes";
+
+// Alias para mantener compatibilidad con código existente
+export type LicenciasToExpireResponse = LicenciasConducirResponse;
 
 const DashboardComponent = () => {
   const [user, setUser] = useState<User | null>(null);
@@ -114,8 +106,7 @@ const DashboardComponent = () => {
         const serviceStats = await getServicesStats();
         const resumeService = await getResumeServices();
         const futuresCleanings = await getFuturesCleanings();
-        const activity = await getRecentActivity();
-        const fetchLicenciasToExpire = await getLicenciasToExpire(30, 1, 10);
+        const activity = await getRecentActivity();        const fetchLicenciasToExpire = await getLicenciasToExpire(30, 1, 10) as LicenciasConducirResponse;
         setLicenciasToExpire(fetchLicenciasToExpire);
         setRecentActivity(activity);
         setFuturesCleanings(futuresCleanings);
@@ -793,10 +784,9 @@ const DashboardComponent = () => {
                       key={licencia.licencia_id}
                       className="flex items-center justify-between bg-white p-3 rounded-md border border-amber-100"
                     >
-                      <div>
-                        <p className="font-medium">
-                          {licencia.empleado.nombre}{" "}
-                          {licencia.empleado.apellido}
+                      <div>                        <p className="font-medium">
+                          {licencia.empleado?.nombre || "Sin nombre"}{" "}
+                          {licencia.empleado?.apellido || ""}
                         </p>
                         <p className="text-sm text-gray-600">
                           Licencia categoría{" "}

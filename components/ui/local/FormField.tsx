@@ -8,6 +8,34 @@ import {
 } from "@/components/ui/select";
 import React from "react";
 
+/**
+ * Formatea una fecha para su uso en inputs de tipo date
+ * Maneja diferentes formatos de fecha y casos especiales
+ */
+const formatDateForInput = (value: string): string => {
+  // Si ya está en formato yyyy-mm-dd, lo devolvemos directamente
+  if (/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    return value;
+  }
+
+  try {
+    // Intentamos crear un objeto Date
+    const date = new Date(value);
+
+    // Verificamos si es una fecha válida
+    if (isNaN(date.getTime())) {
+      console.warn("Fecha inválida recibida:", value);
+      return ""; // Retornamos string vacío para evitar errores
+    }
+
+    // Formateamos la fecha como yyyy-mm-dd
+    return date.toISOString().split("T")[0];
+  } catch (error) {
+    console.error("Error al procesar fecha:", value, error);
+    return ""; // En caso de error, devolvemos string vacío
+  }
+};
+
 type FieldType = "input" | "select";
 
 interface FormFieldProps {
@@ -52,7 +80,7 @@ export const FormField: React.FC<FormFieldProps> = ({
           type={type}
           value={
             type === "date" && value
-              ? new Date(value).toISOString().split("T")[0] // Aseguramos que el valor siempre sea yyyy-mm-dd
+              ? formatDateForInput(value) // Utilizamos función para manejar casos edge
               : value
           }
           onChange={(e) => onChange?.(e.target.value)}

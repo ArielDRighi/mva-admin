@@ -6,13 +6,6 @@ import {
   createServerAction,
 } from "@/lib/actions";
 
-export interface LicenciaConducir {
-  licencia_id: number;
-  categoria: string;
-  fecha_expedicion: Date;
-  fecha_vencimiento: Date;
-}
-
 /**
  * Obtiene la licencia de conducir de un empleado específico
  */
@@ -89,13 +82,23 @@ export const createLicenciaConducir = createServerAction(
 
 /**
  * Obtiene las licencias próximas a vencer en un determinado número de días
+ * con soporte para paginación y búsqueda
+ * @returns {LicenciasConducirResponse} Datos de licencias próximas a vencer
  */
 export const getLicenciasToExpire = createServerAction(
-  async (dias: number, page: number, limit: number) => {
+  async (
+    dias: number,
+    page: number = 1,
+    limit: number = 15,
+    search: string = ""
+  ) => {
     const headers = await createAuthHeaders();
 
+    // Procesamos el término de búsqueda para el API
+    const searchQuery = search ? `&search=${encodeURIComponent(search)}` : "";
+
     const res = await fetch(
-      `${process.env.NEXT_PUBLIC_API_URL}/api/employees/licencias/por-vencer?dias=${dias}&page=${page}&limit=${limit}`,
+      `${process.env.NEXT_PUBLIC_API_URL}/api/employees/licencias/por-vencer?dias=${dias}&page=${page}&limit=${limit}${searchQuery}`,
       {
         headers,
         cache: "no-store",
@@ -111,14 +114,18 @@ export const getLicenciasToExpire = createServerAction(
 );
 
 /**
- * Obtiene un listado paginado de todas las licencias de conducir
+ * Obtiene un listado paginado de todas las licencias de conducir con posibilidad de búsqueda
+ * @returns {LicenciasConducirResponse} Datos de licencias de conducir
  */
 export const getLicenciasConducir = createServerAction(
-  async (page: number, limit: number) => {
+  async (page: number = 1, limit: number = 15, search: string = "") => {
     const headers = await createAuthHeaders();
 
+    // Procesamos el término de búsqueda para el API
+    const searchQuery = search ? `&search=${encodeURIComponent(search)}` : "";
+
     const res = await fetch(
-      `${process.env.NEXT_PUBLIC_API_URL}/api/employees/licencias?page=${page}&limit=${limit}`,
+      `${process.env.NEXT_PUBLIC_API_URL}/api/employees/licencias?page=${page}&limit=${limit}${searchQuery}`,
       {
         headers,
         cache: "no-store",

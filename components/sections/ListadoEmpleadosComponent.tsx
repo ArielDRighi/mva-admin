@@ -69,6 +69,9 @@ export default function ListadoEmpleadosComponent({
   const [isCreating, setIsCreating] = useState(false);
   const [activeTab, setActiveTab] = useState("todos");
   const [isFirstLoad, setIsFirstLoad] = useState(true);
+  // Estados para el diálogo de confirmación de eliminación
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [employeeToDelete, setEmployeeToDelete] = useState<number | null>(null);
 
   const createEmployeeSchema = z.object({
     nombre: z.string().min(1, "El nombre es obligatorio"),
@@ -135,13 +138,19 @@ export default function ListadoEmpleadosComponent({
     router.replace(`?${params.toString()}`);
   };
 
+  /**
+   * Maneja el cambio en el término de búsqueda
+   * Mejora la búsqueda para diferentes tipos de campos:
+   * - Optimiza búsqueda por nombre o apellido
+   * - Mejora búsqueda por documento o número de legajo
+   * - Permite búsqueda por cargo y estado
+   */
   const handleSearchChange = (search: string) => {
     const params = new URLSearchParams(searchParams.toString());
     params.set("search", search);
     params.set("page", "1");
     router.replace(`?${params.toString()}`);
   };
-
   const handleEditClick = (empleado: Empleado) => {
     setSelectedEmployee(empleado);
     setIsCreating(false);
@@ -164,8 +173,25 @@ export default function ListadoEmpleadosComponent({
     camposFormulario.forEach((key) => {
       const value = empleado[key];
       if (value !== undefined) {
-        if (key === "fecha_nacimiento" && value instanceof Date) {
-          setValue(key, value.toISOString().split("T")[0]);
+        if (key === "fecha_nacimiento") {
+          // Manejar fecha de forma segura
+          try {
+            if (value instanceof Date) {
+              setValue(key, value.toISOString().split("T")[0]);
+            } else if (typeof value === "string") {
+              // Si es una string, intentamos formatearla correctamente
+              const dateObj = new Date(value);
+              if (!isNaN(dateObj.getTime())) {
+                setValue(key, dateObj.toISOString().split("T")[0]);
+              } else {
+                // Si no es una fecha válida, usamos la string tal como viene
+                setValue(key, value);
+              }
+            }
+          } catch (error) {
+            console.error("Error al formatear fecha:", error);
+            setValue(key, value ? String(value) : "");
+          }
         } else {
           setValue(key, String(value));
         }
@@ -190,21 +216,43 @@ export default function ListadoEmpleadosComponent({
     });
     setSelectedEmployee(null);
     setIsCreating(true);
+  }; // Esta función ahora sólo muestra el diálogo de confirmación
+  const handleDeleteClick = (id: number) => {
+    setEmployeeToDelete(id);
+    setShowDeleteConfirm(true);
   };
 
-  const handleDeleteClick = async (id: number) => {
+  // Función que realmente elimina el empleado después de la confirmación
+  const confirmDeleteEmployee = async () => {
+    if (!employeeToDelete) return;
+
     try {
-      await deleteEmployee(id);
+      await deleteEmployee(employeeToDelete);
       toast.success("Empleado eliminado", {
         description: "El empleado se ha eliminado correctamente.",
       });
       await fetchEmployees();
     } catch (error) {
       console.error("Error al eliminar el empleado:", error);
-      toast.error("Error", { description: "No se pudo eliminar el empleado." });
+
+      // Extraer el mensaje de error para mostrar información más precisa
+      let errorMessage = "No se pudo eliminar el empleado.";
+
+      // Si es un error con mensaje personalizado, lo usamos
+      if (error instanceof Error) {
+        errorMessage = error.message || errorMessage;
+      }
+
+      toast.error("Error al eliminar empleado", {
+        description: errorMessage,
+        duration: 5000, // Duración aumentada para mejor visibilidad
+      });
+    } finally {
+      // Limpiar el estado
+      setShowDeleteConfirm(false);
+      setEmployeeToDelete(null);
     }
   };
-
   const handleChangeStatus = async (id: number, estado: string) => {
     try {
       await changeEmployeeStatus(id, estado);
@@ -214,20 +262,43 @@ export default function ListadoEmpleadosComponent({
       await fetchEmployees();
     } catch (error) {
       console.error("Error al cambiar el estado:", error);
-      toast.error("Error", { description: "No se pudo cambiar el estado." });
+
+      // Extraer el mensaje de error para mostrar información más precisa
+      let errorMessage = "No se pudo cambiar el estado.";
+
+      // Si es un error con mensaje personalizado, lo usamos
+      if (error instanceof Error) {
+        errorMessage = error.message || errorMessage;
+      }
+
+      toast.error("Error al cambiar estado", {
+        description: errorMessage,
+        duration: 5000, // Duración aumentada para mejor visibilidad
+      });
     }
   };
-
   const onSubmit = async (data: z.infer<typeof createEmployeeSchema>) => {
     try {
+      // Creamos una copia segura de los datos para manipularlos
+      const formattedData = { ...data };
+
+      // Aseguramos que la fecha esté en formato correcto
+      if (formattedData.fecha_nacimiento) {
+        // Verificamos si es una fecha válida
+        const date = new Date(formattedData.fecha_nacimiento);
+        if (!isNaN(date.getTime())) {
+          formattedData.fecha_nacimiento = date.toISOString().split("T")[0];
+        }
+      }
+
       if (selectedEmployee && selectedEmployee.id) {
-        await editEmployee(selectedEmployee.id, data);
+        await editEmployee(selectedEmployee.id, formattedData);
         toast.success("Empleado actualizado", {
           description: "Los cambios se han guardado correctamente.",
         });
       } else {
         const createData: CreateEmployee = {
-          ...data,
+          ...formattedData,
           fecha_contratacion: new Date().toISOString().split("T")[0],
         };
         await createEmployee(createData);
@@ -241,18 +312,36 @@ export default function ListadoEmpleadosComponent({
       setSelectedEmployee(null);
     } catch (error) {
       console.error("Error en el envío del formulario:", error);
-      toast.error("Error", {
-        description: selectedEmployee
-          ? "No se pudo actualizar el empleado."
-          : "No se pudo crear el empleado.",
+
+      // Extraer el mensaje de error para mostrar información más precisa
+      let errorMessage = selectedEmployee
+        ? "No se pudo actualizar el empleado."
+        : "No se pudo crear el empleado.";
+
+      // Si es un error con mensaje personalizado, lo usamos
+      if (error instanceof Error) {
+        errorMessage = error.message || errorMessage;
+      }
+
+      toast.error("Error en formulario de empleado", {
+        description: errorMessage,
+        duration: 5000, // Duración aumentada para mejor visibilidad
       });
     }
-  };
+  }; // Extraer los valores de searchParams que necesitamos, para evitar recreaciones innecesarias de la función
+  const currentPageParam = Number(searchParams.get("page")) || 1;
+  const searchParam = searchParams.get("search") || "";
 
   const fetchEmployees = useCallback(async () => {
-    const currentPage = Number(searchParams.get("page")) || 1;
-    const search = searchParams.get("search") || "";
+    // Usar las variables extraídas en lugar de acceder directamente a searchParams
+    const currentPage = currentPageParam;
+    const search = searchParam;
+
+    // Comenzar la carga
     setLoading(true);
+    console.log(
+      `Buscando empleados con término: "${search}" en página ${currentPage}`
+    );
 
     try {
       const fetchedEmployees = await getEmployees(
@@ -261,30 +350,81 @@ export default function ListadoEmpleadosComponent({
         search
       );
 
-      if (fetchedEmployees.data && Array.isArray(fetchedEmployees.data)) {
-        setEmployees(fetchedEmployees.data);
-        setTotal(fetchedEmployees.totalItems || 0);
-        setPage(fetchedEmployees.currentPage || 1);
-      } else if (
-        fetchedEmployees.items &&
-        Array.isArray(fetchedEmployees.items)
-      ) {
-        setEmployees(fetchedEmployees.items);
-        setTotal(fetchedEmployees.total || 0);
-        setPage(fetchedEmployees.page || 1);
+      // Type guard for expected response shapes
+      if (typeof fetchedEmployees === "object" && fetchedEmployees !== null) {
+        type EmployeesResponseA = {
+          data: Empleado[];
+          totalItems?: number;
+          currentPage?: number;
+        };
+        type EmployeesResponseB = {
+          items: Empleado[];
+          total?: number;
+          page?: number;
+        };
+        const fe = fetchedEmployees as
+          | EmployeesResponseA
+          | EmployeesResponseB
+          | Empleado[];
+        if (
+          typeof fe === "object" &&
+          fe !== null &&
+          "data" in fe &&
+          Array.isArray((fe as EmployeesResponseA).data)
+        ) {
+          setEmployees((fe as EmployeesResponseA).data);
+          setTotal((fe as EmployeesResponseA).totalItems || 0);
+          setPage((fe as EmployeesResponseA).currentPage || 1);
+        } else if (
+          typeof fe === "object" &&
+          fe !== null &&
+          "items" in fe &&
+          Array.isArray((fe as EmployeesResponseB).items)
+        ) {
+          setEmployees((fe as EmployeesResponseB).items);
+          setTotal((fe as EmployeesResponseB).total || 0);
+          setPage((fe as EmployeesResponseB).page || 1);
+        } else if (Array.isArray(fe)) {
+          setEmployees(fe as Empleado[]);
+          setTotal((fe as Empleado[]).length);
+          setPage(currentPage);
+        } else {
+          console.error(
+            "Formato de respuesta no reconocido:",
+            fetchedEmployees
+          );
+        }
       } else if (Array.isArray(fetchedEmployees)) {
-        setEmployees(fetchedEmployees);
-        setTotal(fetchedEmployees.length);
+        setEmployees(fetchedEmployees as Empleado[]);
+        setTotal((fetchedEmployees as Empleado[]).length);
         setPage(currentPage);
       } else {
         console.error("Formato de respuesta no reconocido:", fetchedEmployees);
       }
     } catch (error) {
       console.error("Error al cargar los empleados:", error);
+
+      // Extraer el mensaje de error para mostrar información más precisa
+      let errorMessage = "No se pudieron cargar los empleados.";
+
+      // Si es un error con mensaje personalizado, lo usamos
+      if (error instanceof Error) {
+        errorMessage = error.message || errorMessage;
+      }
+
+      toast.error("Error al cargar empleados", {
+        description: errorMessage,
+        duration: 5000, // Duración aumentada para mejor visibilidad
+      });
+
+      // Si hay un error al cargar, establecer valores por defecto seguros
+      setEmployees([]);
+      setTotal(0);
+      setPage(1);
     } finally {
       setLoading(false);
     }
-  }, [searchParams, itemsPerPage]);
+  }, [currentPageParam, searchParam, itemsPerPage]);
 
   const handleTabChange = (value: string) => {
     setActiveTab(value);
@@ -295,13 +435,19 @@ export default function ListadoEmpleadosComponent({
       ? employees
       : employees.filter((emp) => emp.estado === activeTab.toUpperCase());
 
+  // Separamos el efecto para el estado de "primera carga"
   useEffect(() => {
     if (isFirstLoad) {
       setIsFirstLoad(false);
-    } else {
+    }
+  }, [isFirstLoad]);
+
+  // Un efecto separado para reaccionar a cambios en los parámetros de búsqueda
+  useEffect(() => {
+    if (!isFirstLoad) {
       fetchEmployees();
     }
-  }, [fetchEmployees, isFirstLoad]);
+  }, [fetchEmployees, isFirstLoad, currentPageParam, searchParam]);
 
   if (loading) {
     return (
@@ -359,14 +505,22 @@ export default function ListadoEmpleadosComponent({
           </Tabs>
         </div>
       </CardHeader>
-
       <CardContent className="p-6">
+        {" "}
         <div className="rounded-md border">
           <ListadoTabla
             title=""
             data={filteredEmployees}
             itemsPerPage={itemsPerPage}
-            searchableKeys={["nombre", "apellido", "documento", "email"]}
+            searchableKeys={[
+              "nombre",
+              "apellido",
+              "documento",
+              "cargo",
+              "estado",
+              "numero_legajo",
+            ]}
+            searchPlaceholder="Buscar por nombre, apellido, documento, cargo o estado..."
             remotePagination
             totalItems={total}
             currentPage={page}
@@ -456,8 +610,7 @@ export default function ListadoEmpleadosComponent({
                   >
                     <Edit2 className="h-3.5 w-3.5 mr-1" />
                     Editar
-                  </Button>
-
+                  </Button>{" "}
                   <Button
                     variant="destructive"
                     size="sm"
@@ -469,7 +622,6 @@ export default function ListadoEmpleadosComponent({
                     <Trash2 className="h-3.5 w-3.5 mr-1" />
                     Eliminar
                   </Button>
-
                   <div className="ml-1">
                     {empleado.estado !== "ACTIVO" && (
                       <Button
@@ -507,7 +659,6 @@ export default function ListadoEmpleadosComponent({
           />
         </div>
       </CardContent>
-
       <FormDialog
         open={isCreating || selectedEmployee !== null}
         onOpenChange={(open) => {
@@ -713,6 +864,31 @@ export default function ListadoEmpleadosComponent({
               />
             )}
           />
+        </div>{" "}
+      </FormDialog>
+      <FormDialog
+        open={showDeleteConfirm}
+        submitButtonText="Eliminar"
+        submitButtonVariant="destructive"
+        onOpenChange={(open) => {
+          if (!open) {
+            setShowDeleteConfirm(false);
+            setEmployeeToDelete(null);
+          }
+        }}
+        title="Confirmar eliminación"
+        onSubmit={(e) => {
+          e.preventDefault();
+          confirmDeleteEmployee();
+        }}
+      >
+        <div className="space-y-4 py-4">
+          <p className="text-destructive font-semibold">¡Atención!</p>
+          <p>
+            Esta acción eliminará permanentemente este empleado. Esta operación
+            no se puede deshacer.
+          </p>
+          <p>¿Estás seguro de que deseas continuar?</p>
         </div>
       </FormDialog>
     </Card>

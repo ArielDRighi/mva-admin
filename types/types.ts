@@ -31,31 +31,26 @@ export type VehicleMaintenance = {
 
 export type CreateEmployeeLeaveDto = {
   employeeId: number;
-  fechaInicio: Date;
-  fechaFin: Date;
+  fechaInicio: string;
+  fechaFin: string;
   tipoLicencia: LeaveType;
-  notas?: string;
-  // status?: "PENDIENTE" | "APROBADO" | "RECHAZADO";
+  notas: string;
 };
 
 export class UpdateEmployeeLeaveDto {
   employeeId?: number;
-  fechaInicio?: Date;
-  fechaFin?: Date;
+  fechaInicio?: string;
+  fechaFin?: string;
   tipoLicencia?: LeaveType;
   notas?: string;
-  aprobado?: boolean;
-  status?: "PENDIENTE" | "APROBADO" | "RECHAZADO";
 }
 
 export enum LeaveType {
   VACACIONES = "VACACIONES",
   ENFERMEDAD = "ENFERMEDAD",
-  ORDINARIA = "ORDINARIA",
   FALLECIMIENTO_FAMILIAR = "FALLECIMIENTO_FAMILIAR",
   CASAMIENTO = "CASAMIENTO",
   NACIMIENTO = "NACIMIENTO",
-  CAPACITACION = "CAPACITACION",
 }
 
 export type UpdateVehicleMaintenance = {

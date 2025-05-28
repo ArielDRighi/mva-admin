@@ -23,24 +23,27 @@ export function EmpleadoSelector({
   name,
   error,
   disabled = false,
-}: EmpleadoSelectorProps) {  const searchEmpleados = async (term: string) => {
+}: EmpleadoSelectorProps) {  // Definimos una interfaz clara para la respuesta de la API
+  interface EmpleadosResponse {
+    data?: Empleado[];
+    items?: Empleado[];
+    totalItems?: number;
+    currentPage?: number;
+    totalPages?: number;
+  }
+  
+  const searchEmpleados = async (term: string): Promise<Empleado[]> => {
     try {
       console.log("Buscando empleados con término:", term);
       
-      // Ahora obtenemos 15 resultados en lugar de 5 para mostrar más opciones 
-      const result = await getEmployees(1, 15, term);
+      // Obtenemos 15 resultados para mostrar más opciones
+      // Tipamos explícitamente la respuesta para mayor seguridad
+      const result = await getEmployees(1, 15, term) as EmpleadosResponse;
       
-      // Añadimos una validación de tipo para asegurar que result tenga la estructura esperada
+      // Validamos que la respuesta tenga la estructura esperada
       if (result && typeof result === 'object') {
-        // Definir tipos específicos en lugar de usar any
-        type EmpleadosResponse = { 
-          data?: Empleado[]; 
-          items?: Empleado[];
-        };
-        
-        // Intentamos acceder a data o items con verificación de tipo
-        const typedResult = (result as unknown) as EmpleadosResponse;
-        const items = typedResult.data || typedResult.items || [];
+        // Accedemos a los datos con la estructura tipada
+        const items = result.data || result.items || [];
         
         // Filtrar solo empleados disponibles (no en licencia, de baja, etc.)
         const filteredItems = items.filter(emp => 
@@ -55,43 +58,45 @@ export function EmpleadoSelector({
       console.error("Error al buscar empleados:", error);
       
       // Extraer el mensaje de error para mostrar información más precisa
-      let errorMessage = "Intente nuevamente o contacte al administrador.";
+      const errorMessage = error instanceof Error 
+        ? error.message 
+        : "Intente nuevamente o contacte al administrador.";
       
-      // Si es un error con mensaje personalizado, lo usamos
-      if (error instanceof Error) {
-        errorMessage = error.message || errorMessage;
-      }
-      
-      // Mostrar toast con el error
+      // Mostrar toast con el error usando el formato consistente
       toast.error("No se pudieron cargar los empleados", {
         description: errorMessage,
-        duration: 5000, // Duración aumentada para mejor visibilidad
+        duration: 5000
       });
       
       return [];
     }
   };const getEmpleadoById = async (id: number): Promise<Empleado> => {
     try {
-      const empleado = await getEmployeeById(id.toString());
-      return empleado as Empleado;
+      // Tipamos explícitamente la respuesta para mayor seguridad
+      const empleado = await getEmployeeById(id.toString()) as Empleado;
+      
+      // Validamos que tengamos un empleado con los campos mínimos requeridos
+      if (!empleado || !empleado.id) {
+        throw new Error(`No se encontró el empleado con ID ${id}`);
+      }
+      
+      return empleado;
     } catch (error) {
       console.error(`Error al cargar el empleado con ID ${id}:`, error);
       
-      // Extraer el mensaje de error para mostrar información más precisa
-      let errorMessage = `No se pudo cargar el empleado con ID ${id}`;
+      // Extraer el mensaje de error para mostrar información más precisa usando el patrón consistente
+      const errorMessage = error instanceof Error 
+        ? error.message 
+        : `No se pudo cargar el empleado con ID ${id}`;
       
-      // Si es un error con mensaje personalizado, lo usamos
-      if (error instanceof Error) {
-        errorMessage = error.message || errorMessage;
-      }
-      
-      // Mostrar toast con el error
+      // Mostrar toast con el error usando el formato consistente
       toast.error("Error al cargar empleado", {
         description: errorMessage,
-        duration: 5000, // Duración aumentada para mejor visibilidad
+        duration: 5000
       });
       
       // Devolvemos un objeto empleado con datos mínimos para evitar errores en la UI
+      // Seguimos la estructura del tipo Empleado para mantener consistencia
       return {
         id: id,
         nombre: "Error al cargar",

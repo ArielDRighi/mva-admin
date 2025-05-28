@@ -414,7 +414,7 @@ const MantenimientoVehiculosComponent = ({
       // Marcar que ya no es el primer renderizado
       setIsFirstLoad(false);
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isFirstLoad]); // Solo depende de isFirstLoad
 
   // Y limpiar el store cuando se desmonta el componente
@@ -491,6 +491,7 @@ const MantenimientoVehiculosComponent = ({
             data={filteredMantenimientos}
             itemsPerPage={itemsPerPage}
             searchableKeys={["tipoMantenimiento", "descripcion", "vehiculoId"]}
+            searchPlaceholder="Buscar por tipo, descripción o vehículo..."
             remotePagination
             totalItems={total}
             currentPage={page}

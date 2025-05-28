@@ -384,6 +384,7 @@ const ListadoVehiculosComponent = ({
             data={filteredVehiculos}
             itemsPerPage={itemsPerPage}
             searchableKeys={["placa", "marca", "modelo"]}
+            searchPlaceholder="Buscar por placa, marca o modelo..."
             remotePagination
             totalItems={total}
             currentPage={page}

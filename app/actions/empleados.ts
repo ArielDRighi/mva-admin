@@ -13,8 +13,11 @@ import {
 export const getEmployees = createServerAction(
   async (page: number = 1, limit: number = 15, search: string = "") => {
     const headers = await createAuthHeaders();
-    const searchQuery = search ? `&search=${search}` : "";
 
+    // Procesamos el término de búsqueda para el API
+    const searchQuery = search ? `&search=${encodeURIComponent(search)}` : "";
+
+    // Llamada al API con el término de búsqueda
     const res = await fetch(
       `${process.env.NEXT_PUBLIC_API_URL}/api/employees?page=${page}&limit=${limit}${searchQuery}`,
       {

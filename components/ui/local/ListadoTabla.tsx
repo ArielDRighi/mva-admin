@@ -27,6 +27,7 @@ interface ListadoTablaProps<T> {
   remotePagination?: boolean;
   totalItems?: number;
   currentPage?: number;
+  searchPlaceholder?: string;
   onPageChange?: (page: number) => void;
   onSearchChange?: (search: string) => void;
   onEdit?: (item: T) => void;
@@ -44,12 +45,14 @@ export function ListadoTabla<T>({
   remotePagination = false,
   totalItems,
   currentPage: externalPage,
+  searchPlaceholder = "Buscar...",
   onPageChange,
   onSearchChange,
   onEdit,
   onDelete,
   addButton,
-}: ListadoTablaProps<T>) {  const [searchTerm, setSearchTerm] = useState("");
+}: ListadoTablaProps<T>) {
+  const [searchTerm, setSearchTerm] = useState("");
   const [internalPage, setInternalPage] = useState(1);
   const [isMounted, setIsMounted] = useState(false);
 
@@ -59,15 +62,30 @@ export function ListadoTabla<T>({
   }, []);
 
   const currentPage = remotePagination ? externalPage ?? 1 : internalPage;
-
   const filteredData = useMemo(() => {
+    // Si la paginación es remota, no filtramos datos localmente
     if (remotePagination) return data;
+    
+    // Si no hay términos de búsqueda o no hay campos buscables, devolver todos los datos
     if (searchableKeys.length === 0 || searchTerm.trim() === "") return data;
-
+    
+    // El término de búsqueda normalizado
+    const normalizedSearchTerm = searchTerm.toLowerCase().trim();
+    
+    // Filtrar datos por el término de búsqueda
     return data.filter((item) =>
       searchableKeys.some((key) => {
-        const value = String(item[key] ?? "").toLowerCase();
-        return value.includes(searchTerm.toLowerCase());
+        // Obtener el valor para esta clave
+        const rawValue = item[key];
+        
+        // Manejar diferentes tipos de valores
+        if (rawValue === null || rawValue === undefined) return false;
+        
+        // Convertir el valor a string para búsqueda
+        const value = String(rawValue).toLowerCase();
+        
+        // Verificar si el valor incluye el término de búsqueda
+        return value.includes(normalizedSearchTerm);
       })
     );
   }, [searchTerm, data, searchableKeys, remotePagination]);
@@ -89,13 +107,27 @@ export function ListadoTabla<T>({
       setInternalPage(page);
     }
   };
-
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (onSearchChange) {
       onSearchChange(searchTerm);
     }
   };
+  
+  // Efecto para implementar búsqueda automática con debounce
+  useEffect(() => {
+    if (!remotePagination) return; // Sólo para búsqueda remota
+    
+    const timer = setTimeout(() => {
+      if (onSearchChange) {
+        onSearchChange(searchTerm);
+      }
+    }, 500); // 500ms de debounce
+    
+    return () => {
+      clearTimeout(timer);
+    };
+  }, [searchTerm, onSearchChange, remotePagination]);
   // Si no está montado en el cliente, mostramos un esqueleto
   if (!isMounted) {
     return (
@@ -122,15 +154,32 @@ export function ListadoTabla<T>({
           <div className="flex items-center gap-4 flex-col lg:flex-row">
             <h2 className="text-xl font-semibold">{title}</h2>
             {addButton}
-          </div>          {searchableKeys.length > 0 && (
-            <form onSubmit={handleSearchSubmit}>
+          </div>{" "}          {searchableKeys.length > 0 && (
+            <form onSubmit={handleSearchSubmit} className="relative">
               <Input
                 type="text"
-                placeholder="Buscar por placa, marca o modelo..."
+                placeholder={searchPlaceholder}
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-80 max-w-sm"
+                className="w-80 max-w-sm pl-8"
               />
+              <span className="absolute left-2.5 top-2.5 text-muted-foreground">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className="lucide lucide-search"
+                >
+                  <circle cx="11" cy="11" r="8" />
+                  <path d="m21 21-4.3-4.3" />
+                </svg>
+              </span>
             </form>
           )}
         </div>

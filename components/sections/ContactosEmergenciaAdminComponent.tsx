@@ -39,6 +39,8 @@ import {
 import Loader from "@/components/ui/local/Loader";
 import {
   ContactoEmergencia,
+  CreateContactDto,
+  UpdateContactDto,
   createEmployeeEmergencyContact,
   deleteEmployeeEmergencyContact,
   getEmployeeEmergencyContacts,
@@ -46,6 +48,14 @@ import {
 } from "@/app/actions/contactosEmergenciaAdmin";
 import { getEmployees } from "@/app/actions/empleados";
 import { Empleado } from "@/types/types";
+
+// Definimos los tipos de respuesta para mayor seguridad
+interface EmpleadosResponse {
+  data: Empleado[];
+  totalItems: number;
+  currentPage: number;
+  totalPages?: number;
+}
 
 const contactoEmergenciaSchema = z.object({
   nombre: z.string().min(1, "El nombre es obligatorio"),
@@ -73,6 +83,9 @@ export default function ContactosEmergenciaAdminComponent() {
     null
   );
   const [contactos, setContactos] = useState<ContactoEmergencia[]>([]);
+  // Nuevos estados para manejo de eliminación con confirmación
+  const [confirmDeleteDialogOpen, setConfirmDeleteDialogOpen] = useState(false);
+  const [contactoToDelete, setContactoToDelete] = useState<number | null>(null);
 
   const form = useForm({
     resolver: zodResolver(contactoEmergenciaSchema),
@@ -84,29 +97,51 @@ export default function ContactosEmergenciaAdminComponent() {
       empleadoId: 0,
     },
   });
-
   useEffect(() => {
     const fetchEmployees = async () => {
       try {
         setLoading(true);
-        const response = await getEmployees();
-        if (Array.isArray(response.data)) {
+        // Utilizamos la interfaz EmpleadosResponse que ya está definida
+        const response = (await getEmployees()) as EmpleadosResponse;
+
+        // Validación de estructura completa
+        if (response && Array.isArray(response.data)) {
           setEmployees(response.data);
           setFilteredEmployees(response.data);
         } else {
-          console.error("Formato de respuesta inesperado:", response);
-          toast.error("Error al cargar empleados");
+          // Logging estructurado para facilitar depuración
+          console.error("Formato de respuesta inválido:", {
+            tipoRecibido: typeof response,
+            contieneData: response && "data" in response,
+            esArray:
+              response && "data" in response && Array.isArray(response.data),
+          });
+
+          toast.error("Error al cargar empleados", {
+            description:
+              "El formato de la respuesta no es el esperado. Contacte al administrador.",
+            duration: 5000,
+          });
         }
       } catch (error) {
         console.error("Error al cargar empleados:", error);
-        toast.error("Error al cargar empleados");
+        const errorMessage =
+          error instanceof Error ? error.message : "Error desconocido";
+        toast.error("Error al cargar empleados", {
+          description: errorMessage,
+          duration: 5000,
+        });
       } finally {
         setLoading(false);
       }
     };
 
     fetchEmployees();
-  }, []);
+  }, []); // Definimos una interfaz clara para la respuesta de contactos de emergencia
+  interface ContactosResponse {
+    emergencyContacts?: ContactoEmergencia[];
+    empleado?: Empleado;
+  }
 
   useEffect(() => {
     const fetchContactos = async () => {
@@ -114,20 +149,56 @@ export default function ContactosEmergenciaAdminComponent() {
 
       try {
         setLoading(true);
-        const data = await getEmployeeEmergencyContacts(selectedEmployee.id);
+        // Usamos tipado más específico
+        const response = (await getEmployeeEmergencyContacts(
+          selectedEmployee.id
+        )) as ContactosResponse | ContactoEmergencia[];
 
-        if (data.emergencyContacts && Array.isArray(data.emergencyContacts)) {
-          setContactos(data.emergencyContacts);
-        } else if (Array.isArray(data)) {
-          setContactos(data);
+        // Identificamos el tipo de respuesta y extraemos los contactos de manera segura
+        if (response && typeof response === "object") {
+          if (
+            "emergencyContacts" in response &&
+            Array.isArray(response.emergencyContacts)
+          ) {
+            // Caso 1: Formato { emergencyContacts: [] }
+            setContactos(response.emergencyContacts);
+          } else if (Array.isArray(response)) {
+            // Caso 2: Formato [contacto1, contacto2, ...]
+            setContactos(response);
+          } else {
+            // Registramos información detallada para depuración
+            console.error("Formato de respuesta no reconocido:", {
+              tipo: typeof response,
+              tieneContactos: "emergencyContacts" in response,
+              esArray: Array.isArray(response),
+              muestra: JSON.stringify(response).substring(0, 100) + "...",
+            });
+
+            toast.error("Error al procesar datos", {
+              description:
+                "El formato de los datos recibidos no es el esperado. Contacte al administrador.",
+              duration: 5000,
+            });
+            setContactos([]);
+          }
         } else {
-          console.error("Estructura de respuesta inesperada:", data);
+          console.error("Respuesta inválida:", response);
+          toast.error("Error de datos", {
+            description:
+              "No se pudieron obtener los contactos. Intente nuevamente.",
+            duration: 5000,
+          });
           setContactos([]);
         }
       } catch (error) {
         console.error("Error al cargar contactos:", error);
-        toast.error("Error al cargar contactos de emergencia");
-        setContactos([]); // Asegúrate de inicializar con array vacío
+        const errorMessage =
+          error instanceof Error ? error.message : "Error desconocido";
+        toast.error("Error al cargar contactos de emergencia", {
+          description: errorMessage,
+          duration: 5000,
+        });
+        setContactos([]); // Inicializamos con array vacío
       } finally {
         setLoading(false);
       }
@@ -173,77 +244,159 @@ export default function ContactosEmergenciaAdminComponent() {
     });
     setSelectedContacto(null);
     setIsCreating(true);
+  }; // Esta función ahora sólo muestra el diálogo de confirmación
+  const handleDeleteClick = (id: number) => {
+    setContactoToDelete(id);
+    setConfirmDeleteDialogOpen(true);
   };
 
-  const handleDeleteClick = async (id: number) => {
-    if (
-      !confirm("¿Está seguro que desea eliminar este contacto de emergencia?")
-    ) {
-      return;
-    }
+  // Función que realmente elimina después de la confirmación
+  const confirmDelete = async () => {
+    if (!contactoToDelete) return;
 
     try {
       setLoading(true);
-      await deleteEmployeeEmergencyContact(id);
-      if (selectedEmployee?.id) {
-        const data = await getEmployeeEmergencyContacts(selectedEmployee.id);
-        setContactos(data.emergencyContacts || []);
-      }
+      // Intentamos eliminar el contacto
+      const deleteResult = await deleteEmployeeEmergencyContact(
+        contactoToDelete
+      );
 
-      toast.success("Contacto eliminado correctamente");
+      // Verificamos que la operación haya sido exitosa
+      if (deleteResult) {
+        // Si tenemos un empleado seleccionado, refrescamos sus contactos
+        if (selectedEmployee?.id) {
+          // Reutilizamos el tipo ContactosResponse definido anteriormente
+          const response = (await getEmployeeEmergencyContacts(
+            selectedEmployee.id
+          )) as ContactosResponse | ContactoEmergencia[];
+
+          // Identificamos el tipo de respuesta y extraemos los contactos con seguridad
+          if (response && typeof response === "object") {
+            if (
+              "emergencyContacts" in response &&
+              Array.isArray(response.emergencyContacts)
+            ) {
+              setContactos(response.emergencyContacts);
+            } else if (Array.isArray(response)) {
+              setContactos(response);
+            } else {
+              // Si no reconocemos el formato, inicializamos con array vacío
+              console.warn(
+                "Formato de respuesta no reconocido tras eliminación"
+              );
+              setContactos([]);
+            }
+          } else {
+            setContactos([]);
+          }
+        }
+
+        toast.success("Contacto eliminado correctamente", {
+          description: "El contacto de emergencia ha sido eliminado",
+          duration: 3000,
+        });
+      }
     } catch (error) {
       console.error("Error al eliminar contacto:", error);
-      toast.error("Error al eliminar el contacto");
+      const errorMessage =
+        error instanceof Error ? error.message : "Error desconocido";
+      toast.error("Error al eliminar el contacto", {
+        description: errorMessage,
+        duration: 5000,
+      });
     } finally {
       setLoading(false);
+      setConfirmDeleteDialogOpen(false);
+      setContactoToDelete(null);
     }
   };
-
   const onSubmit = async (data: z.infer<typeof contactoEmergenciaSchema>) => {
     try {
       setLoading(true);
+
+      // Creamos los objetos con los datos necesarios para actualizar/crear
+      const contactData: CreateContactDto = {
+        nombre: data.nombre,
+        apellido: data.apellido,
+        parentesco: data.parentesco,
+        telefono: data.telefono,
+      };
+
       if (selectedContacto) {
-        const updateData = {
-          nombre: data.nombre,
-          apellido: data.apellido,
-          parentesco: data.parentesco,
-          telefono: data.telefono,
-        };
-        await updateEmployeeEmergencyContact(selectedContacto.id, updateData);
-        toast.success("Contacto actualizado correctamente");
+        // Actualizamos un contacto existente con tipado adecuado
+        const updateResult = (await updateEmployeeEmergencyContact(
+          selectedContacto.id,
+          contactData as UpdateContactDto
+        )) as ContactoEmergencia;
+
+        // Verificamos que el resultado sea correcto
+        if (updateResult && updateResult.id) {
+          toast.success("Contacto actualizado correctamente", {
+            description: `Los datos de ${updateResult.nombre} ${updateResult.apellido} han sido actualizados`,
+            duration: 3000,
+          });
+        } else {
+          console.warn("Respuesta de actualización incompleta:", updateResult);
+        }
       } else {
-        const response = await createEmployeeEmergencyContact(data.empleadoId, {
-          nombre: data.nombre,
-          apellido: data.apellido,
-          parentesco: data.parentesco,
-          telefono: data.telefono,
-        });
-        console.log("Respuesta de creación:", response);
-        toast.success("Contacto creado correctamente");
-      }
-      if (selectedEmployee?.id) {
-        const updatedData = await getEmployeeEmergencyContacts(
-          selectedEmployee.id
-        );
-        console.log("Datos actualizados:", updatedData);
-        if (
-          updatedData.emergencyContacts &&
-          Array.isArray(updatedData.emergencyContacts)
-        ) {
-          setContactos(updatedData.emergencyContacts);
-        } else if (Array.isArray(updatedData)) {
-          setContactos(updatedData);
+        // Creamos un nuevo contacto with tipado adecuado
+        const createResult = (await createEmployeeEmergencyContact(
+          data.empleadoId,
+          contactData
+        )) as ContactoEmergencia;
+
+        // Verificamos que el resultado sea correcto
+        if (createResult && createResult.id) {
+          toast.success("Contacto creado correctamente", {
+            description: `${createResult.nombre} ${createResult.apellido} ha sido agregado como contacto de emergencia`,
+            duration: 3000,
+          });
+        } else {
+          console.warn("Respuesta de creación incompleta:", createResult);
         }
       }
 
+      // Actualizamos la lista de contactos después de la operación
+      if (selectedEmployee?.id) {
+        // Reutilizamos el tipo ContactosResponse definido anteriormente
+        const updatedData = (await getEmployeeEmergencyContacts(
+          selectedEmployee.id
+        )) as ContactosResponse | ContactoEmergencia[];
+
+        // Procesamos la respuesta usando el mismo patrón que en fetchContactos
+        if (updatedData && typeof updatedData === "object") {
+          if (
+            "emergencyContacts" in updatedData &&
+            Array.isArray(updatedData.emergencyContacts)
+          ) {
+            setContactos(updatedData.emergencyContacts);
+          } else if (Array.isArray(updatedData)) {
+            setContactos(updatedData);
+          } else {
+            console.warn(
+              "Formato de respuesta no reconocido tras actualización"
+            );
+          }
+        }
+      }
+
+      // Limpiamos el estado del formulario
       setIsCreating(false);
       setSelectedContacto(null);
     } catch (error) {
       console.error("Error en el envío del formulario:", error);
+      const errorMessage =
+        error instanceof Error ? error.message : "Error desconocido";
+
+      // Mensaje de error específico según la operación
       toast.error(
         selectedContacto
           ? "Error al actualizar contacto"
-          : "Error al crear contacto"
+          : "Error al crear contacto",
+        {
+          description: errorMessage,
+          duration: 5000,
+        }
       );
     } finally {
       setLoading(false);
@@ -332,7 +485,6 @@ export default function ContactosEmergenciaAdminComponent() {
             )}
           </CardContent>
         </Card>
-
         <Card className="md:col-span-2">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <div>
@@ -348,6 +500,7 @@ export default function ContactosEmergenciaAdminComponent() {
             <Button
               onClick={handleCreateClick}
               disabled={!selectedEmployee || loading}
+              className="cursor-pointer"
             >
               <UserPlus className="h-4 w-4 mr-2" />
               Añadir Contacto
@@ -376,7 +529,7 @@ export default function ContactosEmergenciaAdminComponent() {
                 <p className="text-sm text-muted-foreground mt-2 mb-6">
                   Este empleado no tiene contactos de emergencia registrados.
                 </p>
-                <Button onClick={handleCreateClick}>
+                <Button onClick={handleCreateClick} className="cursor-pointer">
                   <UserPlus className="h-4 w-4 mr-2" />
                   Añadir Primer Contacto
                 </Button>
@@ -424,14 +577,18 @@ export default function ContactosEmergenciaAdminComponent() {
                               size="sm"
                               onClick={() => handleEditClick(contacto)}
                               disabled={loading}
+                              className="cursor-pointer"
                             >
                               <Edit2 className="h-3.5 w-3.5" />
                             </Button>
                             <Button
                               variant="outline"
                               size="sm"
-                              className="text-red-500 hover:text-red-600"
-                              onClick={() => handleDeleteClick(contacto.id)}
+                              className="text-red-500 hover:text-red-600 cursor-pointer"
+                              onClick={() => {
+                                setContactoToDelete(contacto.id);
+                                setConfirmDeleteDialogOpen(true);
+                              }}
                               disabled={loading}
                             >
                               <Trash2 className="h-3.5 w-3.5" />
@@ -445,8 +602,35 @@ export default function ContactosEmergenciaAdminComponent() {
               </div>
             )}
           </CardContent>
-        </Card>
+        </Card>{" "}
       </div>
+
+      {/* Diálogo de confirmación para eliminación */}
+      <FormDialog
+        open={confirmDeleteDialogOpen}
+        submitButtonText="Eliminar"
+        submitButtonVariant="destructive"
+        onOpenChange={(open) => {
+          if (!open) {
+            setConfirmDeleteDialogOpen(false);
+            setContactoToDelete(null);
+          }
+        }}
+        title="Confirmar eliminación"
+        onSubmit={(e) => {
+          e.preventDefault();
+          confirmDelete();
+        }}
+      >
+        <div className="space-y-4 py-4">
+          <p className="text-destructive font-semibold">¡Atención!</p>
+          <p>
+            Esta acción eliminará permanentemente este contacto de emergencia.
+            Esta operación no se puede deshacer.
+          </p>
+          <p>¿Estás seguro de que deseas continuar?</p>
+        </div>
+      </FormDialog>
 
       <FormDialog
         open={isCreating || selectedContacto !== null}
@@ -547,6 +731,33 @@ export default function ContactosEmergenciaAdminComponent() {
           />
         </div>
       </FormDialog>
+
+      {/* Diálogo de confirmación para eliminación */}
+      {contactoToDelete !== null && (
+        <FormDialog
+          open={confirmDeleteDialogOpen}
+          onOpenChange={setConfirmDeleteDialogOpen}
+          submitButtonText="Eliminar"
+          title="Confirmar eliminación"
+          submitButtonVariant="destructive"
+          onSubmit={async () => {
+            if (contactoToDelete !== null) {
+              await handleDeleteClick(contactoToDelete);
+              setContactoToDelete(null);
+            }
+            setConfirmDeleteDialogOpen(false);
+          }}
+        >
+          <div className="space-y-4 py-4">
+            <p className="text-destructive font-semibold">¡Atención!</p>
+            <p>
+              Esta acción eliminará permanentemente este vehículo. Esta
+              operación no se puede deshacer.
+            </p>
+            <p>¿Estás seguro de que deseas continuar?</p>
+          </div>
+        </FormDialog>
+      )}
     </div>
   );
 }
