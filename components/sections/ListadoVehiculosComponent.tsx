@@ -39,6 +39,7 @@ import {
   Calendar,
   Tag,
 } from "lucide-react";
+import { useMaintenanceVehicleStore } from "@/store/maintenanceVehicleStore";
 
 interface VehicleResponse {
   data: Vehiculo[];
@@ -90,14 +91,11 @@ const ListadoVehiculosComponent = ({
     fechaVencimientoVTV: z.string().nullable(),
     fechaVencimientoSeguro: z.string().nullable(),
     esExterno: z.boolean(),
-    estado: z.enum(
-      ["DISPONIBLE", "ASIGNADO", "INACTIVO", "BAJA"],
-      {
-        errorMap: () => ({
-          message: "El estado es obligatorio y debe ser válido",
-        }),
-      }
-    ),
+    estado: z.enum(["DISPONIBLE", "ASIGNADO", "INACTIVO", "BAJA"], {
+      errorMap: () => ({
+        message: "El estado es obligatorio y debe ser válido",
+      }),
+    }),
   });
 
   const form = useForm<z.infer<typeof vehiculoSchema>>({
@@ -543,24 +541,22 @@ const ListadoVehiculosComponent = ({
                       size="sm"
                       onClick={() => {
                         if (vehiculo.id) {
-                          // Usar el store para establecer el vehículo seleccionado
-                          import("@/store/maintenanceVehicleStore").then(
-                            ({ useMaintenanceVehicleStore }) => {
-                              // Establecer el vehículo y abrir el modal
-                              useMaintenanceVehicleStore
-                                .getState()
-                                .openCreateModal(vehiculo.id!);
+                          // Resetear el store primero para evitar estados residuales
+                          useMaintenanceVehicleStore.getState().reset();
 
-                              // Navegar a la página de mantenimiento
-                              router.push(
-                                `/admin/dashboard/vehiculos/mantenimiento`
-                              );
+                          // Establecer el vehículo y abrir el modal
+                          useMaintenanceVehicleStore
+                            .getState()
+                            .openCreateModal(vehiculo.id);
 
-                              // Notificar al usuario
-                              toast.info("Programar mantenimiento", {
-                                description: `Creando mantenimiento para el vehículo ${vehiculo.placa}`,
-                              });
-                            }
+                          // Mostrar notificación
+                          toast.info("Programar mantenimiento", {
+                            description: `Creando mantenimiento para el vehículo ${vehiculo.placa}`,
+                          });
+
+                          // Navegar a la página de mantenimiento
+                          router.push(
+                            `/admin/dashboard/vehiculos/mantenimiento`
                           );
                         }
                       }}

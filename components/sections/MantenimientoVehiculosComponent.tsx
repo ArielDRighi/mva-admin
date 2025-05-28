@@ -371,60 +371,59 @@ const MantenimientoVehiculosComponent = ({
     }
   }, [searchParams, itemsPerPage, loadVehiclesInfo]);
 
-  // useEffect para manejar la carga de mantenimientos
+  // En el componente MantenimientoVehiculosComponent
   useEffect(() => {
-    if (!isFirstLoad) {
-      fetchMantenimientos();
-    } else {
+    // Verificar el estado inicial del store solo si estamos en el primer renderizado
+    if (isFirstLoad) {
+      const { isCreateModalOpen, selectedVehicleId } =
+        useMaintenanceVehicleStore.getState();
+
+      // Si hay datos en el store, procesar
+      if (isCreateModalOpen && selectedVehicleId) {
+        reset({
+          vehiculoId: selectedVehicleId,
+          fechaMantenimiento: new Date().toISOString().split("T")[0],
+          tipoMantenimiento: "Preventivo",
+          descripcion: "",
+          costo: 0,
+          proximoMantenimiento: "",
+        });
+        setSelectedMantenimiento(null);
+        setIsCreating(true);
+
+        // Cargar detalles del vehículo solo una vez
+        getVehicleById(selectedVehicleId)
+          .then((vehiculoResult) => {
+            if (
+              vehiculoResult &&
+              typeof vehiculoResult === "object" &&
+              "placa" in vehiculoResult
+            ) {
+              const vehiculo = vehiculoResult as Vehiculo;
+              toast.info("Creando mantenimiento", {
+                description: `Programando mantenimiento para ${
+                  vehiculo.placa
+                } ${vehiculo.marca || ""} ${vehiculo.modelo || ""}`,
+                duration: 3000,
+              });
+            }
+          })
+          .catch((error) => console.error("Error al cargar detalles:", error));
+      }
+
+      // Marcar que ya no es el primer renderizado
       setIsFirstLoad(false);
     }
-  }, [searchParams, fetchMantenimientos, isFirstLoad]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isFirstLoad]); // Solo depende de isFirstLoad
 
-  // useEffect para manejar el estado del store de Zustand
+  // Y limpiar el store cuando se desmonta el componente
   useEffect(() => {
-    // Verificar el estado inicial del store
-    const {
-      isCreateModalOpen,
-      selectedVehicleId,
-      reset: resetStore,
-    } = useMaintenanceVehicleStore.getState();
-
-    // Si hay datos en el store, procesar y limpiar
-    if (isCreateModalOpen && selectedVehicleId) {
-      reset({
-        vehiculoId: selectedVehicleId,
-        fechaMantenimiento: new Date().toISOString().split("T")[0],
-        tipoMantenimiento: "Preventivo",
-        descripcion: "",
-        costo: 0,
-        proximoMantenimiento: "",
-      });
-      setSelectedMantenimiento(null);
-      setIsCreating(true);
-
-      // Cargar detalles del vehículo solo una vez
-      getVehicleById(selectedVehicleId)
-        .then((vehiculoResult) => {
-          if (
-            vehiculoResult &&
-            typeof vehiculoResult === "object" &&
-            "placa" in vehiculoResult
-          ) {
-            toast.info("Creando mantenimiento", {
-              description: `Programando mantenimiento para ${
-                (vehiculoResult as Vehiculo).placa
-              } ${(vehiculoResult as Vehiculo).marca || ""} ${
-                (vehiculoResult as Vehiculo).modelo || ""
-              }`,
-            });
-          }
-        })
-        .catch((error) => console.error("Error al cargar detalles:", error));
-
-      // Limpiar el store
-      resetStore();
-    }
-  }, [reset]);
+    return () => {
+      // Limpiar el store al desmontar el componente
+      useMaintenanceVehicleStore.getState().reset();
+    };
+  }, []);
 
   const filteredMantenimientos =
     activeTab === "todos"
