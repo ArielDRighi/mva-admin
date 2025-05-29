@@ -1,8 +1,11 @@
 import TallesDeEmpleadosPage from "@/components/pages/tallesDeEmpleados/TallesDeEmpleadosPage";
 import React from "react";
 
-const TallesDeEmpleados = () => {
-  return <TallesDeEmpleadosPage />;
+export const metadata = {
+  title: "Talles de Empleados | MVA Admin",
+  description: "Gestión de talles de ropa y calzado para empleados",
 };
 
-export default TallesDeEmpleados;
+export default function TallesDeEmpleados() {
+  return <TallesDeEmpleadosPage />;
+}

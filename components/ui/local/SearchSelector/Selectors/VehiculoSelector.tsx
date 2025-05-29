@@ -23,27 +23,70 @@ export function VehiculoSelector({
   name,
   error,
   disabled = false,
-}: VehiculoSelectorProps) {
-  // En VehiculoSelector.tsx
-  const searchVehiculos = async (term: string) => {
+}: VehiculoSelectorProps) {  const searchVehiculos = async (term: string) => {
     try {
       console.log("Buscando vehículos con término:", term);
       console.log("API URL:", process.env.NEXT_PUBLIC_API_URL); // Para depurar
 
-      const result = await getVehicles();
-      console.log("Resultado de búsqueda:", result);
-
-      const filteredVehicles = (result.data || []).filter(
-        (vehiculo: Vehiculo) => vehiculo.estado !== "EN_MANTENIMIENTO"
-      );
-      return filteredVehicles;
+      // Si hay un término de búsqueda, usamos la API para filtrar
+      const result = await getVehicles(1, 20, term);
+      console.log("Resultado de búsqueda:", result);      // Usar type assertion específica en lugar de any
+      type VehiculosResponse = { data: Vehiculo[] };
+      const data = (result as unknown as VehiculosResponse).data || [];
+      
+      // Ya no filtramos los vehículos en mantenimiento para permitir seleccionarlos en la pantalla de mantenimientos
+      console.log("Vehículos encontrados:", data);
+      return data;
     } catch (error) {
       console.error("Error al buscar vehículos:", error);
+
+      // Extraer el mensaje de error para mostrar información más precisa
+      let errorMessage = "Intente nuevamente o contacte al administrador.";
+
+      // Si es un error con mensaje personalizado, lo usamos
+      if (error instanceof Error) {
+        errorMessage = error.message || errorMessage;
+      }
+
       // Devolver array vacío en caso de error para evitar que se rompa la UI
       toast.error("No se pudieron cargar los vehículos", {
-        description: "Intente nuevamente o contacte al administrador.",
+        description: errorMessage,
+        duration: 5000, // Duración aumentada para mejor visibilidad
       });
       return [];
+    }
+  };
+  const getVehiculoById = async (id: number): Promise<Vehiculo> => {
+    try {
+      const vehiculo = await getVehicleById(id);
+      return vehiculo as Vehiculo;
+    } catch (error) {
+      console.error(`Error al cargar el vehículo con ID ${id}:`, error);
+
+      // Extraer el mensaje de error para mostrar información más precisa
+      let errorMessage = `No se pudo cargar el vehículo con ID ${id}`;
+
+      // Si es un error con mensaje personalizado, lo usamos
+      if (error instanceof Error) {
+        errorMessage = error.message || errorMessage;
+      }
+
+      // Mostrar toast con el error
+      toast.error("Error al cargar vehículo", {
+        description: errorMessage,
+        duration: 5000, // Duración aumentada para mejor visibilidad
+      });
+
+      // Devolvemos un objeto vehículo con datos mínimos para evitar errores en la UI
+      return {
+        id: id,
+        placa: `ID: ${id}`,
+        marca: "Error al cargar",
+        modelo: "",
+        anio: 0,
+        tipoCabina: "",
+        estado: "NO_DISPONIBLE",
+      } as Vehiculo;
     }
   };
 
@@ -57,7 +100,7 @@ export function VehiculoSelector({
       disabled={disabled}
       placeholder="Buscar por placa o número interno"
       searchFn={searchVehiculos}
-      getItemById={getVehicleById}
+      getItemById={getVehiculoById}
       minSearchLength={2}
       renderSelected={(vehiculo) => (
         <div className="flex flex-1 items-center justify-between">

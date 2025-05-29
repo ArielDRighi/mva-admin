@@ -1,122 +1,95 @@
 "use server";
 
 import { MantenimientoSanitario, Sanitario } from "@/types/types";
-import { cookies } from "next/headers";
+import {
+  createAuthHeaders,
+  handleApiResponse,
+  createServerAction,
+} from "@/lib/actions";
 
-/* Sanitarios */
-export async function getSanitarios(
-  page: number = 1,
-  limit: number = 15,
-  search: string = ""
-) {
-  try {
-    const cookieStore = await cookies();
-    const token = cookieStore.get("token")?.value;
-
-    if (!token) throw new Error("Token no encontrado");
-
+/**
+ * Obtiene una lista paginada de sanitarios con posibilidad de filtrado
+ * @param page Número de página
+ * @param limit Límite de resultados por página
+ * @param search Término de búsqueda opcional
+ * @returns Lista paginada de sanitarios
+ */
+export const getSanitarios = createServerAction(
+  async (page: number = 1, limit: number = 15, search: string = "") => {
+    const headers = await createAuthHeaders();
     const searchQuery = search ? `&search=${search}` : "";
-    const apiUrl = `${process.env.NEXT_PUBLIC_API_URL}/api/chemical_toilets?page=${page}&limit=${limit}${searchQuery}`;
 
-    console.log(`Fetching sanitarios from: ${apiUrl}`);
+    const res = await fetch(
+      `${process.env.NEXT_PUBLIC_API_URL}/api/chemical_toilets?page=${page}&limit=${limit}${searchQuery}`,
+      {
+        headers,
+        cache: "no-store",
+      }
+    );
 
-    const res = await fetch(apiUrl, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-      cache: "no-store",
-    });
+    return handleApiResponse(res, "Error al obtener los sanitarios");
+  },
+  "Error al obtener los sanitarios"
+);
 
-    if (!res.ok) {
-      const errorText = await res.text().catch(() => "");
-      console.error(
-        `Error en getSanitarios: Status ${res.status}, Error: ${errorText}`
-      );
-      // En lugar de lanzar un error, retornamos un objeto vacío pero válido
-      return { items: [], total: 0, page: page, limit: limit, totalPages: 0 };
-    }
+/**
+ * Edita un sanitario existente
+ */
+export const editSanitario = createServerAction(
+  async (id: string, data: Sanitario) => {
+    const headers = await createAuthHeaders();
 
-    return await res.json();
-  } catch (error) {
-    console.error("Error en getSanitarios:", error);
-    // Devolvemos un objeto vacío pero con la estructura esperada
-    return { items: [], total: 0, page: page, limit: limit, totalPages: 0 };
-  }
-}
+    const res = await fetch(
+      `${process.env.NEXT_PUBLIC_API_URL}/api/chemical_toilets/${id}`,
+      {
+        method: "PUT",
+        headers,
+        body: JSON.stringify({
+          codigo_interno: data.codigo_interno,
+          modelo: data.modelo,
+          fecha_adquisicion: data.fecha_adquisicion,
+          estado: data.estado,
+        }),
+        cache: "no-store",
+      }
+    );
 
-export async function editSanitario(id: string, data: Sanitario) {
-  const cookieStore = await cookies();
-  const token = cookieStore.get("token")?.value;
+    console.log("res: ", res.ok);
 
-  if (!token) throw new Error("Token no encontrado");
+    return handleApiResponse(res, "Error al editar el sanitario");
+  },
+  "Error al editar el sanitario"
+);
 
-  const res = await fetch(
-    `${process.env.NEXT_PUBLIC_API_URL}/api/chemical_toilets/${id}`,
-    {
-      method: "PUT",
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        codigo_interno: data.codigo_interno,
-        modelo: data.modelo,
-        fecha_adquisicion: data.fecha_adquisicion,
-        estado: data.estado,
-      }),
-      cache: "no-store",
-    }
-  );
-
-  console.log("res: ", res.ok);
-
-  if (!res.ok) {
-    const errorData = await res.json().catch(() => ({}));
-    throw new Error(errorData.message || "Error al editar el sanitario");
-  }
-
-  return res.status;
-}
-
-export async function deleteSanitario(id: string) {
-  const cookieStore = await cookies();
-  const token = cookieStore.get("token")?.value;
-
-  if (!token) throw new Error("Token no encontrado");
+/**
+ * Elimina un sanitario por su ID
+ */
+export const deleteSanitario = createServerAction(async (id: string) => {
+  const headers = await createAuthHeaders();
 
   const res = await fetch(
     `${process.env.NEXT_PUBLIC_API_URL}/api/chemical_toilets/${id}`,
     {
       method: "DELETE",
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
+      headers,
       cache: "no-store",
     }
   );
 
-  if (!res.ok) {
-    const errorData = await res.json().catch(() => ({}));
-    throw new Error(errorData.message || "Error al eliminar el sanitario");
-  }
+  return handleApiResponse(res, "Error al eliminar el sanitario");
+}, "Error al eliminar el sanitario");
 
-  return res.status;
-}
-
-export async function createSanitario(data: Sanitario) {
-  const cookieStore = await cookies();
-  const token = cookieStore.get("token")?.value;
-
-  if (!token) throw new Error("Token no encontrado");
+/**
+ * Crea un nuevo sanitario
+ */
+export const createSanitario = createServerAction(async (data: Sanitario) => {
+  const headers = await createAuthHeaders();
 
   const res = await fetch(
     `${process.env.NEXT_PUBLIC_API_URL}/api/chemical_toilets`,
     {
       method: "POST",
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json",
-      },
+      headers,
       body: JSON.stringify({
         codigo_interno: data.codigo_interno,
         modelo: data.modelo,
@@ -129,241 +102,201 @@ export async function createSanitario(data: Sanitario) {
 
   console.log("res: ", res.ok);
 
-  if (!res.ok) {
-    const errorData = await res.json().catch(() => ({}));
-    throw new Error(errorData.message || "Error al crear el sanitario");
-  }
+  return handleApiResponse(res, "Error al crear el sanitario");
+}, "Error al crear el sanitario");
 
-  return res.status;
-}
-
-export async function getToiletsList() {
-  const cookieStore = await cookies();
-  const token = cookieStore.get("token")?.value;
-
-  if (!token) throw new Error("Token no encontrado");
+/**
+ * Obtiene la lista completa de sanitarios
+ */
+export const getToiletsList = createServerAction(async () => {
+  const headers = await createAuthHeaders();
 
   const res = await fetch(
     `${process.env.NEXT_PUBLIC_API_URL}/api/chemical_toilets`,
     {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
+      headers,
       cache: "no-store",
     }
   );
 
-  if (!res.ok) throw new Error("Error al obtener la lista de sanitarios");
-
-  const data = await res.json();
+  const data = await handleApiResponse<{ items: Sanitario[] }>(
+    res,
+    "Error al obtener la lista de sanitarios"
+  );
   return data.items;
-}
+}, "Error al obtener la lista de sanitarios");
 
 /* Mantenimiento de Sanitarios */
-export async function getSanitariosEnMantenimiento(
-  page: number = 1,
-  limit: number = 15,
-  search: string = ""
-) {
-  const cookieStore = await cookies();
-  const token = cookieStore.get("token")?.value;
 
-  if (!token) throw new Error("Token no encontrado");
+/**
+ * Obtiene los sanitarios que están en mantenimiento
+ */
+export const getSanitariosEnMantenimiento = createServerAction(
+  async (page: number = 1, limit: number = 15, search: string = "") => {
+    const headers = await createAuthHeaders();
+    const searchQuery = search ? `&search=${search}` : "";
 
-  const searchQuery = search ? `&search=${search}` : "";
-
-  const res = await fetch(
-    `${process.env.NEXT_PUBLIC_API_URL}/api/toilet_maintenance?page=${page}&limit=${limit}${searchQuery}`,
-    {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-      cache: "no-store",
-    }
-  );
-
-  if (!res.ok) throw new Error("Error al obtener sanitarios en mantenimiento");
-
-  return await res.json();
-}
-
-export async function deleteSanitarioEnMantenimiento(id: number) {
-  const cookieStore = await cookies();
-  const token = cookieStore.get("token")?.value;
-
-  if (!token) throw new Error("Token no encontrado");
-
-  const res = await fetch(
-    `${process.env.NEXT_PUBLIC_API_URL}/api/toilet_maintenance/${id}`,
-    {
-      method: "DELETE",
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-      cache: "no-store",
-    }
-  );
-
-  if (!res.ok) {
-    const errorData = await res.json().catch(() => ({}));
-    throw new Error(
-      errorData.message || "Error al eliminar el sanitario en mantenimiento"
+    const res = await fetch(
+      `${process.env.NEXT_PUBLIC_API_URL}/api/toilet_maintenance?page=${page}&limit=${limit}${searchQuery}`,
+      {
+        headers,
+        cache: "no-store",
+      }
     );
-  }
 
-  return res.status;
-}
-
-export async function createSanitarioEnMantenimiento(
-  data: MantenimientoSanitario
-) {
-  const cookieStore = await cookies();
-  const token = cookieStore.get("token")?.value;
-
-  if (!token) throw new Error("Token no encontrado");
-
-  const res = await fetch(
-    `${process.env.NEXT_PUBLIC_API_URL}/api/toilet_maintenance`,
-    {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        baño_id: data.baño_id,
-        fecha_mantenimiento: data.fecha_mantenimiento,
-        tipo_mantenimiento: data.tipo_mantenimiento,
-        descripcion: data.descripcion,
-        tecnico_responsable: data.tecnico_responsable,
-        costo: data.costo,
-      }),
-      cache: "no-store",
-    }
-  );
-
-  console.log("res: ", res.ok);
-
-  if (!res.ok) {
-    const errorData = await res.json().catch(() => ({}));
-    throw new Error(
-      errorData.message || "Error al crear el sanitario en mantenimiento"
+    return handleApiResponse(
+      res,
+      "Error al obtener sanitarios en mantenimiento"
     );
-  }
+  },
+  "Error al obtener sanitarios en mantenimiento"
+);
 
-  return res.status;
-}
+/**
+ * Elimina un registro de mantenimiento de sanitario
+ */
+export const deleteSanitarioEnMantenimiento = createServerAction(
+  async (id: number) => {
+    const headers = await createAuthHeaders();
 
-export async function editSanitarioEnMantenimiento(
-  id: number,
-  data: MantenimientoSanitario
-) {
-  const cookieStore = await cookies();
-  const token = cookieStore.get("token")?.value;
-
-  if (!token) throw new Error("Token no encontrado");
-
-  const res = await fetch(
-    `${process.env.NEXT_PUBLIC_API_URL}/api/toilet_maintenance/${id}`,
-    {
-      method: "PUT",
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        descripcion: data.descripcion,
-        tecnico_responsable: data.tecnico_responsable,
-        costo: data.costo,
-      }),
-      cache: "no-store",
-    }
-  );
-
-  console.log("res: ", res.ok);
-
-  if (!res.ok) {
-    const errorData = await res.json().catch(() => ({}));
-    throw new Error(
-      errorData.message || "Error al editar el sanitario en mantenimiento"
+    const res = await fetch(
+      `${process.env.NEXT_PUBLIC_API_URL}/api/toilet_maintenance/${id}`,
+      {
+        method: "DELETE",
+        headers,
+        cache: "no-store",
+      }
     );
-  }
 
-  return res.status;
-}
-
-export async function completarMantenimientoSanitario(id: number) {
-  const cookieStore = await cookies();
-  const token = cookieStore.get("token")?.value;
-
-  if (!token) throw new Error("Token no encontrado");
-
-  const res = await fetch(
-    `${process.env.NEXT_PUBLIC_API_URL}/api/toilet_maintenance/${id}/complete`,
-    {
-      method: "PATCH",
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-      cache: "no-store",
-    }
-  );
-
-  if (!res.ok) {
-    const errorData = await res.json().catch(() => ({}));
-    throw new Error(
-      errorData.message || "Error al completar el mantenimiento del sanitario"
+    return handleApiResponse(
+      res,
+      "Error al eliminar el sanitario en mantenimiento"
     );
-  }
+  },
+  "Error al eliminar el sanitario en mantenimiento"
+);
 
-  return res.status;
-}
+/**
+ * Crea un nuevo registro de mantenimiento para un sanitario
+ */
+export const createSanitarioEnMantenimiento = createServerAction(
+  async (data: MantenimientoSanitario) => {
+    const headers = await createAuthHeaders();
 
-export async function getSanitariosByClient(
-  clientId: number
-): Promise<Sanitario[]> {
-  const cookieStore = await cookies();
-  const token = cookieStore.get("token")?.value;
-
-  if (!token) throw new Error("Token no encontrado");
-
-  const res = await fetch(
-    `${process.env.NEXT_PUBLIC_API_URL}/api/chemical_toilets/by-client/${clientId}`,
-    {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-      cache: "no-store",
-    }
-  );
-
-  if (!res.ok) {
-    const errorData = await res.json().catch(() => ({}));
-    throw new Error(
-      errorData.message || `Error al obtener sanitarios del cliente ${clientId}`
+    const res = await fetch(
+      `${process.env.NEXT_PUBLIC_API_URL}/api/toilet_maintenance`,
+      {
+        method: "POST",
+        headers,
+        body: JSON.stringify({
+          baño_id: data.baño_id,
+          fecha_mantenimiento: data.fecha_mantenimiento,
+          tipo_mantenimiento: data.tipo_mantenimiento,
+          descripcion: data.descripcion,
+          tecnico_responsable: data.tecnico_responsable,
+          costo: data.costo,
+        }),
+        cache: "no-store",
+      }
     );
-  }
 
-  return await res.json();
-}
+    return handleApiResponse(
+      res,
+      "Error al crear el sanitario en mantenimiento"
+    );
+  },
+  "Error al crear el sanitario en mantenimiento"
+);
 
-export async function getTotalSanitarios() {
-  const cookieStore = await cookies();
-  const token = cookieStore.get("token")?.value;
+/**
+ * Edita un registro de mantenimiento de sanitario existente
+ */
+export const editSanitarioEnMantenimiento = createServerAction(
+  async (id: number, data: MantenimientoSanitario) => {
+    const headers = await createAuthHeaders();
 
-  if (!token) throw new Error("Token no encontrado");
+    const res = await fetch(
+      `${process.env.NEXT_PUBLIC_API_URL}/api/toilet_maintenance/${id}`,
+      {
+        method: "PUT",
+        headers,
+        body: JSON.stringify({
+          descripcion: data.descripcion,
+          tecnico_responsable: data.tecnico_responsable,
+          costo: data.costo,
+        }),
+        cache: "no-store",
+      }
+    );
+
+    return handleApiResponse(
+      res,
+      "Error al editar el sanitario en mantenimiento"
+    );
+  },
+  "Error al editar el sanitario en mantenimiento"
+);
+
+/**
+ * Marca un mantenimiento de sanitario como completado
+ */
+export const completarMantenimientoSanitario = createServerAction(
+  async (id: number) => {
+    const headers = await createAuthHeaders();
+
+    const res = await fetch(
+      `${process.env.NEXT_PUBLIC_API_URL}/api/toilet_maintenance/${id}/complete`,
+      {
+        method: "PATCH",
+        headers,
+        cache: "no-store",
+      }
+    );
+
+    return handleApiResponse(
+      res,
+      "Error al completar el mantenimiento del sanitario"
+    );
+  },
+  "Error al completar el mantenimiento del sanitario"
+);
+
+/**
+ * Obtiene los sanitarios asignados a un cliente específico
+ */
+export const getSanitariosByClient = createServerAction(
+  async (clientId: number): Promise<Sanitario[]> => {
+    const headers = await createAuthHeaders();
+
+    const res = await fetch(
+      `${process.env.NEXT_PUBLIC_API_URL}/api/chemical_toilets/by-client/${clientId}`,
+      {
+        headers,
+        cache: "no-store",
+      }
+    );
+
+    return handleApiResponse(
+      res,
+      `Error al obtener sanitarios del cliente ${clientId}`
+    );
+  },
+  "Error al obtener sanitarios del cliente"
+);
+
+/**
+ * Obtiene el total de sanitarios en el sistema
+ */
+export const getTotalSanitarios = createServerAction(async () => {
+  const headers = await createAuthHeaders();
 
   const res = await fetch(
     `${process.env.NEXT_PUBLIC_API_URL}/api/chemical_toilets/total_chemical_toilets`,
     {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
+      headers,
       cache: "no-store",
     }
   );
 
-  if (!res.ok) throw new Error("Error al obtener el total de sanitarios");
-
-  return await res.json();
-}
+  return handleApiResponse(res, "Error al obtener el total de sanitarios");
+}, "Error al obtener el total de sanitarios");

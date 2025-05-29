@@ -1,6 +1,10 @@
 "use server";
 
-import { cookies } from "next/headers";
+import {
+  createAuthHeaders,
+  handleApiResponse,
+  createServerAction,
+} from "@/lib/actions";
 
 // Tipos para las condiciones contractuales
 export type ContractualCondition = {
@@ -44,192 +48,137 @@ export type UpdateContractualCondition = {
 /**
  * Obtiene todas las condiciones contractuales
  */
-export async function getAllContractualConditions(
-  page: number = 1,
-  limit: number = 15,
-  search: string = ""
-) {
-  const cookieStore = await cookies();
-  const token = cookieStore.get("token")?.value;
+export const getAllContractualConditions = createServerAction(
+  async (page: number = 1, limit: number = 15, search: string = "") => {
+    const headers = await createAuthHeaders();
+    const searchQuery = search ? `&search=${search}` : "";
 
-  if (!token) throw new Error("Token no encontrado");
+    const res = await fetch(
+      `${process.env.NEXT_PUBLIC_API_URL}/api/contractual_conditions?page=${page}&limit=${limit}${searchQuery}`,
+      {
+        headers,
+        cache: "no-store",
+      }
+    );
 
-  const searchQuery = search ? `&search=${search}` : "";
-
-  const res = await fetch(
-    `${process.env.NEXT_PUBLIC_API_URL}/api/contractual_conditions?page=${page}&limit=${limit}${searchQuery}`,
-    {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-      cache: "no-store",
-    }
-  );
-
-  if (!res.ok) throw new Error("Error al obtener condiciones contractuales");
-
-  return await res.json();
-}
+    return handleApiResponse(res, "Error al obtener condiciones contractuales");
+  },
+  "Error al obtener las condiciones contractuales"
+);
 
 /**
  * Obtiene una condición contractual específica por su ID
  */
-export async function getContractualConditionById(id: number) {
-  const cookieStore = await cookies();
-  const token = cookieStore.get("token")?.value;
+export const getContractualConditionById = createServerAction(
+  async (id: number) => {
+    const headers = await createAuthHeaders();
 
-  if (!token) throw new Error("Token no encontrado");
+    const res = await fetch(
+      `${process.env.NEXT_PUBLIC_API_URL}/api/contractual_conditions/id/${id}`,
+      {
+        headers,
+        cache: "no-store",
+      }
+    );
 
-  const res = await fetch(
-    `${process.env.NEXT_PUBLIC_API_URL}/api/contractual_conditions/id/${id}`,
-    {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-      cache: "no-store",
-    }
-  );
-
-  if (!res.ok)
-    throw new Error(`Error al obtener la condición contractual con ID ${id}`);
-
-  return await res.json();
-}
+    return handleApiResponse(
+      res,
+      `Error al obtener la condición contractual con ID ${id}`
+    );
+  },
+  "Error al obtener la condición contractual"
+);
 
 /**
  * Obtiene todas las condiciones contractuales asociadas a un cliente específico
  */
-export async function getContractualConditionsByClient(clientId: number) {
-  const cookieStore = await cookies();
-  const token = cookieStore.get("token")?.value;
+export const getContractualConditionsByClient = createServerAction(
+  async (clientId: number) => {
+    const headers = await createAuthHeaders();
 
-  if (!token) throw new Error("Token no encontrado");
-
-  const res = await fetch(
-    `${process.env.NEXT_PUBLIC_API_URL}/api/contractual_conditions/client-id/${clientId}`,
-    {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-      cache: "no-store",
-    }
-  );
-
-  if (!res.ok)
-    throw new Error(
-      `Error al obtener condiciones contractuales del cliente ${clientId}`
+    const res = await fetch(
+      `${process.env.NEXT_PUBLIC_API_URL}/api/contractual_conditions/client-id/${clientId}`,
+      {
+        headers,
+        cache: "no-store",
+      }
     );
 
-  return await res.json();
-}
+    return handleApiResponse(
+      res,
+      `Error al obtener condiciones contractuales del cliente ${clientId}`
+    );
+  },
+  "Error al obtener condiciones contractuales del cliente"
+);
 
 /**
  * Crea una nueva condición contractual
  */
-export async function createContractualCondition(data: any) {
-  const cookieStore = await cookies();
-  const token = cookieStore.get("token")?.value;
+export const createContractualCondition = createServerAction(
+  async (data: CreateContractualCondition) => {
+    const headers = await createAuthHeaders();
 
-  if (!token) throw new Error("Token no encontrado");
-
-  const res = await fetch(
-    `${process.env.NEXT_PUBLIC_API_URL}/api/contractual_conditions/create`,
-    {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(data),
-      cache: "no-store",
-    }
-  );
-
-  if (!res.ok) {
-    const errorData = await res.json().catch(() => ({}));
-    throw new Error(
-      errorData.message || "Error al crear la condición contractual"
+    const res = await fetch(
+      `${process.env.NEXT_PUBLIC_API_URL}/api/contractual_conditions/create`,
+      {
+        method: "POST",
+        headers,
+        body: JSON.stringify(data),
+        cache: "no-store",
+      }
     );
-  }
 
-  return await res.json();
-}
+    return handleApiResponse(res, "Error al crear la condición contractual");
+  },
+  "Error al crear la condición contractual"
+);
 
 /**
  * Modifica una condición contractual existente
  */
-export async function updateContractualCondition(
-  id: number,
-  data: UpdateContractualCondition
-) {
-  const cookieStore = await cookies();
-  const token = cookieStore.get("token")?.value;
+export const updateContractualCondition = createServerAction(
+  async (id: number, data: UpdateContractualCondition) => {
+    const headers = await createAuthHeaders();
 
-  if (!token) throw new Error("Token no encontrado");
-
-  const res = await fetch(
-    `${process.env.NEXT_PUBLIC_API_URL}/api/contractual_conditions/modify/${id}`,
-    {
-      method: "PUT",
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(data),
-      cache: "no-store",
-    }
-  );
-
-  if (!res.ok) {
-    const errorData = await res.json().catch(() => ({}));
-    throw new Error(
-      errorData.message || "Error al actualizar la condición contractual"
+    const res = await fetch(
+      `${process.env.NEXT_PUBLIC_API_URL}/api/contractual_conditions/modify/${id}`,
+      {
+        method: "PUT",
+        headers,
+        body: JSON.stringify(data),
+        cache: "no-store",
+      }
     );
-  }
 
-  return await res.json();
-}
+    return handleApiResponse(
+      res,
+      "Error al actualizar la condición contractual"
+    );
+  },
+  "Error al actualizar la condición contractual"
+);
 
 /**
  * Elimina una condición contractual específica
  */
-export async function deleteContractualCondition(id: number) {
-  const cookieStore = await cookies();
-  const token = cookieStore.get("token")?.value;
+export const deleteContractualCondition = createServerAction(
+  async (id: number) => {
+    const headers = await createAuthHeaders();
 
-  if (!token) throw new Error("Token no encontrado");
+    const res = await fetch(
+      `${process.env.NEXT_PUBLIC_API_URL}/api/contractual_conditions/delete/${id}`,
+      {
+        method: "DELETE",
+        headers,
+        cache: "no-store",
+      }
+    );
 
-  const res = await fetch(
-    `${process.env.NEXT_PUBLIC_API_URL}/api/contractual_conditions/delete/${id}`,
-    {
-      method: "DELETE",
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-      cache: "no-store",
-    }
-  );
-
-  if (!res.ok) {
-    throw new Error(`Error al eliminar la condición contractual con ID ${id}`);
-  }
-
-  // Get the response text first
-  const responseText = await res.text();
-
-  // If it's empty, return a generic success message
-  if (!responseText.trim()) {
-    return {
-      success: true,
-      message: "Condición contractual eliminada correctamente",
-    };
-  }
-
-  // Try to parse as JSON, if it fails, return the text as part of a success object
-  try {
-    return JSON.parse(responseText);
-  } catch (error) {
-    // If the response is not JSON, return the text as part of a success object
-    return { message: responseText, success: true };
-  }
-}
+    return handleApiResponse(
+      res,
+      `Error al eliminar la condición contractual con ID ${id}`
+    );
+  },
+  "Error al eliminar la condición contractual"
+);

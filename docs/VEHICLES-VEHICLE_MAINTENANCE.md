@@ -96,9 +96,9 @@ Content-Type: application/json
 
 **Parámetros de consulta opcionales:**
 
-| Parámetro | Tipo   | Descripción                                                                          |
-| --------- | ------ | ------------------------------------------------------------------------------------ |
-| estado    | string | Filtrar por estado (DISPONIBLE, ASIGNADO, EN_MANTENIMIENTO, FUERA_DE_SERVICIO, BAJA) |
+| Parámetro | Tipo   | Descripción                                                                       |
+| --------- | ------ | --------------------------------------------------------------------------------- |
+| estado    | string | Filtrar por estado (DISPONIBLE, ASIGNADO, MANTENIMIENTO, FUERA_DE_SERVICIO, BAJA) |
 
 **Ejemplos:**
 
@@ -243,7 +243,7 @@ Todos los campos son opcionales. Solo se actualizan los campos incluidos en la s
 
 - DISPONIBLE
 - ASIGNADO
-- EN_MANTENIMIENTO
+- MANTENIMIENTO
 - FUERA_DE_SERVICIO
 - BAJA
 
@@ -328,7 +328,7 @@ DELETE /api/vehicles/1
 }
 ```
 
-**Nota:** Si el mantenimiento se programa para la fecha actual o una fecha pasada, el estado del vehículo cambiará automáticamente a "EN_MANTENIMIENTO". Si se programa para una fecha futura, el vehículo permanecerá en su estado actual.
+**Nota:** Si el mantenimiento se programa para la fecha actual o una fecha pasada, el estado del vehículo cambiará automáticamente a "MANTENIMIENTO". Si se programa para una fecha futura, el vehículo permanecerá en su estado actual.
 
 ### 2. Completar Mantenimiento
 
@@ -464,7 +464,7 @@ Los vehículos pueden tener los siguientes estados:
 | ----------------- | -------------------------------------------- | --------------------- |
 | DISPONIBLE        | Vehículo listo para ser asignado a servicios | Sí                    |
 | ASIGNADO          | Vehículo actualmente asignado a un servicio  | No                    |
-| EN_MANTENIMIENTO  | Vehículo en mantenimiento                    | No                    |
+| MANTENIMIENTO     | Vehículo en mantenimiento                    | No                    |
 | FUERA_DE_SERVICIO | Vehículo temporalmente fuera de servicio     | No                    |
 | BAJA              | Vehículo permanentemente fuera de servicio   | No                    |
 
@@ -579,12 +579,12 @@ Los vehículos pueden tener los siguientes estados:
 
 ### 3. Mantenimiento No Planificado
 
-1. **Marcar un vehículo como "EN_MANTENIMIENTO"**
+1. **Marcar un vehículo como "MANTENIMIENTO"**
 
    ```
    PATCH /api/vehicles/2/estado
    {
-     "estado": "EN_MANTENIMIENTO"
+     "estado": "MANTENIMIENTO"
    }
    ```
 

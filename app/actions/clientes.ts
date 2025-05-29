@@ -1,109 +1,40 @@
 "use server";
 
 import { Cliente } from "@/types/types";
-import { cookies } from "next/headers";
+import {
+  createServerAction,
+  createAuthHeaders,
+  handleApiResponse,
+} from "@/lib/actions";
 
-export async function getClients(
-  page: number = 1,
-  limit: number = 15,
-  search: string = ""
-) {
-  const cookieStore = await cookies();
-  const token = cookieStore.get("token")?.value;
+/**
+ * Versión mejorada de getClients con manejo de errores
+ */
+export const getClients = createServerAction(
+  async (page: number = 1, limit: number = 15, search: string = "") => {
+    const headers = await createAuthHeaders();
+    const searchParam = search ? `&search=${search}` : "";
+    const url = `${process.env.NEXT_PUBLIC_API_URL}/api/clients?page=${page}&limit=${limit}${searchParam}`;
 
-  if (!token) throw new Error("Token no encontrado");
-
-  const searchQuery = search ? `&search=${search}` : "";
-
-  const res = await fetch(
-    `${process.env.NEXT_PUBLIC_API_URL}/api/clients?page=${page}&limit=${limit}${searchQuery}`,
-    {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
+    const res = await fetch(url, {
+      headers,
       cache: "no-store",
-    }
-  );
+    });
 
-  if (!res.ok) throw new Error("Error al obtener clientes");
+    return handleApiResponse(res, "Error al obtener los clientes");
+  },
+  "Error al obtener los clientes"
+);
 
-  return await res.json();
-}
-
-export async function editClient(id: string, data: Cliente) {
-  const cookieStore = await cookies();
-  const token = cookieStore.get("token")?.value;
-
-  if (!token) throw new Error("Token no encontrado");
-
-  const res = await fetch(
-    `${process.env.NEXT_PUBLIC_API_URL}/api/clients/${id}`,
-    {
-      method: "PUT",
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        nombre: data.nombre,
-        email: data.email,
-        cuit: data.cuit,
-        direccion: data.direccion,
-        telefono: data.telefono,
-        contacto_principal: data.contacto_principal,
-        estado: data.estado,
-      }),
-      cache: "no-store",
-    }
-  );
-
-  console.log("res: ", res.ok);
-
-  if (!res.ok) {
-    const errorData = await res.json().catch(() => ({}));
-    throw new Error(errorData.message || "Error al editar el cliente");
-  }
-
-  return res.status;
-}
-
-export async function deleteClient(id: string) {
-  const cookieStore = await cookies();
-  const token = cookieStore.get("token")?.value;
-
-  if (!token) throw new Error("Token no encontrado");
-
-  const res = await fetch(
-    `${process.env.NEXT_PUBLIC_API_URL}/api/clients/${id}`,
-    {
-      method: "DELETE",
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-      cache: "no-store",
-    }
-  );
-
-  if (!res.ok) {
-    const errorData = await res.json().catch(() => ({}));
-    throw new Error(errorData.message || "Error al eliminar el cliente");
-  }
-
-  return res.status;
-}
-
-export async function createClient(data: Cliente) {
-  const cookieStore = await cookies();
-  const token = cookieStore.get("token")?.value;
-
-  if (!token) throw new Error("Token no encontrado");
-
+/**
+ * Versión mejorada de createClient con manejo de errores
+ */
+export const createClient = createServerAction(async (data: Cliente) => {
+  const headers = await createAuthHeaders();
+  
   const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/clients`, {
     method: "POST",
-    headers: {
-      Authorization: `Bearer ${token}`,
-      "Content-Type": "application/json",
-    },
+    headers,
     body: JSON.stringify({
       nombre: data.nombre,
       email: data.email,
@@ -116,12 +47,54 @@ export async function createClient(data: Cliente) {
     cache: "no-store",
   });
 
-  console.log("res: ", res.ok);
+  return handleApiResponse(res, "Error al crear el cliente");
+}, "Error al crear el cliente");
 
-  if (!res.ok) {
-    const errorData = await res.json().catch(() => ({}));
-    throw new Error(errorData.message || "Error al crear el cliente");
-  }
+/**
+ * Versión mejorada de editClient con manejo de errores
+ */
+export const editClient = createServerAction(
+  async (id: string, data: Cliente) => {
+    const headers = await createAuthHeaders();
+    
+    const res = await fetch(
+      `${process.env.NEXT_PUBLIC_API_URL}/api/clients/${id}`,
+      {
+        method: "PUT",
+        headers,
+        body: JSON.stringify({
+          nombre: data.nombre,
+          email: data.email,
+          cuit: data.cuit,
+          direccion: data.direccion,
+          telefono: data.telefono,
+          contacto_principal: data.contacto_principal,
+          estado: data.estado,
+        }),
+        cache: "no-store",
+      }
+    );
 
-  return res.json();
-}
+    return handleApiResponse(res, "Error al editar el cliente");
+  },
+  "Error al editar el cliente"
+);
+
+/**
+ * Versión mejorada de deleteClient con manejo de errores
+ */
+export const deleteClient = createServerAction(async (id: string) => {
+  const headers = await createAuthHeaders();
+
+  const res = await fetch(
+    `${process.env.NEXT_PUBLIC_API_URL}/api/clients/${id}`,
+    {
+      method: "DELETE",
+      headers,
+      cache: "no-store",
+    }
+  );
+
+  return handleApiResponse(res, "Error al eliminar el cliente");
+}, "Error al eliminar el cliente");
+

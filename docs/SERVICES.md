@@ -454,7 +454,7 @@ El sistema gestiona el ciclo de vida de los baños asignados a clientes de la si
 1. **Servicio de INSTALACIÓN:** Los baños pasan a estado `ASIGNADO` y permanecen así hasta que se realice un servicio de `RETIRO`.
 2. **Servicio de LIMPIEZA:** Opera sobre baños que ya están en estado `ASIGNADO` y los mantiene en ese estado.
 3. **Servicio de REEMPLAZO:** Cambia los baños asignados pero mantiene la misma cantidad.
-4. **Servicio de RETIRO:** Al completarse, cambia los baños de estado `ASIGNADO` a `EN_MANTENIMIENTO`.
+4. **Servicio de RETIRO:** Al completarse, cambia los baños de estado `ASIGNADO` a `MANTENIMIENTO`.
 
 Para obtener los baños asignados a un cliente específico, útil para crear servicios de LIMPIEZA o RETIRO:
 
@@ -774,7 +774,7 @@ La API devuelve códigos de error HTTP estándar junto con mensajes descriptivos
    }
    ```
 
-3. **Completar el servicio de RETIRO y verificar que los baños cambian a EN_MANTENIMIENTO**
+3. **Completar el servicio de RETIRO y verificar que los baños cambian a MANTENIMIENTO**
 
    ```
    PATCH /api/services/{servicioRetiroId}/estado

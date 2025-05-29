@@ -1,64 +1,57 @@
 "use server";
 
-import { cookies } from "next/headers";
+import {
+  createAuthHeaders,
+  handleApiResponse,
+  createServerAction,
+} from "@/lib/actions";
 
-export interface LicenciaConducir {
-  licencia_id: number;
-  categoria: string;
-  fecha_expedicion: Date;
-  fecha_vencimiento: Date;
-}
-export async function getLicenciaByEmpleadoId(empleadoId: number) {
-  const cookieStore = await cookies();
-  const token = cookieStore.get("token")?.value;
+/**
+ * Obtiene la licencia de conducir de un empleado específico
+ */
+export const getLicenciaByEmpleadoId = createServerAction(
+  async (empleadoId: number) => {
+    const headers = await createAuthHeaders();
 
-  if (!token) throw new Error("Token no encontrado");
+    const res = await fetch(
+      `${process.env.NEXT_PUBLIC_API_URL}/api/employees/licencia/${empleadoId}`,
+      {
+        headers,
+        cache: "no-store",
+      }
+    );
 
-  const res = await fetch(
-    `${process.env.NEXT_PUBLIC_API_URL}/api/employees/licencia/${empleadoId}`,
-    {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-      cache: "no-store",
-    }
-  );
+    return handleApiResponse(res, "Error al obtener licencias de conducir");
+  },
+  "Error al obtener licencia de conducir del empleado"
+);
 
-  if (!res.ok) throw new Error("Error al obtener licencias de conducir");
-
-  return await res.json();
-}
 export interface UpdateLicenciaConducir {
   categoria?: string;
   fecha_expedicion?: Date;
   fecha_vencimiento?: Date;
 }
 
-export async function updateLicenciaConducir(
-  empleadoId: number,
-  licencia: UpdateLicenciaConducir
-) {
-  const cookieStore = await cookies();
-  const token = cookieStore.get("token")?.value;
+/**
+ * Actualiza la licencia de conducir de un empleado
+ */
+export const updateLicenciaConducir = createServerAction(
+  async (empleadoId: number, licencia: UpdateLicenciaConducir) => {
+    const headers = await createAuthHeaders();
 
-  if (!token) throw new Error("Token no encontrado");
+    const res = await fetch(
+      `${process.env.NEXT_PUBLIC_API_URL}/api/employees/licencia/update/${empleadoId}`,
+      {
+        method: "PUT",
+        headers,
+        body: JSON.stringify(licencia),
+      }
+    );
 
-  const res = await fetch(
-    `${process.env.NEXT_PUBLIC_API_URL}/api/employees/licencia/update/${empleadoId}`,
-    {
-      method: "PUT",
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(licencia),
-    }
-  );
-
-  if (!res.ok) throw new Error("Error al actualizar licencia de conducir");
-
-  return await res.json();
-}
+    return handleApiResponse(res, "Error al actualizar licencia de conducir");
+  },
+  "Error al actualizar licencia de conducir del empleado"
+);
 
 export interface CreateLicenciaConducir {
   categoria: string;
@@ -66,74 +59,80 @@ export interface CreateLicenciaConducir {
   fecha_vencimiento: Date;
 }
 
-export async function createLicenciaConducir(
-  empleadoId: number,
-  licencia: CreateLicenciaConducir
-) {
-  const cookieStore = await cookies();
-  const token = cookieStore.get("token")?.value;
+/**
+ * Crea una nueva licencia de conducir para un empleado
+ */
+export const createLicenciaConducir = createServerAction(
+  async (empleadoId: number, licencia: CreateLicenciaConducir) => {
+    const headers = await createAuthHeaders();
 
-  if (!token) throw new Error("Token no encontrado");
+    const res = await fetch(
+      `${process.env.NEXT_PUBLIC_API_URL}/api/employees/licencia/${empleadoId}`,
+      {
+        method: "POST",
+        headers,
+        body: JSON.stringify(licencia),
+      }
+    );
 
-  const res = await fetch(
-    `${process.env.NEXT_PUBLIC_API_URL}/api/employees/licencia/${empleadoId}`,
-    {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(licencia),
-    }
-  );
+    return handleApiResponse(res, "Error al crear licencia de conducir");
+  },
+  "Error al crear licencia de conducir para el empleado"
+);
 
-  if (!res.ok) throw new Error("Error al crear licencia de conducir");
+/**
+ * Obtiene las licencias próximas a vencer en un determinado número de días
+ * con soporte para paginación y búsqueda
+ * @returns {LicenciasConducirResponse} Datos de licencias próximas a vencer
+ */
+export const getLicenciasToExpire = createServerAction(
+  async (
+    dias: number,
+    page: number = 1,
+    limit: number = 15,
+    search: string = ""
+  ) => {
+    const headers = await createAuthHeaders();
 
-  return await res.json();
-}
+    // Procesamos el término de búsqueda para el API
+    const searchQuery = search ? `&search=${encodeURIComponent(search)}` : "";
 
-export async function getLicenciasToExpire(
-  dias: number,
-  page: number,
-  limit: number
-) {
-  const cookieStore = await cookies();
-  const token = cookieStore.get("token")?.value;
+    const res = await fetch(
+      `${process.env.NEXT_PUBLIC_API_URL}/api/employees/licencias/por-vencer?dias=${dias}&page=${page}&limit=${limit}${searchQuery}`,
+      {
+        headers,
+        cache: "no-store",
+      }
+    );
 
-  if (!token) throw new Error("Token no encontrado");
+    return handleApiResponse(
+      res,
+      "Error al obtener licencias próximas a vencer"
+    );
+  },
+  "Error al obtener licencias próximas a vencer"
+);
 
-  const res = await fetch(
-    `${process.env.NEXT_PUBLIC_API_URL}/api/employees/licencias/por-vencer`,
-    {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-      cache: "no-store",
-    }
-  );
+/**
+ * Obtiene un listado paginado de todas las licencias de conducir con posibilidad de búsqueda
+ * @returns {LicenciasConducirResponse} Datos de licencias de conducir
+ */
+export const getLicenciasConducir = createServerAction(
+  async (page: number = 1, limit: number = 15, search: string = "") => {
+    const headers = await createAuthHeaders();
 
-  if (!res.ok) throw new Error("Error al obtener licencias de empleados");
+    // Procesamos el término de búsqueda para el API
+    const searchQuery = search ? `&search=${encodeURIComponent(search)}` : "";
 
-  return await res.json();
-}
+    const res = await fetch(
+      `${process.env.NEXT_PUBLIC_API_URL}/api/employees/licencias?page=${page}&limit=${limit}${searchQuery}`,
+      {
+        headers,
+        cache: "no-store",
+      }
+    );
 
-export async function getLicenciasConducir(page: number, limit: number) {
-  const cookieStore = await cookies();
-  const token = cookieStore.get("token")?.value;
-
-  if (!token) throw new Error("Token no encontrado");
-
-  const res = await fetch(
-    `${process.env.NEXT_PUBLIC_API_URL}/api/employees/licencias?page=${page}&limit=${limit}`,
-    {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-      cache: "no-store",
-    }
-  );
-
-  if (!res.ok) throw new Error("Error al obtener licencias de empleados");
-
-  return await res.json();
-}
+    return handleApiResponse(res, "Error al obtener licencias de conducir");
+  },
+  "Error al obtener listado de licencias de conducir"
+);

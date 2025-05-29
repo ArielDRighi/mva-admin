@@ -3,10 +3,13 @@
 import {
   getLicenciasConducir,
   getLicenciasToExpire,
-  LicenciaConducir,
 } from "@/app/actions/LicenciasConducir";
+import {
+  LicenciasConducirResponse,
+  LicenciaConducir,
+} from "@/types/licenciasConducirTypes";
 import { useRouter, useSearchParams } from "next/navigation";
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import Loader from "../ui/local/Loader";
 import { ListadoTabla } from "../ui/local/ListadoTabla";
@@ -30,21 +33,18 @@ import {
 } from "lucide-react";
 import { format, differenceInDays } from "date-fns";
 
-interface Empleado {
-  id: number;
-  nombre: string;
-  apellido: string;
-  documento: string;
-  cargo: string;
-}
-
-export interface LicenciaConducirWithEmpleado extends LicenciaConducir {
-  licencia_id: number;
-  categoria: string;
-  fecha_expedicion: Date;
-  fecha_vencimiento: Date;
-  empleado: Empleado;
-}
+type SearchableKey =
+  | "nombre_empleado"
+  | "apellido_empleado"
+  | "numero_licencia"
+  | "categoria"
+  | "estado_vencimiento"
+  | "empleado"
+  | "documento_empleado"
+  | "cargo_empleado"
+  | "licencia_id"
+  | "fecha_expedicion"
+  | "fecha_vencimiento";
 
 export default function ListadoLicenciasConducirComponent({
   data,
@@ -52,54 +52,142 @@ export default function ListadoLicenciasConducirComponent({
   currentPage,
   itemsPerPage,
 }: {
-  data: LicenciaConducirWithEmpleado[];
+  data: LicenciaConducir[];
   totalItems: number;
   currentPage: number;
   itemsPerPage: number;
 }) {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [licencias, setLicencias] = useState<LicenciaConducirWithEmpleado[]>(
-    data || []
-  );
+  const [licencias, setLicencias] = useState<LicenciaConducir[]>(data || []);
   const [loading, setLoading] = useState(false);
   const [total, setTotal] = useState(totalItems || 0);
   const [page, setPage] = useState(currentPage || 1);
   const [activeTab, setActiveTab] = useState("todos");
   const [isFirstLoad, setIsFirstLoad] = useState(true);
+  const matchesStatusTerm = (
+    licencia: LicenciaConducir,
+    searchTerm: string
+  ): boolean => {
+    try {
+      if (!licencia.fecha_vencimiento) return false;
+      
+      const fechaVencimiento = new Date(licencia.fecha_vencimiento);
+      // Verificar que la fecha sea válida
+      if (isNaN(fechaVencimiento.getTime())) {
+        console.warn(`Fecha de vencimiento inválida: ${licencia.fecha_vencimiento}`);
+        return false;
+      }
+      
+      const hoy = new Date();
+      const diasRestantes = differenceInDays(fechaVencimiento, hoy);
 
+      switch (searchTerm.toLowerCase()) {
+        case "vencida":
+          return diasRestantes < 0;
+        case "por vencer":
+        case "próxima":
+          return diasRestantes >= 0 && diasRestantes < 30;
+        case "advertencia":
+          return diasRestantes >= 30 && diasRestantes < 60;
+        case "vigente":
+          return diasRestantes >= 60;
+        default:
+          // Para otros términos que no son estados, retornar false
+          return false;
+      }
+    } catch (error) {
+      console.error("Error al comparar estado de vencimiento:", error);
+      return false;
+    }
+  };
   const fetchLicencias = useCallback(async () => {
     const currentPage = Number(searchParams.get("page")) || 1;
     const search = searchParams.get("search") || "";
     setLoading(true);
 
     try {
-      let fetchedLicencias;
+      // Determinar si estamos buscando por estado de vencimiento
+      const isStatusSearch = [
+        "vencida",
+        "por vencer",
+        "próxima",
+        "vigente",
+        "advertencia",
+      ].includes(search.trim().toLowerCase());
+      
+      let fetchedLicencias: LicenciasConducirResponse;
+      
+      // Si estamos en la pestaña "por-vencer" o buscando por estado, debemos hacer una lógica especial
       if (activeTab === "por-vencer") {
-        fetchedLicencias = await getLicenciasToExpire(
+        // Para la pestaña "por vencer", siempre usamos getLicenciasToExpire con filtrado de 60 días
+        fetchedLicencias = (await getLicenciasToExpire(
           60,
           currentPage,
-          itemsPerPage
-        );
+          itemsPerPage,
+          isStatusSearch ? search : ""  // Solo enviar término si es búsqueda por estado
+        )) as LicenciasConducirResponse;
       } else {
-        fetchedLicencias = await getLicenciasConducir(
+        // Para la pestaña "todos", usamos la API normal
+        fetchedLicencias = (await getLicenciasConducir(
           currentPage,
-          itemsPerPage
-        );
+          itemsPerPage,
+          search  // Enviar el término completo al backend
+        )) as LicenciasConducirResponse;
       }
 
       if (fetchedLicencias.data && Array.isArray(fetchedLicencias.data)) {
-        setLicencias(fetchedLicencias.data);
-        setTotal(fetchedLicencias.totalItems);
-        setPage(fetchedLicencias.currentPage);
+        // Filtrar licencias que tengan datos de empleado válidos
+        let licenciasConEmpleados = fetchedLicencias.data.filter(
+          (licencia) => licencia.empleado
+        );
+        
+        // Aplicar filtrado local adicional solo para búsquedas por estado
+        const searchTerm = search.trim().toLowerCase();
+        
+        if (isStatusSearch && !activeTab.includes("por-vencer")) {
+          // Si estamos buscando por estado fuera de la pestaña "por-vencer", 
+          // aplicamos el filtro localmente
+          licenciasConEmpleados = licenciasConEmpleados.filter((licencia) =>
+            matchesStatusTerm(licencia, searchTerm)
+          );
+        }
+
+        setLicencias(licenciasConEmpleados);
+        setTotal(
+          isStatusSearch && !activeTab.includes("por-vencer") 
+            ? licenciasConEmpleados.length  // Si filtramos localmente, el total es el conteo de los filtrados
+            : fetchedLicencias.totalItems    // De lo contrario, usamos el total proporcionado por la API
+        );
+        setPage(currentPage);
       } else {
         console.error("Formato de respuesta no reconocido:", fetchedLicencias);
+        toast.error("Error de formato", {
+          description: "El formato de la respuesta del servidor no es válido.",
+          duration: 5000,
+        });
+        setLicencias([]);
+        setTotal(0);
+        setPage(1);
       }
     } catch (error) {
       console.error("Error al cargar las licencias de conducir:", error);
-      toast.error("Error", {
-        description: "No se pudieron cargar las licencias de conducir.",
+
+      // Extraer el mensaje de error específico
+      let errorMessage = "No se pudieron cargar las licencias de conducir.";
+      if (error instanceof Error) {
+        errorMessage = error.message;
+      }
+
+      toast.error("Error al cargar licencias", {
+        description: errorMessage,
+        duration: 5000, // Duración aumentada para mejor visibilidad
       });
+
+      // Establecemos valores predeterminados seguros
+      setLicencias([]);
+      setTotal(0);
+      setPage(1);
     } finally {
       setLoading(false);
     }
@@ -110,65 +198,131 @@ export default function ListadoLicenciasConducirComponent({
     params.set("page", String(page));
     router.replace(`?${params.toString()}`);
   };
-
-  const handleSearchChange = (search: string) => {
+  const handleSearchChange = useCallback((search: string) => {
     const params = new URLSearchParams(searchParams.toString());
-    params.set("search", search);
+    const searchTerm = search.trim();
+    
+    // Si el término está vacío, eliminar el parámetro en lugar de enviarlo vacío
+    if (!searchTerm) {
+      params.delete("search");
+    } else {
+      // Verificar si es un término de búsqueda especial para estado
+      const estadosEspeciales = ["vencida", "por vencer", "próxima", "vigente", "advertencia"];
+      
+      if (estadosEspeciales.includes(searchTerm.toLowerCase())) {
+        // Para términos de estado, enviamos el término tal cual al backend
+        params.set("search", searchTerm.toLowerCase());
+      } else {
+        // Para otros términos de búsqueda (nombre, apellido, etc.)
+        params.set("search", searchTerm);
+      }
+    }
+    
+    // Siempre volver a la primera página cuando se realiza una búsqueda
     params.set("page", "1");
     router.replace(`?${params.toString()}`);
-  };
-
-  const handleTabChange = (value: string) => {
+  }, [searchParams, router]);
+  const handleTabChange = useCallback((value: string) => {
     setActiveTab(value);
-  };
-
+    
+    // Al cambiar de pestaña, reiniciar los parámetros de búsqueda para evitar conflictos
+    const params = new URLSearchParams();
+    params.set("page", "1"); // Reiniciar a la página 1
+    
+    // Eliminar cualquier búsqueda previa para evitar conflictos entre pestañas
+    router.replace(`?${params.toString()}`);
+  }, [router]);
+  // Efecto para manejar la carga inicial
   useEffect(() => {
     if (isFirstLoad) {
       setIsFirstLoad(false);
-    } else {
+      return;
+    }
+  }, [isFirstLoad]);
+
+  // Efecto separado para reaccionar a cambios en searchParams o activeTab
+  useEffect(() => {
+    if (!isFirstLoad) {
       fetchLicencias();
     }
-  }, [fetchLicencias, isFirstLoad]);
+  }, [fetchLicencias, isFirstLoad, searchParams, activeTab]);
 
-  const getStatusInfo = (fechaVencimiento: Date) => {
-    const hoy = new Date();
-    const vencimiento = new Date(fechaVencimiento);
-    const diasRestantes = differenceInDays(vencimiento, hoy);
+  const getStatusInfo = (fechaVencimiento: Date | string) => {
+    try {
+      const hoy = new Date();
+      let vencimientoDate: Date;
 
-    if (diasRestantes < 0) {
+      if (typeof fechaVencimiento === "string") {
+        vencimientoDate = new Date(fechaVencimiento);
+      } else {
+        vencimientoDate = fechaVencimiento;
+      }
+
+      // Verificar si la fecha es válida
+      if (isNaN(vencimientoDate.getTime())) {
+        console.warn(`Fecha de vencimiento inválida: ${fechaVencimiento}`);
+        return {
+          text: "Error en fecha",
+          icon: <AlertTriangle className="h-4 w-4 text-red-500" />,
+          variant: "destructive" as const,
+          color: "text-red-600",
+        };
+      }
+
+      const diasRestantes = differenceInDays(vencimientoDate, hoy);
+
+      if (diasRestantes < 0) {
+        return {
+          text: "Vencida",
+          icon: <AlertTriangle className="h-4 w-4 text-red-500" />,
+          variant: "destructive" as const,
+          color: "text-red-600",
+        };
+      } else if (diasRestantes < 30) {
+        return {
+          text: "Por vencer",
+          icon: <Clock className="h-4 w-4 text-amber-500" />,
+          variant: "outline" as const,
+          color: "text-amber-600",
+        };
+      } else if (diasRestantes < 60) {
+        return {
+          text: "Advertencia",
+          icon: <Clock className="h-4 w-4 text-amber-500" />,
+          variant: "outline" as const,
+          color: "text-amber-600",
+        };
+      } else {
+        return {
+          text: "Vigente",
+          icon: <ShieldCheck className="h-4 w-4 text-green-500" />,
+          variant: "default" as const,
+          color: "text-green-600",
+        };
+      }
+    } catch (error) {
+      console.error("Error al determinar el estado de la licencia:", error);
       return {
-        text: "Vencida",
+        text: "Error",
         icon: <AlertTriangle className="h-4 w-4 text-red-500" />,
         variant: "destructive" as const,
         color: "text-red-600",
       };
-    } else if (diasRestantes < 30) {
-      return {
-        text: "Por vencer",
-        icon: <Clock className="h-4 w-4 text-amber-500" />,
-        variant: "outline" as const,
-        color: "text-amber-600",
-      };
-    } else if (diasRestantes < 60) {
-      return {
-        text: "Advertencia",
-        icon: <Clock className="h-4 w-4 text-amber-500" />,
-        variant: "outline" as const,
-        color: "text-amber-600",
-      };
-    } else {
-      return {
-        text: "Vigente",
-        icon: <ShieldCheck className="h-4 w-4 text-green-500" />,
-        variant: "default" as const,
-        color: "text-green-600",
-      };
     }
   };
-
   const formatDate = (date: string | Date) => {
     if (!date) return "-";
-    return format(new Date(date), "dd/MM/yyyy");
+    try {
+      const dateObj = typeof date === "string" ? new Date(date) : date;
+      if (isNaN(dateObj.getTime())) {
+        console.warn(`Fecha inválida: ${date}`);
+        return "-";
+      }
+      return format(dateObj, "dd/MM/yyyy");
+    } catch (error) {
+      console.error("Error al formatear fecha:", error);
+      return "-";
+    }
   };
 
   const getCategoriaLabel = (categoria: string) => {
@@ -190,16 +344,80 @@ export default function ListadoLicenciasConducirComponent({
     return categorias[categoria] || categoria;
   };
 
-  const filteredLicencias =
-    activeTab === "todos"
-      ? licencias
-      : licencias.filter((licencia) => {
+  const filteredLicencias = useMemo(
+    () =>
+      activeTab === "todos"
+        ? licencias
+        : licencias.filter((licencia) => {
+            try {
+              const diasRestantes = differenceInDays(
+                new Date(licencia.fecha_vencimiento),
+                new Date()
+              );
+              return diasRestantes < 60 && diasRestantes > -30;
+            } catch (error) {
+              console.error("Error al filtrar licencias:", error);
+              return false;
+            }
+          }),
+    [licencias, activeTab]
+  );
+
+  // Añadir esta función antes del return para crear una versión "plana" de los datos
+  const enhancedLicencias = useMemo(() => {
+    return filteredLicencias.map((licencia) => {
+      // Calcular el estado de vencimiento
+      let estadoVencimiento = "";
+      try {
+        if (licencia.fecha_vencimiento) {
           const diasRestantes = differenceInDays(
             new Date(licencia.fecha_vencimiento),
             new Date()
           );
-          return diasRestantes < 60 && diasRestantes > -30; // Mostrar licencias por vencer o recién vencidas
-        });
+
+          if (diasRestantes < 0) {
+            estadoVencimiento = "vencida";
+          } else if (diasRestantes < 30) {
+            estadoVencimiento = "por vencer";
+          } else if (diasRestantes < 60) {
+            estadoVencimiento = "advertencia";
+          } else {
+            estadoVencimiento = "vigente";
+          }
+        }
+      } catch (error) {
+        console.error("Error al calcular el estado de vencimiento:", error);
+        estadoVencimiento = "error";
+      }
+
+      // Crear objeto plano con todas las propiedades accesibles en el primer nivel
+      return {
+        ...licencia,
+        // Añadir propiedades planas
+        nombre_empleado: licencia.empleado?.nombre || "",
+        apellido_empleado: licencia.empleado?.apellido || "",
+        documento_empleado: licencia.empleado?.documento || "",
+        cargo_empleado: licencia.empleado?.cargo || "",
+        // Añadir propiedades calculadas
+        estado_vencimiento: estadoVencimiento,
+        numero_licencia: licencia.licencia_id?.toString() || "",
+        // Mantener las propiedades anidadas para el resto de la UI
+        empleado: licencia.empleado,
+      };
+    });
+  }, [filteredLicencias]);
+  // Define las claves buscables para optimizar la búsqueda
+  const searchableKeys = useMemo<SearchableKey[]>(
+    () => [
+      "categoria", // Tipo de licencia
+      "numero_licencia", // Número de licencia
+      "nombre_empleado", // Nombre del empleado
+      "apellido_empleado", // Apellido del empleado
+      "documento_empleado", // Documento del empleado
+      "estado_vencimiento", // Estado de vencimiento (vencida, por vencer, etc.)
+    ],
+    []
+  );
 
   if (loading && licencias.length === 0) {
     return (
@@ -211,18 +429,6 @@ export default function ListadoLicenciasConducirComponent({
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">
-            Licencias de Conducir
-          </h1>
-          <p className="text-muted-foreground">
-            Gestión y seguimiento de las licencias de conducir de los empleados
-          </p>
-        </div>
-      </div>
-
       {/* Contenido principal */}
       <Card className="w-full shadow-md">
         <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950 dark:to-indigo-950 border-b">
@@ -257,14 +463,10 @@ export default function ListadoLicenciasConducirComponent({
           <div className="rounded-md border">
             <ListadoTabla
               title=""
-              data={filteredLicencias}
+              data={enhancedLicencias}
               itemsPerPage={itemsPerPage}
-              searchableKeys={[
-                "empleado.nombre",
-                "empleado.apellido",
-                "empleado.documento",
-                "categoria",
-              ]}
+              searchableKeys={searchableKeys}
+              searchPlaceholder="Buscar por tipo de licencia, nombre, apellido, documento o estado (vencida, vigente, por vencer)..."
               remotePagination
               totalItems={total}
               currentPage={page}

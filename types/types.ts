@@ -26,36 +26,32 @@ export type VehicleMaintenance = {
     placa: string;
     marca: string;
     modelo: string;
+    numeroInterno: number;
   };
 };
 
 export type CreateEmployeeLeaveDto = {
   employeeId: number;
-  fechaInicio: Date;
-  fechaFin: Date;
+  fechaInicio: string;
+  fechaFin: string;
   tipoLicencia: LeaveType;
-  notas?: string;
-  // status?: "PENDIENTE" | "APROBADO" | "RECHAZADO";
+  notas: string;
 };
 
 export class UpdateEmployeeLeaveDto {
   employeeId?: number;
-  fechaInicio?: Date;
-  fechaFin?: Date;
+  fechaInicio?: string;
+  fechaFin?: string;
   tipoLicencia?: LeaveType;
   notas?: string;
-  aprobado?: boolean;
-  status?: "PENDIENTE" | "APROBADO" | "RECHAZADO";
 }
 
 export enum LeaveType {
   VACACIONES = "VACACIONES",
   ENFERMEDAD = "ENFERMEDAD",
-  ORDINARIA = "ORDINARIA",
   FALLECIMIENTO_FAMILIAR = "FALLECIMIENTO_FAMILIAR",
   CASAMIENTO = "CASAMIENTO",
   NACIMIENTO = "NACIMIENTO",
-  CAPACITACION = "CAPACITACION",
 }
 
 export type UpdateVehicleMaintenance = {
@@ -275,7 +271,7 @@ export type Sanitario = {
   estado:
     | "DISPONIBLE"
     | "ASIGNADO"
-    | "EN_MANTENIMIENTO"
+    | "MANTENIMIENTO"
     | "FUERA_DE_SERVICIO"
     | "BAJA"
     | string;
@@ -304,7 +300,7 @@ export type MantenimientoSanitario = {
   costo: number;
   completado?: boolean;
   fechaCompletado?: string | null;
-  toilet?: Sanitario[];
+  toilet?: Sanitario;
 };
 
 export type MantenimientoSanitarioForm = {
@@ -321,7 +317,7 @@ export type MantenimientoSanitarioForm = {
 };
 
 export type MantenimientosSanitariosResponse = {
-  items: MantenimientoSanitario[];
+  data: MantenimientoSanitario[];
   total: number;
   page: number;
   limit: number;
@@ -388,3 +384,12 @@ export interface RopaTalles {
   createdAt: Date;
   updatedAt: Date;
 }
+
+/**
+ * Tipo para manejar errores provenientes del backend
+ */
+export type ApiError = {
+  message: string;
+  error: string;
+  statusCode: number;
+};

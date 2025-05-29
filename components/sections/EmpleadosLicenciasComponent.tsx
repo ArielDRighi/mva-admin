@@ -142,7 +142,6 @@ export default function EmpleadosLicenciasComponent() {
     setSelectedLicencia(licencia);
     setIsDetailsOpen(true);
   };
-
   const getApprovalStatus = (licencia: any) => {
     // Check for direct status field first
     if (licencia.status) {
@@ -151,9 +150,10 @@ export default function EmpleadosLicenciasComponent() {
       if (licencia.status === "PENDIENTE") return "PENDING";
     }
 
-    // Fall back to the old aprobado boolean field if status isn't present
+    // Fall back to the aprobado boolean field and comentarioRechazo if status isn't present
     if (licencia.aprobado === true) return "APPROVED";
-    if (licencia.aprobado === false) return "PENDING";
+    // Si hay un comentario de rechazo, consideramos que está rechazada
+    if (licencia.comentarioRechazo) return "REJECTED";
     return "PENDING";
   };
 

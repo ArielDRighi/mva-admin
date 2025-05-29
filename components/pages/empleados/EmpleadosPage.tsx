@@ -13,8 +13,32 @@ const EmpleadosPage = () => {
           href="/admin/dashboard/empleados/listado"
           imgSrc={EmpleadosImg}
           imgAlt="Icono de empleados"
-          title="Gestión de Empleados"
+          title="Listado de Empleados"
           description="Agregá, editá o eliminá fácilmente tus empleados desde esta sección."
+        />
+        
+        <InfoCard
+          href="/admin/dashboard/empleados/licencias"
+          imgSrc={EmpleadosImg}
+          imgAlt="Licencias de empleados"
+          title="Licencias de Empleados"
+          description="Gestiona las ausencias, vacaciones y licencias de tus empleados."
+        />
+        
+        <InfoCard
+          href="/admin/dashboard/empleados/licencias_conducir"
+          imgSrc={EmpleadosImg}
+          imgAlt="Licencias de conducir"
+          title="Licencias de Conducir"
+          description="Gestiona y actualiza la información de licencias de conducir de tus empleados."
+        />
+        
+        <InfoCard
+          href="/admin/dashboard/empleados/contactos-emergencia"
+          imgSrc={EmpleadosImg}
+          imgAlt="Contactos de emergencia"
+          title="Contactos de Emergencia"
+          description="Administra los contactos de emergencia de tus empleados."
         />
       </section>
     </main>

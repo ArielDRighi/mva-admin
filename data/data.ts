@@ -21,7 +21,7 @@ const dataSideBar = {
   navMain: [
     {
       title: "Vehículos",
-      url: "#",
+      url: "/admin/dashboard/vehiculos",
       icon: Car,
       items: [
         { title: "Listado", url: "/admin/dashboard/vehiculos/listado" },
@@ -53,7 +53,7 @@ const dataSideBar = {
     },
     {
       title: "Sanitarios",
-      url: "#",
+      url: "/admin/dashboard/sanitarios",
       icon: Toilet,
       items: [
         { title: "Listado", url: "/admin/dashboard/sanitarios/listado" },
@@ -71,7 +71,7 @@ const dataSideBar = {
     },
     {
       title: "Servicios",
-      url: "#",
+      url: "/admin/dashboard/servicios",
       icon: Hammer,
       items: [
         {
@@ -128,7 +128,7 @@ const dataSideBar = {
     },
     {
       title: "Talles de empleados",
-      url: "#",
+      url: "/admin/dashboard/talles-de-empleados",
       icon: Shirt,
       items: [
         {

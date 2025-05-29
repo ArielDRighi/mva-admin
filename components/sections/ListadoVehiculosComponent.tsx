@@ -39,6 +39,15 @@ import {
   Calendar,
   Tag,
 } from "lucide-react";
+import { useMaintenanceVehicleStore } from "@/store/maintenanceVehicleStore";
+
+interface VehicleResponse {
+  data: Vehiculo[];
+  totalItems: number;
+  totalPages: number;
+  currentPage: number;
+  itemsPerPage: number;
+}
 
 const ListadoVehiculosComponent = ({
   data,
@@ -66,6 +75,8 @@ const ListadoVehiculosComponent = ({
   const [isCreating, setIsCreating] = useState(false);
   const [activeTab, setActiveTab] = useState("todos");
   const [isFirstLoad, setIsFirstLoad] = useState(true);
+  const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
+  const [vehiculoToDelete, setVehiculoToDelete] = useState<number | null>(null);
 
   const vehiculoSchema = z.object({
     numeroInterno: z.string().nullable(),
@@ -80,14 +91,11 @@ const ListadoVehiculosComponent = ({
     fechaVencimientoVTV: z.string().nullable(),
     fechaVencimientoSeguro: z.string().nullable(),
     esExterno: z.boolean(),
-    estado: z.enum(
-      ["DISPONIBLE", "ASIGNADO", "MANTENIMIENTO", "INACTIVO", "BAJA"],
-      {
-        errorMap: () => ({
-          message: "El estado es obligatorio y debe ser válido",
-        }),
-      }
-    ),
+    estado: z.enum(["DISPONIBLE", "ASIGNADO", "INACTIVO", "BAJA"], {
+      errorMap: () => ({
+        message: "El estado es obligatorio y debe ser válido",
+      }),
+    }),
   });
 
   const form = useForm<z.infer<typeof vehiculoSchema>>({
@@ -162,18 +170,36 @@ const ListadoVehiculosComponent = ({
     setIsCreating(true);
   };
 
-  const handleDeleteClick = async (id: number) => {
+  const handleDeleteClick = (id: number) => {
+    setVehiculoToDelete(id);
+    setConfirmDialogOpen(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!vehiculoToDelete) return;
+
     try {
-      await deleteVehicle(id);
+      await deleteVehicle(vehiculoToDelete);
       toast.success("Vehículo eliminado", {
         description: "El vehículo se ha eliminado correctamente.",
       });
       await fetchVehiculos();
     } catch (error) {
       console.error("Error al eliminar el vehículo:", error);
+
+      // Extraer el mensaje de error
+      let errorMessage = "No se pudo eliminar el vehículo.";
+      if (error instanceof Error) {
+        errorMessage = error.message;
+      }
+
       toast.error("Error", {
-        description: "No se pudo eliminar el vehículo.",
+        description: errorMessage,
+        duration: 5000,
       });
+    } finally {
+      setConfirmDialogOpen(false);
+      setVehiculoToDelete(null);
     }
   };
 
@@ -186,17 +212,34 @@ const ListadoVehiculosComponent = ({
       await fetchVehiculos();
     } catch (error) {
       console.error("Error al cambiar el estado:", error);
-      toast.error("Error", { description: "No se pudo cambiar el estado." });
+
+      // Extraer el mensaje de error
+      let errorMessage = "No se pudo cambiar el estado.";
+      if (error instanceof Error) {
+        errorMessage = error.message;
+      }
+
+      toast.error("Error", {
+        description: errorMessage,
+        duration: 5000,
+      });
     }
   };
 
   const onSubmit = async (data: z.infer<typeof vehiculoSchema>) => {
     try {
       if (selectedVehiculo && selectedVehiculo.id) {
-        await editVehicle(selectedVehiculo.id.toString(), data);
-        toast.success("Vehículo actualizado", {
-          description: "Los cambios se han guardado correctamente.",
-        });
+        // Guardar la respuesta del servidor para verificar si hubo éxito
+        const statusCode = await editVehicle(
+          selectedVehiculo.id.toString(),
+          data
+        );
+        // Solo mostrar toast de éxito si se completó correctamente
+        if (statusCode >= 200 && statusCode < 300) {
+          toast.success("Vehículo actualizado", {
+            description: "Los cambios se han guardado correctamente.",
+          });
+        }
       } else {
         await createVehicle(data);
         toast.success("Vehículo creado", {
@@ -209,10 +252,17 @@ const ListadoVehiculosComponent = ({
       setSelectedVehiculo(null);
     } catch (error) {
       console.error("Error en el envío del formulario:", error);
+
+      // Extraer el mensaje de error
+      let errorMessage = "Ocurrió un problema al procesar la solicitud.";
+      if (error instanceof Error) {
+        errorMessage = error.message;
+      }
+
+      // Mostrar el toast con el mensaje específico del error
       toast.error("Error", {
-        description: selectedVehiculo
-          ? "No se pudo actualizar el vehículo."
-          : "No se pudo crear el vehículo.",
+        description: errorMessage,
+        duration: 5000, // Duración aumentada para que sea más visible
       });
     }
   };
@@ -223,16 +273,31 @@ const ListadoVehiculosComponent = ({
     setLoading(true);
 
     try {
-      const fetchedVehiculos = await getVehicles(
+      // Make sure itemsPerPage is always a number with a fallback value
+      const perPage = itemsPerPage || 15;
+
+      const fetchedVehiculos = (await getVehicles(
         currentPage,
-        itemsPerPage,
+        perPage,
         search
-      );
+      )) as VehicleResponse;
+
       setVehiculos(fetchedVehiculos.data);
       setTotal(fetchedVehiculos.totalItems);
       setPage(fetchedVehiculos.currentPage);
     } catch (error) {
       console.error("Error al cargar los vehículos:", error);
+
+      // Extraer el mensaje de error
+      let errorMessage = "Error al cargar los vehículos.";
+      if (error instanceof Error) {
+        errorMessage = error.message;
+      }
+
+      toast.error("Error", {
+        description: errorMessage,
+        duration: 5000,
+      });
     } finally {
       setLoading(false);
     }
@@ -315,14 +380,15 @@ const ListadoVehiculosComponent = ({
           </Tabs>
         </div>
       </CardHeader>
-
       <CardContent className="p-6">
         <div className="rounded-md border">
+          {" "}
           <ListadoTabla
             title=""
             data={filteredVehiculos}
             itemsPerPage={itemsPerPage}
             searchableKeys={["placa", "marca", "modelo"]}
+            searchPlaceholder="Buscar por placa, marca o modelo..."
             remotePagination
             totalItems={total}
             currentPage={page}
@@ -343,12 +409,13 @@ const ListadoVehiculosComponent = ({
                       <Truck className="h-5 w-5 text-slate-600" />
                     </div>
                     <div>
-                      <div className="font-medium">
-                        {vehiculo.numeroInterno
-                          ? `#${vehiculo.numeroInterno} - `
-                          : ""}
-                        {vehiculo.placa}
-                      </div>
+                      {" "}
+                      <div className="font-medium">{vehiculo.placa}</div>
+                      {vehiculo.numeroInterno && (
+                        <div className="text-xs font-medium text-gray-500">
+                          N° Interno: {vehiculo.numeroInterno}
+                        </div>
+                      )}
                       <div className="text-sm text-muted-foreground flex items-center">
                         <Tag className="h-3.5 w-3.5 mr-1" />
                         {vehiculo.marca} {vehiculo.modelo}
@@ -473,22 +540,36 @@ const ListadoVehiculosComponent = ({
                         <CheckCircle className="h-3.5 w-3.5 mr-1" />
                         Disponible
                       </Button>
-                    )}
+                    )}{" "}
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      onClick={() => {
+                        if (vehiculo.id) {
+                          // Resetear el store primero para evitar estados residuales
+                          useMaintenanceVehicleStore.getState().reset();
 
-                    {vehiculo.estado !== "MANTENIMIENTO" && (
-                      <Button
-                        variant="secondary"
-                        size="sm"
-                        onClick={() =>
-                          vehiculo.id &&
-                          handleChangeStatus(vehiculo.id, "MANTENIMIENTO")
+                          // Establecer el vehículo y abrir el modal
+                          useMaintenanceVehicleStore
+                            .getState()
+                            .openCreateModal(vehiculo.id);
+
+                          // Mostrar notificación
+                          toast.info("Programar mantenimiento", {
+                            description: `Creando mantenimiento para el vehículo ${vehiculo.placa}`,
+                          });
+
+                          // Navegar a la página de mantenimiento
+                          router.push(
+                            `/admin/dashboard/vehiculos/mantenimiento`
+                          );
                         }
-                        className="cursor-pointer"
-                      >
-                        <PauseCircle className="h-3.5 w-3.5 mr-1" />
-                        Mantenimiento
-                      </Button>
-                    )}
+                      }}
+                      className="cursor-pointer"
+                    >
+                      <PauseCircle className="h-3.5 w-3.5 mr-1" />
+                      Mantenimiento
+                    </Button>
                   </div>
                 </TableCell>
               </>
@@ -496,7 +577,6 @@ const ListadoVehiculosComponent = ({
           />
         </div>
       </CardContent>
-
       <FormDialog
         open={isCreating || selectedVehiculo !== null}
         onOpenChange={(open) => {
@@ -588,10 +668,14 @@ const ListadoVehiculosComponent = ({
           <Controller
             name="tipoCabina"
             control={control}
+            defaultValue="simple"
             render={({ field, fieldState }) => {
               const capitalizeFirstLetter = (string: string) => {
-                return string.charAt(0).toUpperCase() + string.slice(1);
+                return string && string.length > 0
+                  ? string.charAt(0).toUpperCase() + string.slice(1)
+                  : "Simple";
               };
+              // Aseguramos que siempre haya un valor por defecto
               const displayValue = field.value
                 ? capitalizeFirstLetter(field.value)
                 : "Simple";
@@ -645,10 +729,12 @@ const ListadoVehiculosComponent = ({
           <Controller
             name="esExterno"
             control={control}
+            defaultValue={false}
             render={({ field, fieldState }) => {
-              // Default to "Vehículo propio" if undefined or null
+              // Siempre debe tener un valor por defecto (false = "Vehículo propio")
+              const value = field.value === undefined ? false : field.value;
               const currentLabel =
-                field.value === true ? "Vehículo externo" : "Vehículo propio";
+                value === true ? "Vehículo externo" : "Vehículo propio";
 
               return (
                 <FormField
@@ -681,7 +767,6 @@ const ListadoVehiculosComponent = ({
                 options={[
                   { label: "Disponible", value: "DISPONIBLE" },
                   { label: "Asignado", value: "ASIGNADO" },
-                  { label: "Mantenimiento", value: "MANTENIMIENTO" },
                   { label: "Inactivo", value: "INACTIVO" },
                   { label: "Baja", value: "BAJA" },
                 ]}
@@ -689,6 +774,31 @@ const ListadoVehiculosComponent = ({
               />
             )}
           />
+        </div>
+      </FormDialog>
+      <FormDialog
+        open={confirmDialogOpen}
+        submitButtonText="Eliminar"
+        submitButtonVariant="destructive"
+        onOpenChange={(open) => {
+          if (!open) {
+            setConfirmDialogOpen(false);
+            setVehiculoToDelete(null);
+          }
+        }}
+        title="Confirmar eliminación"
+        onSubmit={(e) => {
+          e.preventDefault();
+          confirmDelete();
+        }}
+      >
+        <div className="space-y-4 py-4">
+          <p className="text-destructive font-semibold">¡Atención!</p>
+          <p>
+            Esta acción eliminará permanentemente este vehículo. Esta operación
+            no se puede deshacer.
+          </p>
+          <p>¿Estás seguro de que deseas continuar?</p>
         </div>
       </FormDialog>
     </Card>

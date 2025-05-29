@@ -1,4 +1,4 @@
-import { useMemo, useState, ReactNode } from "react";
+import { useMemo, useState, ReactNode, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import {
@@ -23,10 +23,11 @@ interface ListadoTablaProps<T> {
   columns: Column[];
   renderRow: (item: T) => ReactNode;
   itemsPerPage?: number;
-  searchableKeys?: (keyof T)[];
+  searchableKeys?: string[]; // Cambiado de (keyof T)[] a string[] para permitir propiedades anidadas
   remotePagination?: boolean;
   totalItems?: number;
   currentPage?: number;
+  searchPlaceholder?: string;
   onPageChange?: (page: number) => void;
   onSearchChange?: (search: string) => void;
   onEdit?: (item: T) => void;
@@ -44,6 +45,7 @@ export function ListadoTabla<T>({
   remotePagination = false,
   totalItems,
   currentPage: externalPage,
+  searchPlaceholder = "Buscar...",
   onPageChange,
   onSearchChange,
   onEdit,
@@ -52,17 +54,47 @@ export function ListadoTabla<T>({
 }: ListadoTablaProps<T>) {
   const [searchTerm, setSearchTerm] = useState("");
   const [internalPage, setInternalPage] = useState(1);
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    // Esperar a que el componente esté montado en el cliente
+    setIsMounted(true);
+  }, []);
 
   const currentPage = remotePagination ? externalPage ?? 1 : internalPage;
+    /**
+   * Función para obtener el valor de una propiedad anidada usando notación de puntos
+   * Por ejemplo: "toilet.codigo_interno" obtendrá item.toilet.codigo_interno 
+   */
+  const getNestedValue = (obj: Record<string, unknown>, path: string): unknown => {
+    const keys = path.split('.');
+    return keys.reduce((acc: unknown, key: string) => {
+      return acc && typeof acc === 'object' ? (acc as Record<string, unknown>)[key] : undefined;
+    }, obj);
+  };
 
   const filteredData = useMemo(() => {
+    // Si la paginación es remota, no filtramos datos localmente
     if (remotePagination) return data;
+
+    // Si no hay términos de búsqueda o no hay campos buscables, devolver todos los datos
     if (searchableKeys.length === 0 || searchTerm.trim() === "") return data;
 
+    // El término de búsqueda normalizado
+    const normalizedSearchTerm = searchTerm.toLowerCase().trim();    // Filtrar datos por el término de búsqueda
     return data.filter((item) =>
       searchableKeys.some((key) => {
-        const value = String(item[key] ?? "").toLowerCase();
-        return value.includes(searchTerm.toLowerCase());
+        // Obtener el valor para esta clave (soportando propiedades anidadas)
+        const rawValue = getNestedValue(item as Record<string, unknown>, key);
+
+        // Manejar diferentes tipos de valores
+        if (rawValue === null || rawValue === undefined) return false;
+
+        // Convertir el valor a string para búsqueda
+        const value = String(rawValue).toLowerCase();
+
+        // Verificar si el valor incluye el término de búsqueda
+        return value.includes(normalizedSearchTerm);
       })
     );
   }, [searchTerm, data, searchableKeys, remotePagination]);
@@ -84,13 +116,45 @@ export function ListadoTabla<T>({
       setInternalPage(page);
     }
   };
-
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (onSearchChange) {
       onSearchChange(searchTerm);
     }
   };
+
+  // // Efecto para implementar búsqueda automática con debounce
+  // useEffect(() => {
+  //   if (!remotePagination) return; // Sólo para búsqueda remota
+
+  //   const timer = setTimeout(() => {
+  //     if (onSearchChange) {
+  //       onSearchChange(searchTerm);
+  //     }
+  //   }, 500); // 500ms de debounce
+
+  //   return () => {
+  //     clearTimeout(timer);
+  //   };
+  // }, [searchTerm, onSearchChange, remotePagination]);
+  // Si no está montado en el cliente, mostramos un esqueleto
+  if (!isMounted) {
+    return (
+      <Card className="w-full shadow-md border @container">
+        <CardContent className="p-6 space-y-4">
+          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+            <div className="h-7 bg-gray-100 animate-pulse rounded w-40"></div>
+            <div className="h-10 bg-gray-100 animate-pulse rounded w-56"></div>
+          </div>
+          <div className="overflow-x-auto rounded-md border">
+            <div className="h-64 bg-gray-50 animate-pulse flex items-center justify-center">
+              <div className="text-gray-400">Cargando datos...</div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <Card className="w-full shadow-md border @container">
@@ -99,17 +163,36 @@ export function ListadoTabla<T>({
           <div className="flex items-center gap-4 flex-col lg:flex-row">
             <h2 className="text-xl font-semibold">{title}</h2>
             {addButton}
-          </div>
+          </div>{" "}
           {searchableKeys.length > 0 && (
-            <form onSubmit={handleSearchSubmit}>
-              <Input
-                type="text"
-                placeholder="Buscar..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="max-w-sm"
-              />
-            </form>
+            <div className="flex items-center gap-2">
+              <form onSubmit={handleSearchSubmit} className="relative">
+                <Input
+                  type="text"
+                  placeholder={searchPlaceholder}
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="w-80 max-w-sm pl-8"
+                />
+                <span className="absolute left-2.5 top-2.5 text-muted-foreground">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    className="lucide lucide-search"
+                  >
+                    <circle cx="11" cy="11" r="8" />
+                    <path d="m21 21-4.3-4.3" />
+                  </svg>
+                </span>
+              </form>
+            </div>
           )}
         </div>
 

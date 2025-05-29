@@ -44,6 +44,7 @@ const TallesEmpleadosComponent = ({
 }) => {
   const router = useRouter();
   const searchParams = useSearchParams();
+
   const [tallesEmpleados, setTallesEmpleados] = useState<RopaTalles[]>(data);
   const [total, setTotal] = useState<number>(totalItems);
   const [page, setPage] = useState<number>(currentPage);
@@ -225,12 +226,18 @@ const TallesEmpleadosComponent = ({
     }
   };
   const fetchTallesEmpleados = useCallback(async () => {
-    const currentPage = Number(searchParams.get("page")) || 1;
-    const search = searchParams.get("search") || "";
-    setLoading(true);
-
     try {
-      const fetchedTalles = await getTallesEmpleados(currentPage, itemsPerPage);
+      const currentPage = Number(searchParams.get("page")) || 1;
+      const searchTerm = searchParams.get("search") || "";
+
+      setLoading(true);
+
+      // Now passing the search term to getTallesEmpleados
+      const fetchedTalles = await getTallesEmpleados(
+        currentPage,
+        itemsPerPage,
+        searchTerm
+      );
 
       if (fetchedTalles.data && Array.isArray(fetchedTalles.data)) {
         setTallesEmpleados(fetchedTalles.data);
@@ -241,12 +248,19 @@ const TallesEmpleadosComponent = ({
         setTallesEmpleados([]);
         setTotal(0);
         setPage(1);
+        toast.error("Error", {
+          description: "No se pudieron cargar los talles de empleados",
+        });
       }
     } catch (error) {
       console.error("Error al cargar los talles:", error);
       setTallesEmpleados([]);
       setTotal(0);
       setPage(1);
+      toast.error("Error", {
+        description:
+          "Ocurrió un error al cargar los talles. Por favor, intenta nuevamente.",
+      });
     } finally {
       setLoading(false);
     }
@@ -254,8 +268,7 @@ const TallesEmpleadosComponent = ({
   useEffect(() => {
     console.log("Datos iniciales recibidos:", data);
     fetchTallesEmpleados();
-  }, [fetchTallesEmpleados]);
-
+  }, [fetchTallesEmpleados, data]);
   // Estado de depuración para mostrar cuando no hay datos
   useEffect(() => {
     if (tallesEmpleados.length === 0) {
@@ -264,7 +277,6 @@ const TallesEmpleadosComponent = ({
       console.log("Talles de empleados cargados:", tallesEmpleados);
     }
   }, [tallesEmpleados]);
-
   if (loading) {
     return (
       <div className="w-full h-screen flex justify-center items-center">

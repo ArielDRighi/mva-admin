@@ -6,10 +6,9 @@ import { Badge } from "@/components/ui/badge";
 import { EmpleadoSelector } from "@/components/ui/local/SearchSelector/Selectors";
 import {
   CreateEmployeeLeaveDto,
-  UpdateEmployeeLeaveDto,
   LeaveType,
+  UpdateEmployeeLeaveDto,
 } from "@/types/types";
-import { EmployeeLeave } from "@/types/licenciasTypes";
 import { TableCell } from "../ui/table";
 import { useCallback, useEffect, useState } from "react";
 import {
@@ -46,6 +45,7 @@ import {
   FileText,
   Plus,
 } from "lucide-react";
+import { LicenciaEmpleado } from "@/types/licenciasTypes";
 
 export default function LicenciasEmpleadosComponent({
   data,
@@ -53,27 +53,37 @@ export default function LicenciasEmpleadosComponent({
   currentPage,
   itemsPerPage,
 }: {
-  data: EmployeeLeave[];
+  data: LicenciaEmpleado[];
   totalItems: number;
   currentPage: number;
   itemsPerPage: number;
 }) {
   const router = useRouter();
   const searchParams = useSearchParams();
+  // Validar y proporcionar un valor seguro para data
   const safeData = Array.isArray(data) ? data : [];
 
-  const [licencias, setLicencias] = useState<EmployeeLeave[]>(safeData);
+  const [licencias, setLicencias] = useState<LicenciaEmpleado[]>(safeData);
   const [total, setTotal] = useState<number>(totalItems);
   const [page, setPage] = useState<number>(currentPage);
   const [loading, setLoading] = useState<boolean>(false);
   const [selectedLicencia, setSelectedLicencia] =
-    useState<EmployeeLeave | null>(null);
+    useState<LicenciaEmpleado | null>(null);
   const [isCreating, setIsCreating] = useState<boolean>(false);
   const [isFirstLoad, setIsFirstLoad] = useState<boolean>(true);
   const [activeTab, setActiveTab] = useState<string>("todos");
+  // Estados para los diálogos de confirmación
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState<boolean>(false);
+  const [licenciaToDelete, setLicenciaToDelete] = useState<number | null>(null);
+  // Nuevos estados para confirmación de aprobación y rechazo
+  const [showApproveConfirm, setShowApproveConfirm] = useState<boolean>(false);
+  const [licenciaToApprove, setLicenciaToApprove] = useState<number | null>(
+    null
+  );
+  const [showRejectConfirm, setShowRejectConfirm] = useState<boolean>(false);
+  const [licenciaToReject, setLicenciaToReject] = useState<number | null>(null);
 
-  // Esquema para validación de formulario
-
+  // En la definición del esquema de validación
   const createLicenciaSchema = z.object({
     employeeId: z.number({
       required_error: "El empleado es obligatorio",
@@ -84,21 +94,19 @@ export default function LicenciasEmpleadosComponent({
     tipoLicencia: z.enum(
       [
         LeaveType.VACACIONES,
-        LeaveType.CASAMIENTO,
         LeaveType.ENFERMEDAD,
+        LeaveType.CASAMIENTO,
         LeaveType.FALLECIMIENTO_FAMILIAR,
         LeaveType.NACIMIENTO,
-        LeaveType.ORDINARIA,
-        LeaveType.CAPACITACION,
       ],
       {
         errorMap: () => ({ message: "El tipo de licencia es obligatorio" }),
       }
     ),
     notas: z.string().optional(),
-    aprobado: z.boolean().optional(),
   });
 
+  // 2. Ahora actualizamos el formulario para usar el campo correcto
   const form = useForm<z.infer<typeof createLicenciaSchema>>({
     resolver: zodResolver(createLicenciaSchema),
     defaultValues: {
@@ -107,7 +115,6 @@ export default function LicenciasEmpleadosComponent({
       fechaFin: "",
       tipoLicencia: LeaveType.VACACIONES,
       notas: "",
-      aprobado: false,
     },
   });
 
@@ -125,118 +132,187 @@ export default function LicenciasEmpleadosComponent({
     params.set("page", "1");
     router.replace(`?${params.toString()}`);
   };
-  const handleEditClick = (licencia: EmployeeLeave) => {
-    setSelectedLicencia(licencia);
-    setIsCreating(false);
 
-    console.log("Licencia a editar:", licencia); // Para depuración
+  const handleEditClick = (licencia: LicenciaEmpleado) => {
+    try {
+      setSelectedLicencia(licencia);
+      setIsCreating(false);
 
-    // Mapeo de campos del API a nuestro esquema
-    const mappedLicencia = {
-      employeeId: licencia.employee_id || licencia.employeeId || 0,
-      fechaInicio: licencia.start_date || licencia.fechaInicio || "",
-      fechaFin: licencia.end_date || licencia.fechaFin || "",
-      tipoLicencia:
-        licencia.type || licencia.tipoLicencia || LeaveType.VACACIONES,
-      notas: licencia.observations || licencia.reason || licencia.notas || "",
-      // Map the new status field to a boolean for the form
-      aprobado: licencia.status === "APROBADO",
-    };
+      const camposFormulario = [
+        "employeeId",
+        "fechaInicio",
+        "fechaFin",
+        "tipoLicencia",
+        "notas",
+      ] as const;
 
-    // Establecer todos los valores en el formulario
-    Object.keys(mappedLicencia).forEach((key) => {
-      const typedKey = key as keyof typeof mappedLicencia;
-      const value = mappedLicencia[typedKey];
-
-      if (value !== undefined) {
-        if (key === "fechaInicio" || key === "fechaFin") {
-          // Convertir la fecha a formato YYYY-MM-DD para input type="date"
-          let dateValue = "";
-          if (value instanceof Date) {
-            dateValue = value.toISOString().split("T")[0];
-          } else if (typeof value === "string") {
-            dateValue = new Date(value).toISOString().split("T")[0];
-          }
-          setValue(key as "fechaInicio" | "fechaFin", dateValue);
-        } else if (key === "employeeId") {
-          setValue("employeeId", value as number);
-        } else if (key === "tipoLicencia") {
-          setValue("tipoLicencia", value as LeaveType);
-        } else if (key === "notas") {
-          setValue("notas", value as string);
-        } else if (key === "aprobado") {
-          setValue("aprobado", value as boolean);
+      camposFormulario.forEach((key) => {
+        if (key in licencia) {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          setValue(key as any, licencia[key as keyof typeof licencia]);
         }
-      }
-    });
-
-    // Log para verificar que se hayan establecido correctamente los valores
-    console.log("Formulario con valores cargados:", form.getValues());
+      });
+    } catch (error) {
+      console.error("Error al cargar datos para editar:", error);
+      toast.error("Error al editar", {
+        description: "No se pudieron cargar los datos para editar la licencia.",
+        duration: 5000,
+      });
+    }
   };
 
   const handleCreateClick = () => {
-    reset({
-      employeeId: 0,
-      fechaInicio: "",
-      fechaFin: "",
-      tipoLicencia: LeaveType.VACACIONES,
-      notas: "",
-      aprobado: false,
-    });
-    setSelectedLicencia(null);
-    setIsCreating(true);
+    try {
+      reset({
+        employeeId: 0,
+        fechaInicio: "",
+        fechaFin: "",
+        tipoLicencia: LeaveType.VACACIONES,
+        notas: "",
+      });
+      setSelectedLicencia(null);
+      setIsCreating(true);
+    } catch (error) {
+      console.error("Error al preparar formulario de creación:", error);
+      toast.error("Error", {
+        description: "No se pudo iniciar la creación de licencia.",
+        duration: 3000,
+      });
+    }
   };
 
-  const handleDeleteClick = async (id: number) => {
+  // Esta función ahora sólo muestra el diálogo de confirmación para eliminar
+  const handleDeleteClick = (id: number) => {
+    setLicenciaToDelete(id);
+    setShowDeleteConfirm(true);
+  };
+
+  // Nuevas funciones para mostrar los diálogos de confirmación
+  const handleApproveClick = (id: number) => {
+    setLicenciaToApprove(id);
+    setShowApproveConfirm(true);
+  };
+
+  const handleRejectClick = (id: number) => {
+    setLicenciaToReject(id);
+    setShowRejectConfirm(true);
+  };
+
+  // Función que realmente elimina después de la confirmación
+  const confirmDeleteLicencia = async () => {
+    if (!licenciaToDelete) return;
+
     try {
-      await deleteEmployeeLeave(id);
+      setLoading(true);
+      await deleteEmployeeLeave(licenciaToDelete);
       toast.success("Licencia eliminada", {
         description: "La licencia se ha eliminado correctamente.",
       });
       await fetchLicencias();
     } catch (error) {
       console.error("Error al eliminar la licencia:", error);
-      toast.error("Error", { description: "No se pudo eliminar la licencia." });
+
+      // Extraer mensaje de error más descriptivo
+      let errorMessage = "No se pudo eliminar la licencia.";
+      if (error instanceof Error) {
+        errorMessage = error.message;
+      }
+
+      toast.error("Error al eliminar", {
+        description: errorMessage,
+        duration: 5000,
+      });
+    } finally {
+      setShowDeleteConfirm(false);
+      setLicenciaToDelete(null);
+      setLoading(false);
     }
   };
 
-  const handleApproveClick = async (id: number) => {
+  // Nuevas funciones para confirmar aprobación y rechazo
+  const confirmApproveLicencia = async () => {
+    if (!licenciaToApprove) return;
+
     try {
-      await approveEmployeeLeave(id);
+      setLoading(true);
+      await approveEmployeeLeave(licenciaToApprove);
       toast.success("Licencia aprobada", {
-        description: "La licencia ha sido aprobada.",
+        description: "La licencia ha sido aprobada correctamente.",
       });
       await fetchLicencias();
     } catch (error) {
       console.error("Error al aprobar la licencia:", error);
-      toast.error("Error", { description: "No se pudo aprobar la licencia." });
+
+      let errorMessage = "No se pudo aprobar la licencia.";
+      if (error instanceof Error) {
+        errorMessage = error.message;
+      }
+
+      toast.error("Error al aprobar", {
+        description: errorMessage,
+        duration: 5000,
+      });
+    } finally {
+      setShowApproveConfirm(false);
+      setLicenciaToApprove(null);
+      setLoading(false);
     }
   };
 
-  const handleRejectClick = async (id: number) => {
+  const confirmRejectLicencia = async () => {
+    if (!licenciaToReject) return;
+
     try {
-      await rejectEmployeeLeave(id);
+      setLoading(true);
+      await rejectEmployeeLeave(licenciaToReject);
       toast.success("Licencia rechazada", {
-        description: "La licencia ha sido rechazada.",
+        description: "La licencia ha sido rechazada correctamente.",
       });
       await fetchLicencias();
     } catch (error) {
       console.error("Error al rechazar la licencia:", error);
-      toast.error("Error", { description: "No se pudo rechazar la licencia." });
+
+      let errorMessage = "No se pudo rechazar la licencia.";
+      if (error instanceof Error) {
+        errorMessage = error.message;
+      }
+
+      toast.error("Error al rechazar", {
+        description: errorMessage,
+        duration: 5000,
+      });
+    } finally {
+      setShowRejectConfirm(false);
+      setLicenciaToReject(null);
+      setLoading(false);
     }
   };
 
   const onSubmit = async (data: z.infer<typeof createLicenciaSchema>) => {
     try {
+      setLoading(true);
+
+      // Validar fechas
+      const fechaInicio = new Date(data.fechaInicio);
+      const fechaFin = new Date(data.fechaFin);
+
+      if (isNaN(fechaInicio.getTime()) || isNaN(fechaFin.getTime())) {
+        throw new Error("Las fechas ingresadas no son válidas");
+      }
+
+      if (fechaInicio > fechaFin) {
+        throw new Error(
+          "La fecha de inicio debe ser anterior a la fecha de fin"
+        );
+      }
+
       if (selectedLicencia && selectedLicencia.id) {
         const updateData: UpdateEmployeeLeaveDto = {
           employeeId: data.employeeId,
-          fechaInicio: new Date(data.fechaInicio),
-          fechaFin: new Date(data.fechaFin),
+          fechaInicio: data.fechaInicio,
+          fechaFin: data.fechaFin,
           tipoLicencia: data.tipoLicencia,
-          notas: data.notas,
-          // Convert the boolean to the corresponding status string if needed by your API
-          status: data.aprobado ? "APROBADO" : "PENDIENTE",
+          notas: data.notas || "",
         };
         await updateEmployeeLeave(selectedLicencia.id, updateData);
         toast.success("Licencia actualizada", {
@@ -245,11 +321,10 @@ export default function LicenciasEmpleadosComponent({
       } else {
         const createData: CreateEmployeeLeaveDto = {
           employeeId: data.employeeId,
-          fechaInicio: new Date(data.fechaInicio),
-          fechaFin: new Date(data.fechaFin),
+          fechaInicio: data.fechaInicio,
+          fechaFin: data.fechaFin,
           tipoLicencia: data.tipoLicencia,
-          notas: data.notas,
-          // For new leaves, use PENDIENTE as default status
+          notas: data.notas || "",
         };
         await createEmployeeLeave(createData);
         toast.success("Licencia creada", {
@@ -262,13 +337,25 @@ export default function LicenciasEmpleadosComponent({
       setSelectedLicencia(null);
     } catch (error) {
       console.error("Error en el envío del formulario:", error);
+
+      // Extraer mensaje de error más descriptivo
+      let errorMessage = selectedLicencia
+        ? "No se pudo actualizar la licencia."
+        : "No se pudo crear la licencia.";
+
+      if (error instanceof Error) {
+        errorMessage = error.message;
+      }
+
       toast.error("Error", {
-        description: selectedLicencia
-          ? "No se pudo actualizar la licencia."
-          : "No se pudo crear la licencia.",
+        description: errorMessage,
+        duration: 5000,
       });
+    } finally {
+      setLoading(false);
     }
   };
+
   const fetchLicencias = useCallback(async () => {
     const currentPage = Number(searchParams.get("page")) || 1;
     const search = searchParams.get("search") || "";
@@ -281,33 +368,76 @@ export default function LicenciasEmpleadosComponent({
         search
       );
 
+      // Manejar diferentes formatos de respuesta posibles
       if (Array.isArray(fetchedLicencias)) {
-        // Handle case where response is directly an array
-        setLicencias(fetchedLicencias as EmployeeLeave[]);
-        setTotal(fetchedLicencias.length); // You might need a better way to get total count
+        setLicencias(fetchedLicencias);
+        setTotal(fetchedLicencias.length);
         setPage(currentPage);
       } else if (
-        fetchedLicencias.data &&
-        Array.isArray(fetchedLicencias.data)
+        typeof fetchedLicencias === "object" &&
+        fetchedLicencias !== null
       ) {
-        setLicencias(fetchedLicencias.data as EmployeeLeave[]);
-        setTotal(fetchedLicencias.totalItems || 0);
-        setPage(fetchedLicencias.currentPage || 1);
-      } else if (
-        fetchedLicencias.items &&
-        Array.isArray(fetchedLicencias.items)
-      ) {
-        setLicencias(fetchedLicencias.items as EmployeeLeave[]);
-        setTotal(fetchedLicencias.total || 0);
-        setPage(fetchedLicencias.page || 1);
+        if (
+          "data" in fetchedLicencias &&
+          Array.isArray(fetchedLicencias.data)
+        ) {
+          setLicencias(fetchedLicencias.data);
+          setTotal(fetchedLicencias.totalItems || fetchedLicencias.data.length);
+          setPage(fetchedLicencias.currentPage || 1);
+        } else if (
+          "items" in fetchedLicencias &&
+          Array.isArray(fetchedLicencias.items)
+        ) {
+          setLicencias(fetchedLicencias.items);
+          // setTotal(fetchedLicencias.total || fetchedLicencias.items.length);
+          // setPage(fetchedLicencias.page || 1);
+          setTotal(fetchedLicencias.items.length);
+          setPage(1);
+        } else {
+          console.error(
+            "Formato de respuesta no reconocido:",
+            fetchedLicencias
+          );
+          toast.error("Error de formato", {
+            description: "El formato de respuesta del servidor no es válido.",
+            duration: 5000,
+          });
+          setLicencias([]);
+          setTotal(0);
+          setPage(1);
+        }
       } else {
-        console.error("Formato de respuesta no reconocido:", fetchedLicencias);
+        console.error("Respuesta no válida:", fetchedLicencias);
+        toast.error("Error de datos", {
+          description: "Los datos recibidos no son válidos.",
+          duration: 5000,
+        });
+        setLicencias([]);
+        setTotal(0);
+        setPage(1);
       }
     } catch (error) {
       console.error("Error al cargar las licencias:", error);
+
+      // Extraer mensaje de error más descriptivo
+      let errorMessage = "No se pudieron cargar las licencias.";
+      if (error instanceof Error) {
+        errorMessage = error.message;
+      }
+
+      toast.error("Error al cargar licencias", {
+        description: errorMessage,
+        duration: 5000,
+      });
+
+      // Establecer estados por defecto en caso de error
+      setLicencias([]);
+      setTotal(0);
+      setPage(1);
     } finally {
       setLoading(false);
-    }  }, [searchParams, itemsPerPage]);
+    }
+  }, [searchParams, itemsPerPage]);
 
   useEffect(() => {
     if (isFirstLoad) {
@@ -321,42 +451,73 @@ export default function LicenciasEmpleadosComponent({
   const handleTabChange = (value: string) => {
     setActiveTab(value);
   };
-  // Move these function definitions BEFORE they are used
-  const getApprovalStatus = (
-    licencia: EmployeeLeave
-  ): "APPROVED" | "REJECTED" | "PENDING" => {
-    // Check for direct status field first
-    if (licencia.status) {
-      if (licencia.status === "APROBADO") return "APPROVED";
-      if (licencia.status === "RECHAZADO") return "REJECTED";
-      if (licencia.status === "PENDIENTE") return "PENDING";
-    }
 
-    // Fall back to the old aprobado boolean field if status isn't present
-    if (licencia.aprobado === true) return "APPROVED";
-    if (licencia.aprobado === false && licencia.status === "RECHAZADO")
-      return "REJECTED";
-    return "PENDING";
+  // Funciones mejoradas para obtener y mostrar el estado de aprobación
+  const getApprovalStatus = (
+    licencia: LicenciaEmpleado
+  ): "APPROVED" | "REJECTED" | "PENDING" => {
+    try {
+      // Usar la propiedad booleana aprobado para determinar el estado
+      if (licencia.aprobado === true) {
+        return "APPROVED";
+      }
+      // Si hay un comentario de rechazo, consideramos que está rechazada
+      else if (licencia.comentarioRechazo) {
+        return "REJECTED";
+      }
+      // Por defecto, pendiente
+      else {
+        return "PENDING";
+      }
+    } catch (error) {
+      console.error("Error al determinar el estado de aprobación:", error);
+      return "PENDING"; // Valor por defecto seguro
+    }
   };
 
   const getStatusBadgeVariant = (
     status: string
   ): "default" | "outline" | "destructive" => {
-    const variants: Record<string, "default" | "outline" | "destructive"> = {
-      PENDING: "outline",
-      APPROVED: "default",
-      REJECTED: "destructive",
-    };
-    return variants[status] || "outline";
+    try {
+      const variants: Record<string, "default" | "outline" | "destructive"> = {
+        PENDING: "outline",
+        APPROVED: "default",
+        REJECTED: "destructive",
+      };
+      return variants[status] || "outline";
+    } catch (error) {
+      console.error("Error al determinar variante del badge:", error);
+      return "outline"; // Valor por defecto seguro
+    }
   };
 
+  // Filtrar licencias según la pestaña activa
   const filteredLicencias =
     activeTab === "todos"
       ? licencias
       : licencias.filter((licencia) => {
-          const status = getApprovalStatus(licencia);
-          return status === activeTab.toUpperCase();
+          try {
+            const status = getApprovalStatus(licencia);
+            return status === activeTab.toUpperCase();
+          } catch (error) {
+            console.error("Error al filtrar licencia:", error);
+            return false; // Omitir esta licencia en caso de error
+          }
         });
+
+  // Función para formatear fechas de manera segura
+  const formatDate = (dateString: string) => {
+    try {
+      const date = new Date(dateString);
+      if (isNaN(date.getTime())) {
+        throw new Error("Fecha inválida");
+      }
+      return date.toLocaleDateString("es-AR");
+    } catch (error) {
+      console.error(`Error al formatear fecha '${dateString}':`, error);
+      return "Fecha no válida";
+    }
+  };
 
   if (loading) {
     return (
@@ -422,12 +583,14 @@ export default function LicenciasEmpleadosComponent({
             data={filteredLicencias}
             itemsPerPage={itemsPerPage}
             searchableKeys={[
-              // Las claves ahora se pueden usar directamente gracias al índice de tipo
-              "employee.nombre",
-              "employee.documento",
               "tipoLicencia",
               "notas",
+              "employee.nombre",
+              "employee.apellido",
+              "empleado.nombre",
+              "empleado.apellido",
             ]}
+            searchPlaceholder="Buscar por empleado, tipo de licencia o notas..."
             remotePagination
             totalItems={total}
             currentPage={page}
@@ -449,11 +612,16 @@ export default function LicenciasEmpleadosComponent({
                     </div>
                     <div>
                       <div className="font-medium">
-                        {licencia.employee?.nombre}{" "}
-                        {licencia.employee?.apellido}
+                        {/* Intenta primero con employee (estructura actual) */}
+                        {licencia.employee?.nombre ||
+                          licencia.empleado?.nombre}{" "}
+                        {licencia.employee?.apellido ||
+                          licencia.empleado?.apellido}
                       </div>
                       <div className="text-sm text-muted-foreground">
-                        {licencia.employee?.cargo || ""}
+                        {licencia.employee?.cargo ||
+                          licencia.empleado?.cargo ||
+                          ""}
                       </div>
                     </div>
                   </div>
@@ -462,7 +630,7 @@ export default function LicenciasEmpleadosComponent({
                   <div className="space-y-1">
                     <div className="flex items-center text-sm font-medium">
                       <FileText className="h-3.5 w-3.5 mr-2 text-muted-foreground" />
-                      {licencia.tipoLicencia || licencia.type}
+                      {licencia.tipoLicencia}
                     </div>
                     {licencia.notas && (
                       <div className="text-xs text-muted-foreground truncate max-w-[160px]">
@@ -477,24 +645,18 @@ export default function LicenciasEmpleadosComponent({
                       <Calendar className="h-3.5 w-3.5 mr-2 text-muted-foreground" />
                       <span>
                         Desde:{" "}
-                        {licencia.fechaInicio || licencia.start_date
-                          ? new Date(
-                              (licencia.fechaInicio as string) ||
-                                (licencia.start_date as string)
-                            ).toLocaleDateString("es-AR")
-                          : ""}
+                        {licencia.fechaInicio
+                          ? formatDate(licencia.fechaInicio)
+                          : "No disponible"}
                       </span>
                     </div>
                     <div className="flex items-center text-sm">
                       <Calendar className="h-3.5 w-3.5 mr-2 text-muted-foreground" />
                       <span>
                         Hasta:{" "}
-                        {licencia.fechaFin || licencia.end_date
-                          ? new Date(
-                              (licencia.fechaFin as string) ||
-                                (licencia.end_date as string)
-                            ).toLocaleDateString("es-AR")
-                          : ""}
+                        {licencia.fechaFin
+                          ? formatDate(licencia.fechaFin)
+                          : "No disponible"}
                       </span>
                     </div>
                   </div>
@@ -574,6 +736,82 @@ export default function LicenciasEmpleadosComponent({
         </div>
       </CardContent>
 
+      {/* Diálogo de confirmación para eliminación */}
+      <FormDialog
+        open={showDeleteConfirm}
+        submitButtonText="Eliminar"
+        submitButtonVariant="destructive"
+        onOpenChange={(open) => {
+          if (!open) {
+            setShowDeleteConfirm(false);
+            setLicenciaToDelete(null);
+          }
+        }}
+        title="Confirmar eliminación"
+        onSubmit={(e) => {
+          e.preventDefault();
+          confirmDeleteLicencia();
+        }}
+      >
+        <div className="space-y-4 py-4">
+          <p className="text-destructive font-semibold">¡Atención!</p>
+          <p>
+            Esta acción eliminará permanentemente esta licencia. Esta operación
+            no se puede deshacer.
+          </p>
+          <p>¿Estás seguro de que deseas continuar?</p>
+        </div>
+      </FormDialog>
+
+      {/* Nuevo diálogo de confirmación para aprobación */}
+      <FormDialog
+        open={showApproveConfirm}
+        submitButtonText="Aprobar"
+        submitButtonVariant="default"
+        onOpenChange={(open) => {
+          if (!open) {
+            setShowApproveConfirm(false);
+            setLicenciaToApprove(null);
+          }
+        }}
+        title="Confirmar aprobación"
+        onSubmit={(e) => {
+          e.preventDefault();
+          confirmApproveLicencia();
+        }}
+      >
+        <div className="space-y-4 py-4">
+          <p className="text-green-600 font-semibold">Aprobar licencia</p>
+          <p>Esta acción aprobará la solicitud de licencia del empleado.</p>
+          <p>¿Estás seguro de que deseas aprobar esta licencia?</p>
+        </div>
+      </FormDialog>
+
+      {/* Nuevo diálogo de confirmación para rechazo */}
+      <FormDialog
+        open={showRejectConfirm}
+        submitButtonText="Rechazar"
+        submitButtonVariant="destructive"
+        onOpenChange={(open) => {
+          if (!open) {
+            setShowRejectConfirm(false);
+            setLicenciaToReject(null);
+          }
+        }}
+        title="Confirmar rechazo"
+        onSubmit={(e) => {
+          e.preventDefault();
+          confirmRejectLicencia();
+        }}
+      >
+        <div className="space-y-4 py-4">
+          <p className="text-destructive font-semibold">Rechazar licencia</p>
+          <p>Esta acción rechazará la solicitud de licencia del empleado.</p>
+          <p>¿Estás seguro de que deseas rechazar esta licencia?</p>
+        </div>
+      </FormDialog>
+
+      {/* Formulario de creación/edición */}
       <FormDialog
         open={isCreating || selectedLicencia !== null}
         onOpenChange={(open) => {
@@ -590,7 +828,8 @@ export default function LicenciasEmpleadosComponent({
         }
         onSubmit={handleSubmit(onSubmit)}
       >
-        <>          <Controller
+        <>
+          <Controller
             name="employeeId"
             control={control}
             render={({ field, fieldState }) => (
@@ -619,21 +858,13 @@ export default function LicenciasEmpleadosComponent({
                 }
                 options={[
                   { label: "Vacaciones", value: LeaveType.VACACIONES },
-                  {
-                    label: "Licencia Médica",
-                    value: LeaveType.ENFERMEDAD,
-                  },
-                  {
-                    label: "Licencia Personal",
-                    value: LeaveType.ORDINARIA,
-                  },
+                  { label: "Enfermedad", value: LeaveType.ENFERMEDAD },
                   {
                     label: "Fallecimiento Familiar",
                     value: LeaveType.FALLECIMIENTO_FAMILIAR,
                   },
                   { label: "Casamiento", value: LeaveType.CASAMIENTO },
                   { label: "Nacimiento", value: LeaveType.NACIMIENTO },
-                  { label: "Capacitacion", value: LeaveType.CAPACITACION },
                 ]}
                 error={fieldState.error?.message}
               />
@@ -675,7 +906,7 @@ export default function LicenciasEmpleadosComponent({
             control={control}
             render={({ field, fieldState }) => (
               <FormField
-                label="Notas"
+                label="notas"
                 name="notas"
                 value={field.value || ""}
                 onChange={field.onChange}
@@ -683,29 +914,6 @@ export default function LicenciasEmpleadosComponent({
               />
             )}
           />
-
-          {!isCreating && (
-            <Controller
-              name="aprobado"
-              control={control}
-              render={({ field, fieldState }) => (
-                <FormField
-                  label="Estado"
-                  name="aprobado"
-                  fieldType="select"
-                  value={field.value?.toString() || ""}
-                  onChange={(selectedValue: string) =>
-                    field.onChange(selectedValue === "true")
-                  }
-                  options={[
-                    { label: "Pendiente", value: "false" },
-                    { label: "Aprobada", value: "true" },
-                  ]}
-                  error={fieldState.error?.message}
-                />
-              )}
-            />
-          )}
         </>
       </FormDialog>
     </Card>

@@ -7,6 +7,7 @@ import {
   getSanitarios,
 } from "@/app/actions/sanitarios";
 import { Sanitario, SanitarioFormulario } from "@/types/types";
+import { useMaintenanceToiletStore } from "@/store/maintenanceToiletStore";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter, useSearchParams } from "next/navigation";
 import React, { useCallback, useEffect, useState } from "react";
@@ -63,6 +64,11 @@ const ListadoSanitariosComponent = ({
   const [isCreating, setIsCreating] = useState(false);
   const [activeTab, setActiveTab] = useState("todos");
   const [isFirstLoad, setIsFirstLoad] = useState(true);
+  // Nuevos estados para manejo de eliminación con confirmación
+  const [confirmDeleteDialogOpen, setConfirmDeleteDialogOpen] = useState(false);
+  const [sanitarioToDelete, setSanitarioToDelete] = useState<string | null>(
+    null
+  );
 
   const createSanitarioSchema = z.object({
     codigo_interno: z.string().min(1, "El código interno es obligatorio"),
@@ -78,13 +84,7 @@ const ListadoSanitariosComponent = ({
       ),
 
     estado: z.enum(
-      [
-        "DISPONIBLE",
-        "ASIGNADO",
-        "EN_MANTENIMIENTO",
-        "FUERA_DE_SERVICIO",
-        "BAJA",
-      ],
+      ["DISPONIBLE", "ASIGNADO", "MANTENIMIENTO", "FUERA_DE_SERVICIO", "BAJA"],
       {
         errorMap: () => ({
           message: "El estado es obligatorio y debe ser válido",
@@ -104,16 +104,25 @@ const ListadoSanitariosComponent = ({
   });
 
   const { handleSubmit, setValue, control, reset } = form;
-
   const handlePageChange = (page: number) => {
     const params = new URLSearchParams(searchParams.toString());
     params.set("page", String(page));
     router.replace(`?${params.toString()}`);
   };
-
+  /**
+   * Maneja el cambio en el término de búsqueda
+   */
   const handleSearchChange = (search: string) => {
     const params = new URLSearchParams(searchParams.toString());
-    params.set("search", search);
+
+    // Si no hay término de búsqueda, eliminar el parámetro
+    if (!search || search.trim() === "") {
+      params.delete("search");
+    } else {
+      params.set("search", search);
+    }
+
+    // Siempre volver a la primera página al buscar
     params.set("page", "1");
     router.replace(`?${params.toString()}`);
   };
@@ -142,34 +151,79 @@ const ListadoSanitariosComponent = ({
     setSelectedSanitario(null);
     setIsCreating(true);
   };
+  // Esta función ahora solo muestra el diálogo de confirmación
+  const handleDeleteClick = (id: string) => {
+    setSanitarioToDelete(id);
+    setConfirmDeleteDialogOpen(true);
+  };
 
-  const handleDeleteClick = async (id: string) => {
+  // Función que realmente elimina después de la confirmación
+  const confirmDelete = async () => {
+    if (!sanitarioToDelete) return;
+
     try {
-      await deleteSanitario(id);
+      setLoading(true);
+      await deleteSanitario(sanitarioToDelete);
+
       toast.success("Sanitario eliminado", {
         description: "El sanitario se ha eliminado correctamente.",
+        duration: 3000,
       });
+
       await fetchSanitarios();
     } catch (error) {
       console.error("Error al eliminar el sanitario:", error);
-      toast.error("Error", {
-        description: "No se pudo eliminar el sanitario.",
+
+      // Extraer el mensaje de error para mostrar información más precisa
+      const errorMessage =
+        error instanceof Error ? error.message : "Error desconocido";
+
+      toast.error("Error al eliminar sanitario", {
+        description: errorMessage,
+        duration: 5000,
       });
+    } finally {
+      setLoading(false);
+      setConfirmDeleteDialogOpen(false);
+      setSanitarioToDelete(null);
     }
   };
-
   const onSubmit = async (data: z.infer<typeof createSanitarioSchema>) => {
+    // Validación adicional para evitar que se asigne MANTENIMIENTO directamente
+    if (data.estado === "MANTENIMIENTO") {
+      toast.error("Estado no permitido", {
+        description:
+          "No se puede asignar manualmente el estado 'MANTENIMIENTO'. Use el botón de Mantenimiento para programar un mantenimiento.",
+        duration: 5000,
+      });
+      return;
+    }
+
     try {
+      setLoading(true);
+
       if (selectedSanitario && selectedSanitario.baño_id) {
-        await editSanitario(selectedSanitario.baño_id, data);
-        toast.success("Sanitario actualizado", {
-          description: "Los cambios se han guardado correctamente.",
-        });
+        // Actualizar sanitario existente
+        const result = await editSanitario(selectedSanitario.baño_id, data);
+
+        // Verificar resultado
+        if (result) {
+          toast.success("Sanitario actualizado", {
+            description: `El sanitario ${data.codigo_interno} se ha actualizado correctamente.`,
+            duration: 3000,
+          });
+        }
       } else {
-        await createSanitario(data);
-        toast.success("Sanitario creado", {
-          description: "El sanitario se ha agregado correctamente.",
-        });
+        // Crear nuevo sanitario
+        const result = await createSanitario(data);
+
+        // Verificar resultado
+        if (result) {
+          toast.success("Sanitario creado", {
+            description: `El sanitario ${data.codigo_interno} se ha agregado correctamente.`,
+            duration: 3000,
+          });
+        }
       }
 
       await fetchSanitarios();
@@ -177,34 +231,61 @@ const ListadoSanitariosComponent = ({
       setSelectedSanitario(null);
     } catch (error) {
       console.error("Error en el envío del formulario:", error);
-      toast.error("Error", {
-        description: selectedSanitario
-          ? "No se pudo actualizar el sanitario."
-          : "No se pudo crear el sanitario.",
-      });
-    }
-  };
 
-  const fetchSanitarios = useCallback(async () => {
-    const currentPage = Number(searchParams.get("page")) || 1;
-    const search = searchParams.get("search") || "";
-    setLoading(true);
+      const errorMessage =
+        error instanceof Error ? error.message : "Error desconocido";
 
-    try {
-      const fetchedSanitarios = await getSanitarios(
-        currentPage,
-        itemsPerPage,
-        search
+      // Personalizar mensaje según la acción
+      toast.error(
+        selectedSanitario
+          ? "Error al actualizar sanitario"
+          : "Error al crear sanitario",
+        {
+          description: errorMessage,
+          duration: 5000,
+        }
       );
-      setSanitarios(fetchedSanitarios.items);
-      setTotal(fetchedSanitarios.total);
-      setPage(fetchedSanitarios.page);
-    } catch (error) {
-      console.error("Error al cargar los sanitarios:", error);
     } finally {
       setLoading(false);
     }
-  }, [searchParams, itemsPerPage]);
+  }; // La verificación de autenticación ya se maneja en el AuthErrorHandler  // Función para cargar los sanitarios (simplificada)
+  const fetchSanitarios = useCallback(async () => {
+    try {
+      setLoading(true);
+      const searchTerm = searchParams.get("search") || "";
+      const pageNumber = Number(searchParams.get("page") || currentPage);
+
+      // Realizar la petición para obtener los sanitarios
+      const result = await getSanitarios(pageNumber, itemsPerPage, searchTerm);
+
+      // Utilizamos una aserción de tipo más específica
+      type ApiResponse = {
+        items?: Sanitario[];
+        total?: number;
+        page?: number;
+      };
+
+      // Verificamos que el resultado sea un objeto con la estructura esperada
+      const apiResponse = result as ApiResponse;
+      if (apiResponse && Array.isArray(apiResponse.items)) {
+        setSanitarios(apiResponse.items);
+        setTotal(apiResponse.total || 0);
+        setPage(apiResponse.page || 1);
+      }
+    } catch (error) {
+      console.error("Error al obtener sanitarios:", error);
+
+      // Los errores de autenticación ya son manejados por AuthErrorHandler
+      // Solo mostramos el mensaje de error genérico
+      toast.error("Error al cargar sanitarios", {
+        description:
+          error instanceof Error ? error.message : "Error desconocido",
+        duration: 5000,
+      });
+    } finally {
+      setLoading(false);
+    }
+  }, [searchParams, currentPage, itemsPerPage]);
 
   const handleTabChange = (value: string) => {
     setActiveTab(value);
@@ -217,7 +298,7 @@ const ListadoSanitariosComponent = ({
           if (activeTab === "disponible") return san.estado === "DISPONIBLE";
           if (activeTab === "asignado") return san.estado === "ASIGNADO";
           if (activeTab === "mantenimiento")
-            return san.estado === "EN_MANTENIMIENTO";
+            return san.estado === "MANTENIMIENTO";
           if (activeTab === "fuera_servicio")
             return san.estado === "FUERA_DE_SERVICIO";
           if (activeTab === "baja") return san.estado === "BAJA";
@@ -231,6 +312,7 @@ const ListadoSanitariosComponent = ({
       fetchSanitarios();
     }
   }, [fetchSanitarios, isFirstLoad]);
+  // La verificación de autenticación ya se maneja en el AuthErrorHandler
 
   if (loading) {
     return (
@@ -268,7 +350,6 @@ const ListadoSanitariosComponent = ({
             onValueChange={handleTabChange}
           >
             <TabsList className="flex flex-wrap gap-1 w-full">
-              {" "}
               <TabsTrigger value="todos" className="flex items-center">
                 <Toilet className="mr-2 h-4 w-4" />
                 Todos
@@ -297,7 +378,6 @@ const ListadoSanitariosComponent = ({
           </Tabs>
         </div>
       </CardHeader>
-
       <CardContent className="p-6">
         <div className="rounded-md border">
           <ListadoTabla
@@ -310,6 +390,7 @@ const ListadoSanitariosComponent = ({
             currentPage={page}
             onPageChange={handlePageChange}
             onSearchChange={handleSearchChange}
+            searchPlaceholder="Buscar por modelo, código interno o estado..."
             columns={[
               { title: "Código interno", key: "codigo_interno" },
               { title: "Modelo", key: "modelo" },
@@ -343,7 +424,7 @@ const ListadoSanitariosComponent = ({
                         ? "bg-green-100 text-green-800 hover:bg-green-100"
                         : sanitario.estado === "BAJA"
                         ? "bg-red-100 text-red-800 hover:bg-red-100"
-                        : sanitario.estado === "EN_MANTENIMIENTO"
+                        : sanitario.estado === "MANTENIMIENTO"
                         ? "bg-amber-100 text-amber-800 hover:bg-amber-100"
                         : sanitario.estado === "FUERA_DE_SERVICIO"
                         ? "bg-red-50 text-red-600 hover:bg-red-50"
@@ -352,7 +433,7 @@ const ListadoSanitariosComponent = ({
                   >
                     {sanitario.estado.replace("_", " ")}
                   </Badge>
-                </TableCell>
+                </TableCell>{" "}
                 <TableCell className="flex gap-2">
                   <Button
                     variant="outline"
@@ -362,7 +443,7 @@ const ListadoSanitariosComponent = ({
                   >
                     <Edit2 className="h-3.5 w-3.5 mr-1" />
                     Editar
-                  </Button>
+                  </Button>{" "}
                   <Button
                     variant="destructive"
                     size="sm"
@@ -374,13 +455,62 @@ const ListadoSanitariosComponent = ({
                     <Trash2 className="h-3.5 w-3.5 mr-1" />
                     Eliminar
                   </Button>
+                  <div className="ml-1">
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      onClick={() => {
+                        if (sanitario.baño_id) {
+                          // Resetear el store primero para evitar estados residuales
+                          useMaintenanceToiletStore.getState().reset(); // Establecer el sanitario y abrir el modal
+                          useMaintenanceToiletStore
+                            .getState()
+                            .openCreateModal(sanitario.baño_id);
+
+                          // Navegar a la página de mantenimiento
+                          router.push(
+                            `/admin/dashboard/sanitarios/mantenimiento`
+                          );
+                        }
+                      }}
+                      className="cursor-pointer"
+                    >
+                      <RefreshCcw className="h-3.5 w-3.5 mr-1" />
+                      Mantenimiento
+                    </Button>
+                  </div>
                 </TableCell>
               </>
             )}
           />
-        </div>
+        </div>{" "}
       </CardContent>
-
+      {/* Diálogo de confirmación para eliminación */}
+      <FormDialog
+        open={confirmDeleteDialogOpen}
+        submitButtonText="Eliminar"
+        submitButtonVariant="destructive"
+        onOpenChange={(open) => {
+          if (!open) {
+            setConfirmDeleteDialogOpen(false);
+            setSanitarioToDelete(null);
+          }
+        }}
+        title="Confirmar eliminación"
+        onSubmit={(e) => {
+          e.preventDefault();
+          confirmDelete();
+        }}
+      >
+        <div className="space-y-4 py-4">
+          <p className="text-destructive font-semibold">¡Atención!</p>
+          <p>
+            Esta acción eliminará permanentemente este sanitario. Esta operación
+            no se puede deshacer.
+          </p>
+          <p>¿Estás seguro de que deseas continuar?</p>
+        </div>
+      </FormDialog>
       <FormDialog
         open={isCreating || selectedSanitario !== null}
         onOpenChange={(open) => {
@@ -412,7 +542,6 @@ const ListadoSanitariosComponent = ({
               />
             )}
           />
-
           <Controller
             name="modelo"
             control={control}
@@ -427,7 +556,6 @@ const ListadoSanitariosComponent = ({
               />
             )}
           />
-
           <Controller
             name="fecha_adquisicion"
             control={control}
@@ -441,8 +569,7 @@ const ListadoSanitariosComponent = ({
                 error={fieldState.error?.message}
               />
             )}
-          />
-
+          />{" "}
           <Controller
             name="estado"
             control={control}
@@ -452,13 +579,22 @@ const ListadoSanitariosComponent = ({
                 name="estado"
                 fieldType="select"
                 value={field.value || ""}
-                onChange={(selectedValue: string) =>
-                  field.onChange(selectedValue)
-                }
+                onChange={(selectedValue: string) => {
+                  // Verificar si el usuario está intentando asignar directamente el estado MANTENIMIENTO
+                  if (selectedValue === "MANTENIMIENTO") {
+                    toast.error("Estado no permitido", {
+                      description:
+                        "No se puede asignar manualmente el estado 'MANTENIMIENTO'. Use el botón de Mantenimiento para programar un mantenimiento.",
+                    });
+                    // No actualizar el estado
+                    return;
+                  }
+                  field.onChange(selectedValue);
+                }}
                 options={[
                   { label: "Disponible", value: "DISPONIBLE" },
                   { label: "Asignado", value: "ASIGNADO" },
-                  { label: "En mantenimiento", value: "EN_MANTENIMIENTO" },
+                  // Eliminamos la opción de mantenimiento de la lista
                   { label: "Fuera de servicio", value: "FUERA_DE_SERVICIO" },
                   { label: "Baja", value: "BAJA" },
                 ]}
@@ -466,7 +602,7 @@ const ListadoSanitariosComponent = ({
               />
             )}
           />
-        </div>
+        </div>{" "}
       </FormDialog>
     </Card>
   );

@@ -5,6 +5,7 @@ import { Empleado } from "@/types/types";
 import { Badge } from "@/components/ui/badge";
 import { SearchSelector } from "../SearchSelector";
 import { Calendar, UserRound } from "lucide-react";
+import { toast } from "sonner";
 
 interface EmpleadoSelectorProps {
   value: number;
@@ -22,14 +23,94 @@ export function EmpleadoSelector({
   name,
   error,
   disabled = false,
-}: EmpleadoSelectorProps) {
-  const searchEmpleados = async (term: string) => {
+}: EmpleadoSelectorProps) {  // Definimos una interfaz clara para la respuesta de la API
+  interface EmpleadosResponse {
+    data?: Empleado[];
+    items?: Empleado[];
+    totalItems?: number;
+    currentPage?: number;
+    totalPages?: number;
+  }
+  
+  const searchEmpleados = async (term: string): Promise<Empleado[]> => {
     try {
-      const result = await getEmployees(1, 5, term);
-      return result.data || result.items || [];
+      console.log("Buscando empleados con término:", term);
+      
+      // Obtenemos 15 resultados para mostrar más opciones
+      // Tipamos explícitamente la respuesta para mayor seguridad
+      const result = await getEmployees(1, 15, term) as EmpleadosResponse;
+      
+      // Validamos que la respuesta tenga la estructura esperada
+      if (result && typeof result === 'object') {
+        // Accedemos a los datos con la estructura tipada
+        const items = result.data || result.items || [];
+        
+        // Filtrar solo empleados disponibles (no en licencia, de baja, etc.)
+        const filteredItems = items.filter(emp => 
+          emp.estado === "DISPONIBLE" || emp.estado === "ASIGNADO"
+        );
+        
+        console.log("Empleados filtrados:", filteredItems.length);
+        return filteredItems;
+      }
+      return [];
     } catch (error) {
       console.error("Error al buscar empleados:", error);
+      
+      // Extraer el mensaje de error para mostrar información más precisa
+      const errorMessage = error instanceof Error 
+        ? error.message 
+        : "Intente nuevamente o contacte al administrador.";
+      
+      // Mostrar toast con el error usando el formato consistente
+      toast.error("No se pudieron cargar los empleados", {
+        description: errorMessage,
+        duration: 5000
+      });
+      
       return [];
+    }
+  };const getEmpleadoById = async (id: number): Promise<Empleado> => {
+    try {
+      // Tipamos explícitamente la respuesta para mayor seguridad
+      const empleado = await getEmployeeById(id.toString()) as Empleado;
+      
+      // Validamos que tengamos un empleado con los campos mínimos requeridos
+      if (!empleado || !empleado.id) {
+        throw new Error(`No se encontró el empleado con ID ${id}`);
+      }
+      
+      return empleado;
+    } catch (error) {
+      console.error(`Error al cargar el empleado con ID ${id}:`, error);
+      
+      // Extraer el mensaje de error para mostrar información más precisa usando el patrón consistente
+      const errorMessage = error instanceof Error 
+        ? error.message 
+        : `No se pudo cargar el empleado con ID ${id}`;
+      
+      // Mostrar toast con el error usando el formato consistente
+      toast.error("Error al cargar empleado", {
+        description: errorMessage,
+        duration: 5000
+      });
+      
+      // Devolvemos un objeto empleado con datos mínimos para evitar errores en la UI
+      // Seguimos la estructura del tipo Empleado para mantener consistencia
+      return {
+        id: id,
+        nombre: "Error al cargar",
+        apellido: "",
+        documento: `ID: ${id}`,
+        cargo: "No disponible",
+        estado: "NO_DISPONIBLE",
+        fecha_contratacion: new Date().toISOString(),
+        telefono: "",
+        email: "",
+        cuil: "",
+        cbu: "",
+        numero_legajo: 0
+      };
     }
   };
 
@@ -43,7 +124,7 @@ export function EmpleadoSelector({
       disabled={disabled}
       placeholder="Buscar por nombre o documento"
       searchFn={searchEmpleados}
-      getItemById={(id) => getEmployeeById(id.toString())}
+      getItemById={getEmpleadoById}
       minSearchLength={2}
       renderSelected={(empleado) => (
         <div className="flex flex-1 items-center justify-between">

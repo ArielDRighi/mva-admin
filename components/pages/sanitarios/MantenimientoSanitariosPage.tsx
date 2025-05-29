@@ -1,9 +1,10 @@
 import { getSanitariosEnMantenimiento } from "@/app/actions/sanitarios";
 import MantenimientoSanitariosComponent from "@/components/sections/MantenimientoSanitariosComponent";
+import { MantenimientosSanitariosResponse } from "@/types/types";
 import React from "react";
 
 export default async function MantenimientoSanitariosPage() {
-  const sanitarios = await getSanitariosEnMantenimiento();
+  const sanitarios = await getSanitariosEnMantenimiento() as MantenimientosSanitariosResponse;
 
   return (
     <main className="flex flex-1 flex-col gap-4 p-4 pt-0">
@@ -11,8 +12,8 @@ export default async function MantenimientoSanitariosPage() {
         <MantenimientoSanitariosComponent
           data={sanitarios.data}
           totalItems={sanitarios.total}
-          currentPage={sanitarios.currentPage}
-          itemsPerPage={sanitarios.itemsPerPage}
+          currentPage={sanitarios.page}
+          itemsPerPage={sanitarios.limit}
         />
       </div>
     </main>

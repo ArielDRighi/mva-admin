@@ -1,5 +1,9 @@
 "use server";
-import { cookies } from "next/headers";
+import {
+  createAuthHeaders,
+  handleApiResponse,
+  createServerAction,
+} from "@/lib/actions";
 
 export interface CreateContactDto {
   nombre: string;
@@ -37,105 +41,102 @@ export type EmpleadoConContactos = {
   emergencyContacts: ContactoEmergencia[];
 };
 
-export async function getEmployeeEmergencyContacts(empleadoId: number) {
-  const cookieStore = await cookies();
-  const token = cookieStore.get("token")?.value;
-  
-  try {
+/**
+ * Obtiene los contactos de emergencia de un empleado específico
+ */
+export const getEmployeeEmergencyContacts = createServerAction(
+  async (empleadoId: number) => {
+    const headers = await createAuthHeaders();
+
     const response = await fetch(
       `${process.env.NEXT_PUBLIC_API_URL}/api/employees/emergency/${empleadoId}`,
       {
         method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
+        headers,
       }
     );
-    
-    if (!response.ok) {
-      throw new Error("Error al obtener contactos");
-    }
 
-    const data = await response.json();
-    console.log("Respuesta de API para contactos:", data);
-    return data;
-  } catch (error) {
-    console.error("Error en getEmployeeEmergencyContacts:", error);
-    throw error;
-  }
-}
+    return handleApiResponse(
+      response,
+      `Error al obtener los contactos del empleado ${empleadoId}`
+    );
+  },
+  "Error al obtener los contactos del empleado"
+);
 
-export async function createEmployeeEmergencyContact(
-  empleadoId: number,
-  data: CreateContactDto
-): Promise<ContactoEmergencia> {
-  const cookieStore = await cookies();
-  const token = cookieStore.get("token")?.value;
+/**
+ * Crea un nuevo contacto de emergencia para un empleado
+ */
+export const createEmployeeEmergencyContact = createServerAction(
+  async (
+    empleadoId: number,
+    data: CreateContactDto
+  ): Promise<ContactoEmergencia> => {
+    const headers = await createAuthHeaders();
 
-  const response = await fetch(
-    `${process.env.NEXT_PUBLIC_API_URL}/api/employees/emergency/${empleadoId}`,
-    {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify(data),
-    }
-  );
+    const response = await fetch(
+      `${process.env.NEXT_PUBLIC_API_URL}/api/employees/emergency/${empleadoId}`,
+      {
+        method: "POST",
+        headers,
+        body: JSON.stringify(data),
+      }
+    );
 
-  if (!response.ok) {
-    throw new Error("Error al crear el contacto de emergencia");
-  }
+    return handleApiResponse(
+      response,
+      "Error al crear el contacto de emergencia"
+    );
+  },
+  "Error al crear el contacto de emergencia"
+);
 
-  return response.json();
-}
+/**
+ * Actualiza un contacto de emergencia existente
+ */
+export const updateEmployeeEmergencyContact = createServerAction(
+  async (
+    contactoId: number,
+    data: UpdateContactDto
+  ): Promise<ContactoEmergencia> => {
+    const headers = await createAuthHeaders();
 
-export async function updateEmployeeEmergencyContact(
-  contactoId: number,
-  data: UpdateContactDto
-): Promise<ContactoEmergencia> {
-  const cookieStore = await cookies();
-  const token = cookieStore.get("token")?.value;
+    const response = await fetch(
+      `${process.env.NEXT_PUBLIC_API_URL}/api/employees/emergency/modify/${contactoId}`,
+      {
+        method: "PUT",
+        headers,
+        body: JSON.stringify(data),
+      }
+    );
 
-  const response = await fetch(
-    `${process.env.NEXT_PUBLIC_API_URL}/api/employees/emergency/modify/${contactoId}`,
-    {
-      method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify(data),
-    }
-  );
+    return handleApiResponse(
+      response,
+      "Error al actualizar el contacto de emergencia"
+    );
+  },
+  "Error al actualizar el contacto de emergencia"
+);
 
-  if (!response.ok) {
-    throw new Error("Error al actualizar el contacto de emergencia");
-  }
+/**
+ * Elimina un contacto de emergencia
+ */
+export const deleteEmployeeEmergencyContact = createServerAction(
+  async (contactoId: number) => {
+    const headers = await createAuthHeaders();
 
-  return response.json();
-}
+    const response = await fetch(
+      `${process.env.NEXT_PUBLIC_API_URL}/api/employees/emergency/delete/${contactoId}`,
+      {
+        method: "DELETE",
+        headers,
+      }
+    );
 
-export async function deleteEmployeeEmergencyContact(contactoId: number) {
-  const cookieStore = await cookies();
-  const token = cookieStore.get("token")?.value;
-
-  const response = await fetch(
-    `${process.env.NEXT_PUBLIC_API_URL}/api/employees/emergency/delete/${contactoId}`,
-    {
-      method: "DELETE",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-    }
-  );
-
-  if (!response.ok) {
-    throw new Error("Error al eliminar el contacto de emergencia");
-  }
-
-  return response.json();
-}
+    return handleApiResponse(
+      response,
+      "Error al eliminar el contacto de emergencia"
+    );
+  },
+  "Error al eliminar el contacto de emergencia"
+);

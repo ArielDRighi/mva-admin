@@ -1,215 +1,186 @@
 "use server";
 
+import { CreateVehiculo, UpdateVehiculo, VehiculoStatus } from "@/types/types";
 import {
-  CreateVehiculo,
-  UpdateVehiculo,
-  VehiculoStatus,
-} from "@/types/types";
-import { cookies } from "next/headers";
+  createAuthHeaders,
+  handleApiResponse,
+  createServerAction,
+} from "@/lib/actions";
 
-export async function getVehicles(
-  page: number = 1,
-  limit: number = 15,
-  search: string = ""
-) {
-  const cookieStore = await cookies();
-  const token = cookieStore.get("token")?.value;
+/**
+ * Obtiene la lista de vehículos con paginación y búsqueda opcional
+ * @param page Número de página
+ * @param limit Límite de resultados por página
+ * @param search Término de búsqueda opcional
+ * @returns Lista paginada de vehículos
+ */
+export const getVehicles = createServerAction(
+  async (page: number = 1, limit: number = 15, search: string = "") => {
+    const headers = await createAuthHeaders();
 
-  if (!token) throw new Error("Token no encontrado");
+    // Properly encode the search term to handle special characters
+    const searchQuery = search ? `&search=${encodeURIComponent(search)}` : "";
 
-  const searchQuery = search ? `&search=${search}` : "";
+    const res = await fetch(
+      `${process.env.NEXT_PUBLIC_API_URL}/api/vehicles?page=${page}&limit=${limit}${searchQuery}`,
+      {
+        headers,
+        cache: "no-store",
+      }
+    );
 
-  const res = await fetch(
-    `${process.env.NEXT_PUBLIC_API_URL}/api/vehicles?page=${page}&limit=${limit}${searchQuery}`,
-    {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-      cache: "no-store",
-    }
-  );
+    return handleApiResponse(res, "Error al obtener los vehículos");
+  },
+  "Error al obtener los vehículos"
+);
 
-  if (!res.ok) throw new Error("Error al obtener vehículos");
-
-  return await res.json();
-}
-
-export async function getVehicleById(id: number) {
-  const cookieStore = await cookies();
-  const token = cookieStore.get("token")?.value;
-
-  if (!token) throw new Error("Token no encontrado");
+/**
+ * Obtiene un vehículo específico por su ID
+ * @param id ID del vehículo
+ * @returns Datos del vehículo
+ */
+export const getVehicleById = createServerAction(async (id: number) => {
+  const headers = await createAuthHeaders();
 
   const res = await fetch(
     `${process.env.NEXT_PUBLIC_API_URL}/api/vehicles/${id}`,
     {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
+      headers,
       cache: "no-store",
     }
   );
 
-  if (!res.ok) throw new Error("Error al obtener el vehículo");
+  return handleApiResponse(res, "Error al obtener el vehículo");
+}, "Error al obtener el vehículo");
 
-  return await res.json();
-}
-
-export async function getVehicleByPlaca(placa: string) {
-  const cookieStore = await cookies();
-  const token = cookieStore.get("token")?.value;
-
-  if (!token) throw new Error("Token no encontrado");
+/**
+ * Obtiene un vehículo por su número de placa
+ * @param placa Número de placa del vehículo
+ * @returns Datos del vehículo
+ */
+export const getVehicleByPlaca = createServerAction(async (placa: string) => {
+  const headers = await createAuthHeaders();
 
   const res = await fetch(
     `${process.env.NEXT_PUBLIC_API_URL}/api/vehicles/placa/${placa}`,
     {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
+      headers,
       cache: "no-store",
     }
   );
 
-  if (!res.ok) throw new Error("Error al obtener el vehículo por placa");
+  return handleApiResponse(res, "Error al obtener el vehículo por placa");
+}, "Error al obtener el vehículo por placa");
 
-  return await res.json();
-}
+/**
+ * Edita la información de un vehículo existente
+ * @param id ID del vehículo
+ * @param data Datos de vehículo actualizados
+ * @returns Estado de la respuesta
+ */
+export const editVehicle = createServerAction(
+  async (id: string, data: UpdateVehiculo) => {
+    const headers = await createAuthHeaders();
 
-export async function editVehicle(id: string, data: UpdateVehiculo) {
-  const cookieStore = await cookies();
-  const token = cookieStore.get("token")?.value;
+    const res = await fetch(
+      `${process.env.NEXT_PUBLIC_API_URL}/api/vehicles/${id}`,
+      {
+        method: "PUT",
+        headers,
+        body: JSON.stringify(data),
+        cache: "no-store",
+      }
+    );
 
-  if (!token) throw new Error("Token no encontrado");
+    await handleApiResponse(res, "Error al editar el vehículo");
+    return res.status;
+  },
+  "Error al editar el vehículo"
+);
 
-  const res = await fetch(
-    `${process.env.NEXT_PUBLIC_API_URL}/api/vehicles/${id}`,
-    {
-      method: "PUT",
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(data),
-      cache: "no-store",
-    }
-  );
-
-  if (!res.ok) {
-    const errorData = await res.json().catch(() => ({}));
-    throw new Error(errorData.message || "Error al editar el vehículo");
-  }
-
-  return res.status;
-}
-
-export async function deleteVehicle(id: number) {
-  const cookieStore = await cookies();
-  const token = cookieStore.get("token")?.value;
-
-  if (!token) throw new Error("Token no encontrado");
+/**
+ * Elimina un vehículo del sistema
+ * @param id ID del vehículo a eliminar
+ * @returns Estado de la respuesta
+ */
+export const deleteVehicle = createServerAction(async (id: number) => {
+  const headers = await createAuthHeaders();
 
   const res = await fetch(
     `${process.env.NEXT_PUBLIC_API_URL}/api/vehicles/${id}`,
     {
       method: "DELETE",
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
+      headers,
       cache: "no-store",
     }
   );
 
-  if (!res.ok) {
-    const errorData = await res.json().catch(() => ({}));
-    throw new Error(errorData.message || "Error al eliminar el vehículo");
-  }
-
+  await handleApiResponse(res, "Error al eliminar el vehículo");
   return res.status;
-}
+}, "Error al eliminar el vehículo");
 
-export async function createVehicle(data: CreateVehiculo) {
-  const cookieStore = await cookies();
-  const token = cookieStore.get("token")?.value;
+/**
+ * Crea un nuevo vehículo en el sistema
+ * @param data Datos del nuevo vehículo
+ * @returns Datos del vehículo creado
+ */
+export const createVehicle = createServerAction(
+  async (data: CreateVehiculo) => {
+    const headers = await createAuthHeaders();
 
-  if (!token) throw new Error("Token no encontrado");
-
-  const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/vehicles`, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${token}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(data),
-    cache: "no-store",
-  });
-
-  if (!res.ok) {
-    const errorData = await res.json().catch(() => ({}));
-    throw new Error(errorData.message || "Error al crear el vehículo");
-  }
-
-  return res.json();
-}
-
-export async function changeVehicleStatus(id: number, estado: VehiculoStatus) {
-  const cookieStore = await cookies();
-  const token = cookieStore.get("token")?.value;
-
-  if (!token) throw new Error("Token no encontrado");
-
-  const res = await fetch(
-    `${process.env.NEXT_PUBLIC_API_URL}/api/vehicles/${id}/estado`,
-    {
-      method: "PATCH",
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ estado }),
+    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/vehicles`, {
+      method: "POST",
+      headers,
+      body: JSON.stringify(data),
       cache: "no-store",
-    }
-  );
+    });
 
-  if (!res.ok) {
-    const errorData = await res.json().catch(() => ({}));
-    throw new Error(
-      errorData.message || "Error al cambiar el estado del vehículo"
-    );
-  }
+    return handleApiResponse(res, "Error al crear el vehículo");
+  },
+  "Error al crear el vehículo"
+);
 
-  return res.status;
-}
+/**
+ * Cambia el estado de un vehículo (ACTIVO, INACTIVO, MANTENIMIENTO, etc.)
+ * @param id ID del vehículo
+ * @param estado Nuevo estado del vehículo
+ * @returns Estado de la respuesta
+ */
+export const changeVehicleStatus = createServerAction(
+  async (id: number, estado: VehiculoStatus) => {
+    const headers = await createAuthHeaders();
 
-// Get total vehicles
-export async function getTotalVehicles() {
-  const cookieStore = await cookies();
-  const token = cookieStore.get("token")?.value;
-
-  if (!token) throw new Error("Token no encontrado");
-
-  try {
-    const response = await fetch(
-      `${process.env.NEXT_PUBLIC_API_URL}/api/vehicles/total_vehicles`,
+    const res = await fetch(
+      `${process.env.NEXT_PUBLIC_API_URL}/api/vehicles/${id}/estado`,
       {
-        method: "GET",
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+        method: "PATCH",
+        headers,
+        body: JSON.stringify({ estado }),
         cache: "no-store",
       }
     );
 
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      throw new Error(
-        errorData.message || "Error al obtener el total de vehículos"
-      );
-    }
+    await handleApiResponse(res, "Error al cambiar el estado del vehículo");
+    return res.status;
+  },
+  "Error al cambiar el estado del vehículo"
+);
 
-    return await response.json();
-  } catch (error) {
-    console.error("Error fetching total vehicles:", error);
-    throw new Error("Error al obtener el total de vehículos");
-  }
-}
+/**
+ * Obtiene el total de vehículos en el sistema
+ * @returns Información sobre el total de vehículos
+ */
+export const getTotalVehicles = createServerAction(async () => {
+  const headers = await createAuthHeaders();
+
+  const response = await fetch(
+    `${process.env.NEXT_PUBLIC_API_URL}/api/vehicles/total_vehicles`,
+    {
+      method: "GET",
+      headers,
+      cache: "no-store",
+    }
+  );
+
+  return handleApiResponse(response, "Error al obtener el total de vehículos");
+}, "Error al obtener el total de vehículos");

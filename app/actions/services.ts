@@ -1,406 +1,318 @@
 "use server";
 
 import { UpdateServiceDto, ServiceState } from "@/types/serviceTypes";
-import { cookies } from "next/headers";
+import {
+  createAuthHeaders,
+  handleApiResponse,
+  createServerAction,
+} from "@/lib/actions";
 
 /**
  * Obtiene una lista paginada de servicios con posibilidad de filtrado
  */
-export async function getServices() {
-  const cookieStore = await cookies();
-  const token = cookieStore.get("token")?.value;
-
-  if (!token) throw new Error("Token no encontrado");
+export const getServices = createServerAction(async () => {
+  const headers = await createAuthHeaders();
 
   const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/services`, {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
+    headers,
     cache: "no-store",
   });
 
-  if (!res.ok) throw new Error("Error al obtener los servicios");
-
-  return await res.json();
-}
+  return handleApiResponse(res, "Error al obtener los servicios");
+}, "Error al obtener los servicios");
 
 /**
  * Obtiene un servicio específico por su ID
  */
-export async function getServiceById(id: number) {
-  const cookieStore = await cookies();
-  const token = cookieStore.get("token")?.value;
-
-  if (!token) throw new Error("Token no encontrado");
+export const getServiceById = createServerAction(async (id: number) => {
+  const headers = await createAuthHeaders();
 
   const res = await fetch(
     `${process.env.NEXT_PUBLIC_API_URL}/api/services/${id}`,
     {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
+      headers,
       cache: "no-store",
     }
   );
 
-  if (!res.ok) throw new Error("Error al obtener el servicio");
-
-  return await res.json();
-}
+  return handleApiResponse(res, `Error al obtener el servicio con ID ${id}`);
+}, "Error al obtener el servicio");
 
 /**
  * Obtiene servicios filtrados por un rango de fechas
  */
-export async function getServicesByDateRange(
-  startDate: string,
-  endDate: string
-) {
-  const cookieStore = await cookies();
-  const token = cookieStore.get("token")?.value;
+export const getServicesByDateRange = createServerAction(
+  async (startDate: string, endDate: string) => {
+    const headers = await createAuthHeaders();
 
-  if (!token) throw new Error("Token no encontrado");
+    const res = await fetch(
+      `${process.env.NEXT_PUBLIC_API_URL}/api/services/date-range?startDate=${startDate}&endDate=${endDate}`,
+      {
+        headers,
+        cache: "no-store",
+      }
+    );
 
-  const res = await fetch(
-    `${process.env.NEXT_PUBLIC_API_URL}/api/services/date-range?startDate=${startDate}&endDate=${endDate}`,
-    {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-      cache: "no-store",
-    }
-  );
-
-  if (!res.ok)
-    throw new Error("Error al obtener servicios por rango de fechas");
-
-  return await res.json();
-}
+    return handleApiResponse(
+      res,
+      "Error al obtener servicios por rango de fechas"
+    );
+  },
+  "Error al obtener servicios por rango de fechas"
+);
 
 /**
  * Obtiene los servicios programados para hoy
  */
-export async function getTodayServices() {
-  const cookieStore = await cookies();
-  const token = cookieStore.get("token")?.value;
-
-  if (!token) throw new Error("Token no encontrado");
+export const getTodayServices = createServerAction(async () => {
+  const headers = await createAuthHeaders();
 
   const res = await fetch(
     `${process.env.NEXT_PUBLIC_API_URL}/api/services/today`,
     {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
+      headers,
       cache: "no-store",
     }
   );
 
-  if (!res.ok) throw new Error("Error al obtener servicios de hoy");
-
-  return await res.json();
-}
+  return handleApiResponse(res, "Error al obtener servicios de hoy");
+}, "Error al obtener servicios de hoy");
 
 /**
  * Obtiene servicios en estado SUSPENDIDO
  */
-export async function getPendingServices() {
-  const cookieStore = await cookies();
-  const token = cookieStore.get("token")?.value;
-
-  if (!token) throw new Error("Token no encontrado");
+export const getPendingServices = createServerAction(async () => {
+  const headers = await createAuthHeaders();
 
   const res = await fetch(
     `${process.env.NEXT_PUBLIC_API_URL}/api/services/pending`,
     {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
+      headers,
       cache: "no-store",
     }
   );
 
-  if (!res.ok) throw new Error("Error al obtener servicios suspendidos");
-
-  return await res.json();
-}
+  return handleApiResponse(res, "Error al obtener servicios suspendidos");
+}, "Error al obtener servicios suspendidos");
 
 /**
  * Obtiene servicios en estado EN_PROGRESO
  */
-export async function getInProgressServices() {
-  const cookieStore = await cookies();
-  const token = cookieStore.get("token")?.value;
-
-  if (!token) throw new Error("Token no encontrado");
+export const getInProgressServices = createServerAction(async () => {
+  const headers = await createAuthHeaders();
 
   const res = await fetch(
     `${process.env.NEXT_PUBLIC_API_URL}/api/services/in-progress`,
     {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
+      headers,
       cache: "no-store",
     }
   );
 
-  if (!res.ok) throw new Error("Error al obtener servicios en progreso");
-
-  return await res.json();
-}
+  return handleApiResponse(res, "Error al obtener servicios en progreso");
+}, "Error al obtener servicios en progreso");
 
 /**
  * Obtiene los baños instalados para un cliente específico
  */
-export async function getClientInstalledToilets(clientId: number) {
-  const cookieStore = await cookies();
-  const token = cookieStore.get("token")?.value;
+export const getClientInstalledToilets = createServerAction(
+  async (clientId: number) => {
+    const headers = await createAuthHeaders();
 
-  if (!token) throw new Error("Token no encontrado");
-
-  const res = await fetch(
-    `${process.env.NEXT_PUBLIC_API_URL}/api/chemical_toilets/by-client/${clientId}`,
-    {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-      cache: "no-store",
-    }
-  );
-
-  if (!res.ok) {
-    const errorData = await res.json().catch(() => ({}));
-    throw new Error(
-      errorData.message ||
-        `Error al obtener baños instalados para el cliente ${clientId}`
+    const res = await fetch(
+      `${process.env.NEXT_PUBLIC_API_URL}/api/chemical_toilets/by-client/${clientId}`,
+      {
+        headers,
+        cache: "no-store",
+      }
     );
-  }
 
-  return res.json();
-}
+    return handleApiResponse(
+      res,
+      `Error al obtener baños instalados para el cliente ${clientId}`
+    );
+  },
+  "Error al obtener baños instalados para el cliente"
+);
 
 /**
  * Actualiza un servicio existente
  */
-export async function updateService(id: number, data: UpdateServiceDto) {
-  const cookieStore = await cookies();
-  const token = cookieStore.get("token")?.value;
+export const updateService = createServerAction(
+  async (id: number, data: UpdateServiceDto) => {
+    const headers = await createAuthHeaders();
 
-  if (!token) throw new Error("Token no encontrado");
+    const res = await fetch(
+      `${process.env.NEXT_PUBLIC_API_URL}/api/services/${id}`,
+      {
+        method: "PUT",
+        headers,
+        body: JSON.stringify(data),
+        cache: "no-store",
+      }
+    );
 
-  const res = await fetch(
-    `${process.env.NEXT_PUBLIC_API_URL}/api/services/${id}`,
-    {
-      method: "PUT",
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(data),
-      cache: "no-store",
-    }
-  );
-
-  if (!res.ok) {
-    const errorData = await res.json().catch(() => ({}));
-    throw new Error(errorData.message || "Error al actualizar el servicio");
-  }
-
-  return res.json();
-}
+    return handleApiResponse(res, "Error al actualizar el servicio");
+  },
+  "Error al actualizar el servicio"
+);
 
 /**
  * Cambia el estado de un servicio
  */
-export async function changeServiceStatus(id: number, estado: ServiceState) {
-  const cookieStore = await cookies();
-  const token = cookieStore.get("token")?.value;
+export const changeServiceStatus = createServerAction(
+  async (id: number, estado: ServiceState) => {
+    const headers = await createAuthHeaders();
 
-  if (!token) throw new Error("Token no encontrado");
-
-  const res = await fetch(
-    `${process.env.NEXT_PUBLIC_API_URL}/api/services/${id}/estado`,
-    {
-      method: "PATCH",
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ estado }),
-      cache: "no-store",
-    }
-  );
-
-  if (!res.ok) {
-    const errorData = await res.json().catch(() => ({}));
-    throw new Error(
-      errorData.message || "Error al cambiar el estado del servicio"
+    const res = await fetch(
+      `${process.env.NEXT_PUBLIC_API_URL}/api/services/${id}/estado`,
+      {
+        method: "PATCH",
+        headers,
+        body: JSON.stringify({ estado }),
+        cache: "no-store",
+      }
     );
-  }
 
-  return res.json();
-}
+    return handleApiResponse(res, "Error al cambiar el estado del servicio");
+  },
+  "Error al cambiar el estado del servicio"
+);
 
 /**
  * Elimina un servicio específico
  */
-export async function deleteService(id: number) {
-  const cookieStore = await cookies();
-  const token = cookieStore.get("token")?.value;
-
-  if (!token) throw new Error("Token no encontrado");
+export const deleteService = createServerAction(async (id: number) => {
+  const headers = await createAuthHeaders();
 
   const res = await fetch(
     `${process.env.NEXT_PUBLIC_API_URL}/api/services/${id}`,
     {
       method: "DELETE",
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
+      headers,
       cache: "no-store",
     }
   );
 
-  if (!res.ok) {
-    const errorData = await res.json().catch(() => ({}));
-    throw new Error(errorData.message || "Error al eliminar el servicio");
-  }
+  return handleApiResponse(res, "Error al eliminar el servicio");
+}, "Error al eliminar el servicio");
 
-  return res.status;
-}
-
-export async function getProximosServices() {
-  const cookieStore = await cookies();
-  const token = cookieStore.get("token")?.value;
-
-  if (!token) throw new Error("Token no encontrado");
+/**
+ * Obtiene los servicios próximos a realizar
+ */
+export const getProximosServices = createServerAction(async () => {
+  const headers = await createAuthHeaders();
 
   const res = await fetch(
     `${process.env.NEXT_PUBLIC_API_URL}/api/services/proximos`,
     {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
+      headers,
       cache: "no-store",
     }
   );
 
-  if (!res.ok) throw new Error("Error al obtener los servicios proximos");
+  return handleApiResponse(res, "Error al obtener los servicios proximos");
+}, "Error al obtener los servicios próximos");
 
-  return await res.json();
-}
-
-export async function getServicesStats() {
-  const cookieStore = await cookies();
-  const token = cookieStore.get("token")?.value;
-
-  if (!token) throw new Error("Token no encontrado");
+/**
+ * Obtiene estadísticas de los servicios
+ */
+export const getServicesStats = createServerAction(async () => {
+  const headers = await createAuthHeaders();
 
   const res = await fetch(
     `${process.env.NEXT_PUBLIC_API_URL}/api/services/stats`,
     {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
+      headers,
       cache: "no-store",
     }
   );
 
-  if (!res.ok)
-    throw new Error("Error al obtener las estadisticas de servicios");
+  return handleApiResponse(
+    res,
+    "Error al obtener las estadisticas de servicios"
+  );
+}, "Error al obtener las estadísticas de servicios");
 
-  return await res.json();
-}
-export async function getResumeServices() {
-  const cookieStore = await cookies();
-  const token = cookieStore.get("token")?.value;
-
-  if (!token) throw new Error("Token no encontrado");
+/**
+ * Obtiene el resumen de servicios
+ */
+export const getResumeServices = createServerAction(async () => {
+  const headers = await createAuthHeaders();
 
   const res = await fetch(
     `${process.env.NEXT_PUBLIC_API_URL}/api/services/resumen`,
     {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
+      headers,
       cache: "no-store",
     }
   );
 
-  if (!res.ok) throw new Error("Error al obtener el resumen de servicios");
+  return handleApiResponse(res, "Error al obtener el resumen de servicios");
+}, "Error al obtener el resumen de servicios");
 
-  return await res.json();
-}
-
-export async function getFuturesCleanings() {
-  const cookieStore = await cookies();
-  const token = cookieStore.get("token")?.value;
-
-  if (!token) throw new Error("Token no encontrado");
+/**
+ * Obtiene las limpiezas futuras programadas
+ */
+export const getFuturesCleanings = createServerAction(async () => {
+  const headers = await createAuthHeaders();
 
   const res = await fetch(
     `${process.env.NEXT_PUBLIC_API_URL}/api/future_cleanings`,
     {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
+      headers,
       cache: "no-store",
     }
   );
 
-  if (!res.ok) throw new Error("Error al obtener limpiezas futuras");
+  return handleApiResponse(res, "Error al obtener limpiezas futuras");
+}, "Error al obtener limpiezas futuras");
 
-  return await res.json();
-}
-
-export async function getRecentActivity() {
-  const cookieStore = await cookies();
-  const token = cookieStore.get("token")?.value;
-
-  if (!token) throw new Error("Token no encontrado");
+/**
+ * Obtiene la actividad reciente global
+ */
+export const getRecentActivity = createServerAction(async () => {
+  const headers = await createAuthHeaders();
 
   const res = await fetch(
     `${process.env.NEXT_PUBLIC_API_URL}/api/recent_activity/global`,
     {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
+      headers,
       cache: "no-store",
     }
   );
 
-  if (!res.ok) throw new Error("Error al obtener actividades recientes");
+  return handleApiResponse(res, "Error al obtener actividades recientes");
+}, "Error al obtener actividades recientes");
 
-  return await res.json();
-}
 enum serviceStatus {
   EN_PROGRESO = "EN_PROGRESO",
   COMPLETADO = "COMPLETADO",
   CANCELADO = "CANCELADO",
   SUSPENDIDO = "SUSPENDIDO",
 }
-export async function updateStatusService(id: number, estado: serviceStatus) {
-  const cookieStore = await cookies();
-  const token = cookieStore.get("token")?.value;
 
-  if (!token) throw new Error("Token no encontrado");
+/**
+ * Actualiza el estado de un servicio
+ */
+export const updateStatusService = createServerAction(
+  async (id: number, estado: serviceStatus) => {
+    const headers = await createAuthHeaders();
 
-  const res = await fetch(
-    `${process.env.NEXT_PUBLIC_API_URL}/api/services/${id}/estado`,
-    {
-      method: "PATCH",
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ estado }),
-      cache: "no-store",
-    }
-  );
+    const res = await fetch(
+      `${process.env.NEXT_PUBLIC_API_URL}/api/services/${id}/estado`,
+      {
+        method: "PATCH",
+        headers,
+        body: JSON.stringify({ estado }),
+        cache: "no-store",
+      }
+    );
 
-  if (!res.ok) throw new Error("Error al cambiar el estado del servicio");
-
-  return await res.json();
-}
+    return handleApiResponse(res, "Error al cambiar el estado del servicio");
+  },
+  "Error al cambiar el estado del servicio"
+);
 
 // UTILIZAMOS TODO DE ACA PARA ABAJO
 export interface CreateCapacitacionDto {
@@ -413,50 +325,57 @@ export interface CreateCapacitacionDto {
   }[];
 }
 
-export async function createServiceCapacitacion(data: CreateCapacitacionDto) {
-  const cookieStore = await cookies();
-  const token = cookieStore.get("token")?.value;
+/**
+ * Crea un servicio de capacitación
+ */
+export const createServiceCapacitacion = createServerAction(
+  async (data: CreateCapacitacionDto) => {
+    const headers = await createAuthHeaders();
 
-  if (!token) throw new Error("Token no encontrado");
+    const res = await fetch(
+      `${process.env.NEXT_PUBLIC_API_URL}/api/services/capacitacion`,
+      {
+        method: "POST",
+        headers,
+        body: JSON.stringify(data),
+        cache: "no-store",
+      }
+    );
 
-  const res = await fetch(
-    `${process.env.NEXT_PUBLIC_API_URL}/api/services/capacitacion`,
-    {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(data),
-      cache: "no-store",
-    }
-  );
+    return handleApiResponse(res, "Error al crear el servicio de capacitacion");
+  },
+  "Error al crear el servicio de capacitación"
+);
 
-  if (!res.ok) throw new Error("Error al crear el servicio de capacitacion");
+/**
+ * Obtiene todas las capacitaciones
+ */
+/**
+ * Obtiene todas las capacitaciones con paginación y búsqueda
+ */
+export const getCapacitaciones = createServerAction(
+  async (page: number = 1, limit: number = 10, search: string = "") => {
+    const headers = await createAuthHeaders();
 
-  return await res.json();
-}
+    const queryParams = new URLSearchParams();
+    queryParams.append("page", page.toString());
+    queryParams.append("limit", limit.toString());
+    if (search) queryParams.append("search", search);
 
-export async function getCapacitaciones() {
-  const cookieStore = await cookies();
-  const token = cookieStore.get("token")?.value;
+    const res = await fetch(
+      `${
+        process.env.NEXT_PUBLIC_API_URL
+      }/api/services/capacitacion?${queryParams.toString()}`,
+      {
+        headers,
+        cache: "no-store",
+      }
+    );
 
-  if (!token) throw new Error("Token no encontrado");
-
-  const res = await fetch(
-    `${process.env.NEXT_PUBLIC_API_URL}/api/services/capacitacion`,
-    {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-      cache: "no-store",
-    }
-  );
-
-  if (!res.ok) throw new Error("Error al obtener capacitaciones");
-
-  return await res.json();
-}
+    return handleApiResponse(res, "Error al obtener capacitaciones");
+  },
+  "Error al obtener capacitaciones"
+);
 
 export interface CreateInstalacionDto {
   condicionContractualId: number;
@@ -477,50 +396,44 @@ export interface CreateInstalacionDto {
   notas?: string;
 }
 
-export async function createServiceInstalacion(data: CreateInstalacionDto) {
-  const cookieStore = await cookies();
-  const token = cookieStore.get("token")?.value;
+/**
+ * Crea un servicio de instalación
+ */
+export const createServiceInstalacion = createServerAction(
+  async (data: CreateInstalacionDto) => {
+    const headers = await createAuthHeaders();
 
-  if (!token) throw new Error("Token no encontrado");
+    const res = await fetch(
+      `${process.env.NEXT_PUBLIC_API_URL}/api/services/instalacion`,
+      {
+        method: "POST",
+        headers,
+        body: JSON.stringify(data),
+        cache: "no-store",
+      }
+    );
 
-  const res = await fetch(
-    `${process.env.NEXT_PUBLIC_API_URL}/api/services/instalacion`,
-    {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(data),
-      cache: "no-store",
-    }
-  );
+    return handleApiResponse(res, "Error al crear el servicio de instalación");
+  },
+  "Error al crear el servicio de instalación"
+);
 
-  if (!res.ok) throw new Error("Error al crear el servicio de instalacion");
-
-  return await res.json();
-}
-
-export async function getInstalaciones(page: number) {
-  const cookieStore = await cookies();
-  const token = cookieStore.get("token")?.value;
-
-  if (!token) throw new Error("Token no encontrado");
+/**
+ * Obtiene las instalaciones con paginación
+ */
+export const getInstalaciones = createServerAction(async (page: number) => {
+  const headers = await createAuthHeaders();
 
   const res = await fetch(
     `${process.env.NEXT_PUBLIC_API_URL}/api/services/instalacion?page=${page}`,
     {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
+      headers,
       cache: "no-store",
     }
   );
 
-  if (!res.ok) throw new Error("Error al obtener instalaciones");
-
-  return await res.json();
-}
+  return handleApiResponse(res, "Error al obtener instalaciones");
+}, "Error al obtener instalaciones");
 
 export interface CreateLimpiezaDto {
   tipoServicio: "LIMPIEZA";
@@ -542,70 +455,66 @@ export interface CreateLimpiezaDto {
   notas?: string;
 }
 
-export async function createServicioGenerico(data: CreateLimpiezaDto) {
-  console.log("[createServicioGenerico] Starting with data:", data);
-  const cookieStore = await cookies();
-  const token = cookieStore.get("token")?.value;
+/**
+ * Crea un servicio genérico (usado principalmente para limpiezas)
+ */
+export const createServicioGenerico = createServerAction(
+  async (data: CreateLimpiezaDto) => {
+    console.log("[createServicioGenerico] Starting with data:", data);
+    const headers = await createAuthHeaders();
 
-  if (!token) {
-    console.error("[createServicioGenerico] Token not found");
-    throw new Error("Token no encontrado");
-  }
+    console.log("[createServicioGenerico] Token found, making API request");
+    console.log(
+      "[createServicioGenerico] API URL:",
+      `${process.env.NEXT_PUBLIC_API_URL}/api/services/generico`
+    );
 
-  console.log("[createServicioGenerico] Token found, making API request");
-  console.log(
-    "[createServicioGenerico] API URL:",
-    `${process.env.NEXT_PUBLIC_API_URL}/api/services/generico`
-  );
+    try {
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/api/services/generico`,
+        {
+          method: "POST",
+          headers,
+          body: JSON.stringify(data),
+          cache: "no-store",
+        }
+      );
 
-  try {
+      console.log("[createServicioGenerico] Response status:", res.status);
+
+      if (!res.ok) {
+        const errorText = await res.text();
+        console.error("[createServicioGenerico] Error response:", errorText);
+        throw new Error(`Error al crear el servicio generico: ${errorText}`);
+      }
+
+      const responseData = await res.json();
+      console.log("[createServicioGenerico] Success response:", responseData);
+      return responseData;
+    } catch (error) {
+      console.error("[createServicioGenerico] Exception:", error);
+      throw error;
+    }
+  },
+  "Error al crear el servicio genérico"
+);
+
+/**
+ * Obtiene los servicios genéricos con paginación
+ */
+export const getServiciosGenericos = createServerAction(
+  async (page: number) => {
+    const headers = await createAuthHeaders();
+
     const res = await fetch(
-      `${process.env.NEXT_PUBLIC_API_URL}/api/services/generico`,
+      `${process.env.NEXT_PUBLIC_API_URL}/api/services/generico?page=${page}`,
       {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(data),
+        headers,
         cache: "no-store",
       }
     );
 
-    console.log("[createServicioGenerico] Response status:", res.status);
-
-    if (!res.ok) {
-      const errorText = await res.text();
-      console.error("[createServicioGenerico] Error response:", errorText);
-      throw new Error(`Error al crear el servicio generico: ${errorText}`);
-    }
-
-    const responseData = await res.json();
-    console.log("[createServicioGenerico] Success response:", responseData);
-    return responseData;
-  } catch (error) {
-    console.error("[createServicioGenerico] Exception:", error);
-    throw error;
-  }
-}
-
-export async function getServiciosGenericos(page: number) {
-  const cookieStore = await cookies();
-  const token = cookieStore.get("token")?.value;
-
-  if (!token) throw new Error("Token no encontrado");
-
-  const res = await fetch(
-    `${process.env.NEXT_PUBLIC_API_URL}/api/services/generico?page=${page}`,
-    {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-      cache: "no-store",
-    }
-  );
-
-  if (!res.ok) throw new Error("Error al obtener servicios genericos");
-
-  return await res.json();
-}
+    return handleApiResponse(res, "Error al obtener servicios genericos");
+  },
+  "Error al obtener servicios genéricos"
+);

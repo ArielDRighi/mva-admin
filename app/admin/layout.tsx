@@ -3,6 +3,8 @@ import { AppSidebar } from "@/components/layout/AppSidebar";
 import Header from "@/components/layout/Header";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { Toaster } from "sonner";
+import AuthWrapper from "@/components/auth/AuthWrapper";
+import AuthErrorHandler from "@/components/auth/AuthErrorHandler";
 
 export default function DashboardLayout({
   children,
@@ -10,13 +12,16 @@ export default function DashboardLayout({
   children: React.ReactNode;
 }) {
   return (
-    <SidebarProvider>
-      <AppSidebar />
-      <SidebarInset>
-        <Header />
-        {children}
-      </SidebarInset>
-      <Toaster />
-    </SidebarProvider>
+    <AuthWrapper>
+      <SidebarProvider>
+        <AppSidebar />
+        <SidebarInset>
+          <Header />
+          <AuthErrorHandler />
+          {children}
+        </SidebarInset>
+        <Toaster richColors closeButton />
+      </SidebarProvider>
+    </AuthWrapper>
   );
 }

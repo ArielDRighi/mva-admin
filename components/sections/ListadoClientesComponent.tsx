@@ -6,12 +6,6 @@ import { Badge } from "@/components/ui/badge";
 import { Cliente, ClienteFormulario } from "@/types/types";
 import { TableCell } from "../ui/table";
 import { useCallback, useEffect, useState } from "react";
-import {
-  createClient,
-  getClients,
-  deleteClient,
-  editClient,
-} from "@/app/actions/clientes";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { FormDialog } from "../ui/local/FormDialog";
@@ -20,6 +14,7 @@ import Loader from "../ui/local/Loader";
 import { z } from "zod";
 import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import React from "react";
 import {
   UserCheck,
   UserPlus,
@@ -43,6 +38,12 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  createClient,
+  deleteClient,
+  editClient,
+  getClients,
+} from "@/app/actions/clientes";
 
 export default function ListadoClientesComponent({
   data,
@@ -68,6 +69,11 @@ export default function ListadoClientesComponent({
   const [isCreating, setIsCreating] = useState(false);
   const [activeTab, setActiveTab] = useState("todos");
   const [isFirstLoad, setIsFirstLoad] = useState(true);
+  // Añadir estado para controlar la hidratación
+  const [isMounted, setIsMounted] = useState(false);
+  // Estados para manejo de confirmación de eliminación
+  const [confirmDeleteDialogOpen, setConfirmDeleteDialogOpen] = useState(false);
+  const [clienteToDelete, setClienteToDelete] = useState<string | null>(null);
 
   const createClientSchema = z.object({
     nombre: z.string().min(1, "El nombre es obligatorio"),
@@ -81,7 +87,6 @@ export default function ListadoClientesComponent({
       .or(z.string().regex(/^\d{11}$/, "Debe tener 11 dígitos, sin guiones")),
 
     direccion: z.string().min(1, "La dirección es obligatoria"),
-
     telefono: z
       .string()
       .regex(
@@ -124,12 +129,49 @@ export default function ListadoClientesComponent({
     params.set("page", String(page));
     router.replace(`?${params.toString()}`);
   };
-
   const handleSearchChange = (search: string) => {
     const params = new URLSearchParams(searchParams.toString());
-    params.set("search", search);
+
+    // Si no hay término de búsqueda, eliminar el parámetro
+    if (!search || search.trim() === "") {
+      params.delete("search");
+    } else {
+      params.set("search", search);
+    }
+
+    // Siempre volver a la primera página al buscar
     params.set("page", "1");
     router.replace(`?${params.toString()}`);
+  };
+  // Función auxiliar para quitar los guiones del número de teléfono
+  /**
+   * Quita todos los guiones de un número de teléfono
+   * Se utiliza cuando cargamos el teléfono en el formulario de edición
+   * para evitar problemas de formato
+   */
+  const stripPhoneFormat = (phone: string): string => {
+    return phone ? phone.replace(/-/g, "") : "";
+  };
+
+  /**
+   * Formatea un número de teléfono agregando guiones en el formato xxx-xxxx-xxxx
+   * Se utiliza al guardar los datos para asegurar que el teléfono tenga el formato correcto
+   * Convierte cualquier string de 11 dígitos al formato esperado
+   */
+  const formatPhoneNumber = (phone: string): string => {
+    if (!phone) return "";
+
+    // Quitar todos los guiones primero para asegurarnos de que no haya duplicados
+    const cleaned = stripPhoneFormat(phone);
+
+    // Si no tiene la longitud adecuada, devolver tal cual
+    if (cleaned.length !== 11) return phone;
+
+    // Formatear con guiones: xxx-xxxx-xxxx
+    return `${cleaned.substring(0, 3)}-${cleaned.substring(
+      3,
+      7
+    )}-${cleaned.substring(7)}`;
   };
 
   const handleEditClick = (cliente: Cliente) => {
@@ -140,21 +182,24 @@ export default function ListadoClientesComponent({
       "nombre",
       "cuit",
       "direccion",
-      "telefono",
       "email",
       "contacto_principal",
       "estado",
     ];
 
+    // Establecer todos los campos excepto el teléfono que requiere procesamiento especial
     camposFormulario.forEach((key) => setValue(key, cliente[key]));
-  };
 
+    // Manejar el teléfono de forma especial - quitar los guiones al cargar para editar
+    setValue("telefono", stripPhoneFormat(cliente.telefono));
+  };
   const handleCreateClick = () => {
+    // Resetear el formulario con valores iniciales
     reset({
       nombre: "",
       cuit: "",
       direccion: "",
-      telefono: "",
+      telefono: "", // Teléfono vacío sin formato
       email: "",
       contacto_principal: "",
       estado: "ACTIVO",
@@ -162,35 +207,69 @@ export default function ListadoClientesComponent({
     setSelectedClient(null);
     setIsCreating(true);
   };
+  // Esta función ahora solo muestra el diálogo de confirmación
+  const handleDeleteClick = (id: string) => {
+    setClienteToDelete(id);
+    setConfirmDeleteDialogOpen(true);
+  };
 
-  const handleDeleteClick = async (id: string) => {
+  // Función que realmente elimina después de la confirmación
+  const confirmDelete = async () => {
+    if (!clienteToDelete) return;
+
     try {
-      await deleteClient(id);
+      setLoading(true);
+      await deleteClient(clienteToDelete);
+
       toast.success("Cliente eliminado", {
         description: "El cliente se ha eliminado correctamente.",
+        duration: 3000,
       });
+
       await fetchClients();
     } catch (error) {
       console.error("Error al eliminar el cliente:", error);
-      toast.error("Error", { description: "No se pudo eliminar el cliente." });
+
+      // Extraer el mensaje de error para mostrar información más precisa
+      const errorMessage =
+        error instanceof Error ? error.message : "Error desconocido";
+
+      toast.error("Error al eliminar cliente", {
+        description: errorMessage,
+        duration: 5000,
+      });
+    } finally {
+      setLoading(false);
+      setConfirmDeleteDialogOpen(false);
+      setClienteToDelete(null);
     }
   };
 
   const handleTabChange = (value: string) => {
     setActiveTab(value);
   };
-
   const onSubmit = async (data: z.infer<typeof createClientSchema>) => {
     try {
+      setLoading(true);
+
+      // Crear una copia de los datos para no modificar el objeto original
+      const formattedData = {
+        ...data,
+        // Aplicar formato al teléfono antes de guardar
+        telefono: formatPhoneNumber(data.telefono),
+      };
+
       if (selectedClient && selectedClient.clienteId) {
-        await editClient(selectedClient.clienteId.toString(), data);
+        await editClient(selectedClient.clienteId.toString(), formattedData);
         toast.success("Cliente actualizado", {
           description: "Los cambios se han guardado correctamente.",
+          duration: 3000,
         });
       } else {
-        await createClient(data);
+        await createClient(formattedData);
         toast.success("Cliente creado", {
           description: "El cliente se ha agregado correctamente.",
+          duration: 3000,
         });
       }
 
@@ -199,30 +278,50 @@ export default function ListadoClientesComponent({
       setSelectedClient(null);
     } catch (error) {
       console.error("Error en el envío del formulario:", error);
-      toast.error("Error", {
-        description: selectedClient
-          ? "No se pudo actualizar el cliente."
-          : "No se pudo crear el cliente.",
-      });
+
+      // Extraer el mensaje de error para mostrar información más precisa
+      const errorMessage =
+        error instanceof Error ? error.message : "Error desconocido";
+
+      toast.error(
+        selectedClient
+          ? "Error al actualizar cliente"
+          : "Error al crear cliente",
+        {
+          description: errorMessage,
+          duration: 5000,
+        }
+      );
+    } finally {
+      setLoading(false);
     }
   };
-
   const fetchClients = useCallback(async () => {
     const currentPage = Number(searchParams.get("page")) || 1;
     const search = searchParams.get("search") || "";
     setLoading(true);
 
     try {
-      const fetchedClients = await getClients(
+      const fetchedClients = (await getClients(
         currentPage,
         itemsPerPage,
         search
-      );
+      )) as { items: Cliente[]; total: number; page: number };
+
       setClients(fetchedClients.items);
       setTotal(fetchedClients.total);
       setPage(fetchedClients.page);
     } catch (error) {
       console.error("Error al cargar los clientes:", error);
+
+      // Extraer el mensaje de error para mostrar información más precisa
+      const errorMessage =
+        error instanceof Error ? error.message : "Error desconocido";
+
+      toast.error("Error al cargar clientes", {
+        description: errorMessage,
+        duration: 5000,
+      });
     } finally {
       setLoading(false);
     }
@@ -232,7 +331,7 @@ export default function ListadoClientesComponent({
     activeTab === "todos"
       ? clients
       : clients.filter((client) => client.estado === activeTab.toUpperCase());
-
+  // Utilizar useEffect para manejar la hidratación
   useEffect(() => {
     if (isFirstLoad) {
       setIsFirstLoad(false);
@@ -241,7 +340,22 @@ export default function ListadoClientesComponent({
     }
   }, [fetchClients, isFirstLoad]);
 
+  // Activar el estado de montaje cuando el componente se monte en el cliente
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
   if (loading) {
+    return (
+      <div className="w-full h-screen flex justify-center items-center">
+        <Loader />
+      </div>
+    );
+  }
+
+  // Solo mostrar el contenido cuando el componente esté montado en el cliente
+  // Esto previene problemas de hidratación
+  if (!isMounted) {
     return (
       <div className="w-full h-screen flex justify-center items-center">
         <Loader />
@@ -292,20 +406,27 @@ export default function ListadoClientesComponent({
             </TabsList>
           </Tabs>
         </div>
-      </CardHeader>
-
+      </CardHeader>{" "}
       <CardContent className="p-6">
         <div className="rounded-md border">
+          {" "}
           <ListadoTabla
             title=""
             data={filteredClients}
             itemsPerPage={itemsPerPage}
-            searchableKeys={["nombre", "cuit", "email"]}
+            searchableKeys={[
+              "nombre",
+              "cuit",
+              "email",
+              "contacto_principal",
+              "direccion",
+            ]}
             remotePagination
             totalItems={total}
             currentPage={page}
             onPageChange={handlePageChange}
             onSearchChange={handleSearchChange}
+            searchPlaceholder="Buscar por nombre, CUIT, email, contacto o dirección..."
             columns={[
               { title: "Cliente", key: "cliente" },
               { title: "Contacto", key: "contacto" },
@@ -413,7 +534,6 @@ export default function ListadoClientesComponent({
           />
         </div>
       </CardContent>
-
       <FormDialog
         open={isCreating || selectedClient !== null}
         onOpenChange={(open) => {
@@ -445,7 +565,6 @@ export default function ListadoClientesComponent({
               />
             )}
           />
-
           <Controller
             name="cuit"
             control={control}
@@ -460,7 +579,6 @@ export default function ListadoClientesComponent({
               />
             )}
           />
-
           <Controller
             name="direccion"
             control={control}
@@ -474,8 +592,7 @@ export default function ListadoClientesComponent({
                 placeholder="Dirección completa"
               />
             )}
-          />
-
+          />{" "}
           <Controller
             name="telefono"
             control={control}
@@ -484,13 +601,17 @@ export default function ListadoClientesComponent({
                 label="Teléfono"
                 name="telefono"
                 value={field.value?.toString() || ""}
-                onChange={field.onChange}
+                onChange={(value) => {
+                  // Permitir solo números para simplificar la validación
+                  const numbersOnly = value.replace(/\D/g, "");
+                  field.onChange(numbersOnly.substring(0, 11)); // Limitar a 11 dígitos
+                }}
                 error={fieldState.error?.message}
-                placeholder="Ej: 123-4567-8901"
+                placeholder="Ingrese solo números (sin guiones)"
+                helperText="El formato xxx-xxxx-xxxx se aplicará automáticamente al guardar"
               />
             )}
           />
-
           <Controller
             name="email"
             control={control}
@@ -505,7 +626,6 @@ export default function ListadoClientesComponent({
               />
             )}
           />
-
           <Controller
             name="contacto_principal"
             control={control}
@@ -520,7 +640,6 @@ export default function ListadoClientesComponent({
               />
             )}
           />
-
           <Controller
             name="estado"
             control={control}
@@ -541,6 +660,32 @@ export default function ListadoClientesComponent({
               />
             )}
           />
+        </div>{" "}
+      </FormDialog>
+      {/* Diálogo de confirmación para eliminación */}
+      <FormDialog
+        open={confirmDeleteDialogOpen}
+        submitButtonText="Eliminar"
+        submitButtonVariant="destructive"
+        onOpenChange={(open) => {
+          if (!open) {
+            setConfirmDeleteDialogOpen(false);
+            setClienteToDelete(null);
+          }
+        }}
+        title="Confirmar eliminación"
+        onSubmit={(e) => {
+          e.preventDefault();
+          confirmDelete();
+        }}
+      >
+        <div className="space-y-4 py-4">
+          <p className="text-destructive font-semibold">¡Atención!</p>
+          <p>
+            Esta acción eliminará permanentemente este cliente. Esta operación
+            no se puede deshacer.
+          </p>
+          <p>¿Estás seguro de que deseas continuar?</p>
         </div>
       </FormDialog>
     </Card>

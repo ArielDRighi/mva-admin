@@ -93,7 +93,11 @@ export function CapacitacionesListadoComponent() {
         setPage(parseInt(pageParam));
         setSearch(searchParam);
 
-        const response = await getCapacitaciones();
+        const response = await getCapacitaciones({
+          page: parseInt(pageParam),
+          limit: 10, // You can adjust the limit as needed
+          search: searchParam,
+        });
 
         if (response) {
           setCapacitaciones(response.data);
