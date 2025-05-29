@@ -30,7 +30,6 @@ import { getCookie } from "cookies-next";
 import { getUserById } from "@/app/actions/users";
 import {
   getLicenciaByEmpleadoId,
-  LicenciaConducir,
   updateLicenciaConducir,
   createLicenciaConducir,
 } from "@/app/actions/LicenciasConducir";
@@ -46,6 +45,7 @@ import {
   FileText,
 } from "lucide-react";
 import Loader from "../ui/local/Loader";
+import { LicenciaConducir } from "@/types/licenciasConducirTypes";
 
 // Categorías de licencia de conducir
 const CATEGORIAS_LICENCIA = [
@@ -98,6 +98,7 @@ const LicenciaDeConducirComponent = () => {
   const [employeeId, setEmployeeId] = useState(0);
   const [originalLicencia, setOriginalLicencia] =
     useState<LicenciaConducir | null>(null);
+  console.log("licencia", licencia);
 
   // Cargar usuario
   useEffect(() => {

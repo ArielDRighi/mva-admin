@@ -350,19 +350,32 @@ export const createServiceCapacitacion = createServerAction(
 /**
  * Obtiene todas las capacitaciones
  */
-export const getCapacitaciones = createServerAction(async () => {
-  const headers = await createAuthHeaders();
+/**
+ * Obtiene todas las capacitaciones con paginación y búsqueda
+ */
+export const getCapacitaciones = createServerAction(
+  async (page: number = 1, limit: number = 10, search: string = "") => {
+    const headers = await createAuthHeaders();
 
-  const res = await fetch(
-    `${process.env.NEXT_PUBLIC_API_URL}/api/services/capacitacion`,
-    {
-      headers,
-      cache: "no-store",
-    }
-  );
+    const queryParams = new URLSearchParams();
+    queryParams.append("page", page.toString());
+    queryParams.append("limit", limit.toString());
+    if (search) queryParams.append("search", search);
 
-  return handleApiResponse(res, "Error al obtener capacitaciones");
-}, "Error al obtener capacitaciones");
+    const res = await fetch(
+      `${
+        process.env.NEXT_PUBLIC_API_URL
+      }/api/services/capacitacion?${queryParams.toString()}`,
+      {
+        headers,
+        cache: "no-store",
+      }
+    );
+
+    return handleApiResponse(res, "Error al obtener capacitaciones");
+  },
+  "Error al obtener capacitaciones"
+);
 
 export interface CreateInstalacionDto {
   condicionContractualId: number;
