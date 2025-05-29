@@ -72,9 +72,16 @@ export default function LicenciasEmpleadosComponent({
   const [isCreating, setIsCreating] = useState<boolean>(false);
   const [isFirstLoad, setIsFirstLoad] = useState<boolean>(true);
   const [activeTab, setActiveTab] = useState<string>("todos");
-  // Estado para el diálogo de confirmación de eliminación
+  // Estados para los diálogos de confirmación
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<boolean>(false);
   const [licenciaToDelete, setLicenciaToDelete] = useState<number | null>(null);
+  // Nuevos estados para confirmación de aprobación y rechazo
+  const [showApproveConfirm, setShowApproveConfirm] = useState<boolean>(false);
+  const [licenciaToApprove, setLicenciaToApprove] = useState<number | null>(
+    null
+  );
+  const [showRejectConfirm, setShowRejectConfirm] = useState<boolean>(false);
+  const [licenciaToReject, setLicenciaToReject] = useState<number | null>(null);
 
   // En la definición del esquema de validación
   const createLicenciaSchema = z.object({
@@ -174,10 +181,21 @@ export default function LicenciasEmpleadosComponent({
     }
   };
 
-  // Esta función ahora sólo muestra el diálogo de confirmación
+  // Esta función ahora sólo muestra el diálogo de confirmación para eliminar
   const handleDeleteClick = (id: number) => {
     setLicenciaToDelete(id);
     setShowDeleteConfirm(true);
+  };
+
+  // Nuevas funciones para mostrar los diálogos de confirmación
+  const handleApproveClick = (id: number) => {
+    setLicenciaToApprove(id);
+    setShowApproveConfirm(true);
+  };
+
+  const handleRejectClick = (id: number) => {
+    setLicenciaToReject(id);
+    setShowRejectConfirm(true);
   };
 
   // Función que realmente elimina después de la confirmación
@@ -211,10 +229,13 @@ export default function LicenciasEmpleadosComponent({
     }
   };
 
-  const handleApproveClick = async (id: number) => {
+  // Nuevas funciones para confirmar aprobación y rechazo
+  const confirmApproveLicencia = async () => {
+    if (!licenciaToApprove) return;
+
     try {
       setLoading(true);
-      await approveEmployeeLeave(id);
+      await approveEmployeeLeave(licenciaToApprove);
       toast.success("Licencia aprobada", {
         description: "La licencia ha sido aprobada correctamente.",
       });
@@ -222,7 +243,6 @@ export default function LicenciasEmpleadosComponent({
     } catch (error) {
       console.error("Error al aprobar la licencia:", error);
 
-      // Extraer mensaje de error más descriptivo
       let errorMessage = "No se pudo aprobar la licencia.";
       if (error instanceof Error) {
         errorMessage = error.message;
@@ -233,14 +253,18 @@ export default function LicenciasEmpleadosComponent({
         duration: 5000,
       });
     } finally {
+      setShowApproveConfirm(false);
+      setLicenciaToApprove(null);
       setLoading(false);
     }
   };
 
-  const handleRejectClick = async (id: number) => {
+  const confirmRejectLicencia = async () => {
+    if (!licenciaToReject) return;
+
     try {
       setLoading(true);
-      await rejectEmployeeLeave(id);
+      await rejectEmployeeLeave(licenciaToReject);
       toast.success("Licencia rechazada", {
         description: "La licencia ha sido rechazada correctamente.",
       });
@@ -248,7 +272,6 @@ export default function LicenciasEmpleadosComponent({
     } catch (error) {
       console.error("Error al rechazar la licencia:", error);
 
-      // Extraer mensaje de error más descriptivo
       let errorMessage = "No se pudo rechazar la licencia.";
       if (error instanceof Error) {
         errorMessage = error.message;
@@ -259,6 +282,8 @@ export default function LicenciasEmpleadosComponent({
         duration: 5000,
       });
     } finally {
+      setShowRejectConfirm(false);
+      setLicenciaToReject(null);
       setLoading(false);
     }
   };
@@ -731,10 +756,58 @@ export default function LicenciasEmpleadosComponent({
         <div className="space-y-4 py-4">
           <p className="text-destructive font-semibold">¡Atención!</p>
           <p>
-            Esta acción eliminará permanentemente este vehículo. Esta operación
+            Esta acción eliminará permanentemente esta licencia. Esta operación
             no se puede deshacer.
           </p>
           <p>¿Estás seguro de que deseas continuar?</p>
+        </div>
+      </FormDialog>
+
+      {/* Nuevo diálogo de confirmación para aprobación */}
+      <FormDialog
+        open={showApproveConfirm}
+        submitButtonText="Aprobar"
+        submitButtonVariant="default"
+        onOpenChange={(open) => {
+          if (!open) {
+            setShowApproveConfirm(false);
+            setLicenciaToApprove(null);
+          }
+        }}
+        title="Confirmar aprobación"
+        onSubmit={(e) => {
+          e.preventDefault();
+          confirmApproveLicencia();
+        }}
+      >
+        <div className="space-y-4 py-4">
+          <p className="text-green-600 font-semibold">Aprobar licencia</p>
+          <p>Esta acción aprobará la solicitud de licencia del empleado.</p>
+          <p>¿Estás seguro de que deseas aprobar esta licencia?</p>
+        </div>
+      </FormDialog>
+
+      {/* Nuevo diálogo de confirmación para rechazo */}
+      <FormDialog
+        open={showRejectConfirm}
+        submitButtonText="Rechazar"
+        submitButtonVariant="destructive"
+        onOpenChange={(open) => {
+          if (!open) {
+            setShowRejectConfirm(false);
+            setLicenciaToReject(null);
+          }
+        }}
+        title="Confirmar rechazo"
+        onSubmit={(e) => {
+          e.preventDefault();
+          confirmRejectLicencia();
+        }}
+      >
+        <div className="space-y-4 py-4">
+          <p className="text-destructive font-semibold">Rechazar licencia</p>
+          <p>Esta acción rechazará la solicitud de licencia del empleado.</p>
+          <p>¿Estás seguro de que deseas rechazar esta licencia?</p>
         </div>
       </FormDialog>
 

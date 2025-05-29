@@ -142,6 +142,7 @@ export const getTallesEmpleados = createServerAction(
   async (
     page: number = 1,
     itemsPerPage: number = 10,
+    search: string | null = "",
     options: RevalidationOptions = {}
   ) => {
     const headers = await createAuthHeaders();
@@ -149,67 +150,53 @@ export const getTallesEmpleados = createServerAction(
     searchParams.append("page", page.toString());
     searchParams.append("limit", itemsPerPage.toString());
 
+    // Add search parameter if provided, ensuring it's a string
+    const searchTerm = search ? String(search).trim() : "";
+    if (searchTerm) {
+      // Use encodeURIComponent to properly handle special characters in the search term
+      searchParams.append("search", encodeURIComponent(searchTerm));
+    }
+
     // Añadimos un valor aleatorio al querystring para forzar la revalidación si es necesario
     if (options.revalidate) {
       searchParams.append("_t", Date.now().toString());
     }
-    const response = await fetch(
-      `${
-        process.env.NEXT_PUBLIC_API_URL
-      }/api/clothing?${searchParams.toString()}`,
-      {
-        headers,
-        cache: options.cache || "no-store",
-        next: options.revalidate ? { revalidate: 0 } : undefined,
+
+    try {
+      const response = await fetch(
+        `${
+          process.env.NEXT_PUBLIC_API_URL
+        }/api/clothing?${searchParams.toString()}`,
+        {
+          headers,
+          cache: options.cache || "no-store",
+          next: options.revalidate ? { revalidate: 0 } : undefined,
+        }
+      );
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error(
+          `Error fetching talles: ${response.status} - ${errorText}`
+        );
+
+        // If it's the unaccent function error, we can provide a more helpful message
+        if (errorText.includes("unaccent")) {
+          throw new Error(
+            "Error: La función de búsqueda avanzada no está disponible en el servidor. Por favor, contacte al administrador."
+          );
+        }
+        throw new Error(`Error al obtener talles: ${errorText}`);
       }
-    );
 
-    const data: unknown = await handleApiResponse(
-      response,
-      "Error al obtener los talles de empleados"
-    );
-
-    // Si es un array directamente, es la lista de talles sin paginación
-    if (Array.isArray(data)) {
-      return {
-        data: data as RopaTalles[],
-        total: data.length,
-        page: 1,
-        itemsPerPage: data.length,
-      };
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      console.error("Error in getTallesEmpleados:", error);
+      throw error instanceof Error
+        ? error
+        : new Error("Error desconocido al obtener los talles de empleados");
     }
-
-    // Verificar estructura { data, totalItems, currentPage, itemsPerPage }
-    if (isDataPaginationResponse(data)) {
-      return {
-        data: data.data,
-        total: data.totalItems || data.data.length,
-        page: data.currentPage || page,
-        itemsPerPage: data.itemsPerPage || itemsPerPage,
-      };
-    }
-
-    // Verificar estructura { items, total, page, limit }
-    if (isItemsPaginationResponse(data)) {
-      return {
-        data: data.items,
-        total: data.total || data.items.length,
-        page: data.page || page,
-        itemsPerPage: data.limit || itemsPerPage,
-      };
-    }
-
-    // Fallback para cualquier otro formato
-    console.warn(
-      "Formato de respuesta no reconocido en getTallesEmpleados:",
-      data
-    );
-    return {
-      data: [] as RopaTalles[],
-      total: 0,
-      page,
-      itemsPerPage,
-    };
   },
   "Error al obtener los talles de empleados"
 );
