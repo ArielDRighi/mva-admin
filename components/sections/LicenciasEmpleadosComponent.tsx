@@ -557,7 +557,14 @@ export default function LicenciasEmpleadosComponent({
             title=""
             data={filteredLicencias}
             itemsPerPage={itemsPerPage}
-            searchableKeys={[]}
+            searchableKeys={[
+              "tipoLicencia",
+              "notas",
+              "employee.nombre",
+              "employee.apellido",
+              "empleado.nombre",
+              "empleado.apellido",
+            ]}
             searchPlaceholder="Buscar por empleado, tipo de licencia o notas..."
             remotePagination
             totalItems={total}
