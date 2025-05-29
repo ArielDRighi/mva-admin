@@ -17,7 +17,9 @@ export const getMantenimientosVehiculos = createServerAction(
   async (page: number = 1, limit: number = 15, search: string = "") => {
     const headers = await createAuthHeaders();
     const searchQuery = search ? `&search=${search}` : "";
-
+    console.log(
+      `Fetching vehicle maintenance with page=${page}, limit=${limit}, search=${search}`
+    );
     const res = await fetch(
       `${process.env.NEXT_PUBLIC_API_URL}/api/vehicle_maintenance?page=${page}&limit=${limit}${searchQuery}`,
       {

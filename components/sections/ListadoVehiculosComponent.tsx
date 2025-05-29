@@ -273,11 +273,15 @@ const ListadoVehiculosComponent = ({
     setLoading(true);
 
     try {
+      // Make sure itemsPerPage is always a number with a fallback value
+      const perPage = itemsPerPage || 15;
+
       const fetchedVehiculos = (await getVehicles(
         currentPage,
-        itemsPerPage,
+        perPage,
         search
       )) as VehicleResponse;
+
       setVehiculos(fetchedVehiculos.data);
       setTotal(fetchedVehiculos.totalItems);
       setPage(fetchedVehiculos.currentPage);

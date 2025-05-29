@@ -17,7 +17,9 @@ import {
 export const getVehicles = createServerAction(
   async (page: number = 1, limit: number = 15, search: string = "") => {
     const headers = await createAuthHeaders();
-    const searchQuery = search ? `&search=${search}` : "";
+
+    // Properly encode the search term to handle special characters
+    const searchQuery = search ? `&search=${encodeURIComponent(search)}` : "";
 
     const res = await fetch(
       `${process.env.NEXT_PUBLIC_API_URL}/api/vehicles?page=${page}&limit=${limit}${searchQuery}`,

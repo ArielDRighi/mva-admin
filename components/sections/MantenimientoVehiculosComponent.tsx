@@ -85,6 +85,7 @@ const MantenimientoVehiculosComponent = ({
   const [mantenimientoToComplete, setMantenimientoToComplete] = useState<
     number | null
   >(null);
+  console.log("mantenimientos", mantenimientos);
 
   const mantenimientoSchema = z.object({
     vehiculoId: z.number({
@@ -135,6 +136,9 @@ const MantenimientoVehiculosComponent = ({
     params.set("search", search);
     params.set("page", "1");
     router.replace(`?${params.toString()}`);
+
+    // Update the URL and then fetch with the updated search parameter
+    fetchMantenimientos();
   };
 
   const handleTabChange = (value: string) => {
@@ -357,14 +361,16 @@ const MantenimientoVehiculosComponent = ({
   };
   const fetchMantenimientos = useCallback(async () => {
     const currentPage = Number(searchParams.get("page")) || 1;
-    const search = searchParams.get("search") || "";
+    const searchTerm = searchParams.get("search") || "";
     setLoading(true);
-
+    console.log("currentPage", currentPage);
+    console.log("itemsPerPage", itemsPerPage);
+    console.log("search term:", searchTerm);
     try {
       const fetchedMantenimientos = (await getMantenimientosVehiculos(
         currentPage,
         itemsPerPage,
-        search
+        searchTerm // Make sure this value is passed correctly
       )) as {
         data: VehicleMaintenance[];
         totalItems: number;
@@ -512,7 +518,15 @@ const MantenimientoVehiculosComponent = ({
             title=""
             data={filteredMantenimientos}
             itemsPerPage={itemsPerPage}
-            searchableKeys={["tipoMantenimiento", "descripcion", "vehiculoId"]}
+            searchableKeys={[
+              "tipoMantenimiento",
+              "descripcion",
+              "vehiculoId",
+              "vehicle.placa",
+              "vehicle.marca",
+              "vehicle.modelo",
+              "vehicle.numeroInterno",
+            ]}
             searchPlaceholder="Buscar por tipo, descripción o vehículo..."
             remotePagination
             totalItems={total}
@@ -534,10 +548,29 @@ const MantenimientoVehiculosComponent = ({
                       <Car className="h-5 w-5 text-slate-600" />
                     </div>
                     <div>
-                      {vehiculosInfo[mantenimiento.vehiculoId] ? (
+                      {mantenimiento.vehicle ? (
+                        <>
+                          <div className="font-medium">
+                            {mantenimiento.vehicle.placa}
+                          </div>
+                          <div className="text-sm text-muted-foreground">
+                            {mantenimiento.vehicle.marca}{" "}
+                            {mantenimiento.vehicle.modelo}
+                          </div>
+                          {mantenimiento.vehicle.numeroInterno && (
+                            <div className="text-xs font-medium text-gray-500">
+                              N° Interno: {mantenimiento.vehicle.numeroInterno}
+                            </div>
+                          )}
+                        </>
+                      ) : vehiculosInfo[mantenimiento.vehiculoId] ? (
                         <>
                           <div className="font-medium">
                             {vehiculosInfo[mantenimiento.vehiculoId].placa}
+                          </div>
+                          <div className="text-sm text-muted-foreground">
+                            {vehiculosInfo[mantenimiento.vehiculoId].marca}{" "}
+                            {vehiculosInfo[mantenimiento.vehiculoId].modelo}
                           </div>
                           {vehiculosInfo[mantenimiento.vehiculoId]
                             .numeroInterno && (

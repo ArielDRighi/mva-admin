@@ -26,6 +26,7 @@ export type VehicleMaintenance = {
     placa: string;
     marca: string;
     modelo: string;
+    numeroInterno: number;
   };
 };
 
