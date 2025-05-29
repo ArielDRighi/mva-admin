@@ -16,7 +16,8 @@ import {
 export const getMantenimientosVehiculos = createServerAction(
   async (page: number = 1, limit: number = 15, search: string = "") => {
     const headers = await createAuthHeaders();
-    const searchQuery = search ? `&search=${search}` : "";
+    // Corregir esta línea - asegúrate de codificar el término de búsqueda
+    const searchQuery = search ? `&search=${encodeURIComponent(search)}` : "";
     console.log(
       `Fetching vehicle maintenance with page=${page}, limit=${limit}, search=${search}`
     );
