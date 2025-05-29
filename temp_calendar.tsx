@@ -1,46 +1,11 @@
-import * as React from "react";
-import { ChevronLeft, ChevronRight } from "lucide-react";
-import { DayPicker, CaptionProps, useNavigation } from "react-day-picker";
-import { format } from "date-fns";
+"use client"
 
-import { cn } from "@/lib/utils";
-import { buttonVariants } from "@/components/ui/button";
+import * as React from "react"
+import { ChevronLeft, ChevronRight } from "lucide-react"
+import { DayPicker } from "react-day-picker"
 
-function CustomCaption({ displayMonth }: CaptionProps) {
-  const { goToMonth, nextMonth, previousMonth } = useNavigation();
-
-  const handlePrevious = () => {
-    if (previousMonth) {
-      goToMonth(previousMonth);
-    }
-  };
-
-  const handleNext = () => {
-    if (nextMonth) {
-      goToMonth(nextMonth);
-    }
-  };
-
-  return (
-    <div className="flex justify-between items-center px-2">
-      <button
-        onClick={handlePrevious}
-        className={cn(buttonVariants({ variant: "outline" }), "size-7 p-0")}
-        disabled={!previousMonth}
-      >
-        <ChevronLeft className="size-4" />
-      </button>
-      <span className="text-sm font-medium">{format(displayMonth, "MMMM yyyy")}</span>
-      <button
-        onClick={handleNext}
-        className={cn(buttonVariants({ variant: "outline" }), "size-7 p-0")}
-        disabled={!nextMonth}
-      >
-        <ChevronRight className="size-4" />
-      </button>
-    </div>
-  );
-}
+import { cn } from "@/lib/utils"
+import { buttonVariants } from "@/components/ui/button"
 
 function Calendar({
   className,
@@ -95,11 +60,16 @@ function Calendar({
         ...classNames,
       }}
       components={{
-        Caption: CustomCaption,
+        IconLeft: (props) => (
+          <ChevronLeft className={cn("size-4", props.className)} />
+        ),
+        IconRight: (props) => (
+          <ChevronRight className={cn("size-4", props.className)} />
+        ),
       }}
       {...props}
     />
-  );
+  )
 }
 
-export { Calendar };
+export { Calendar }
