@@ -38,7 +38,12 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { createClient, deleteClient, editClient, getClients } from "@/app/actions/clientes";
+import {
+  createClient,
+  deleteClient,
+  editClient,
+  getClients,
+} from "@/app/actions/clientes";
 
 export default function ListadoClientesComponent({
   data,
@@ -62,7 +67,8 @@ export default function ListadoClientesComponent({
   const [loading, setLoading] = useState<boolean>(false);
   const [selectedClient, setSelectedClient] = useState<Cliente | null>(null);
   const [isCreating, setIsCreating] = useState(false);
-  const [activeTab, setActiveTab] = useState("todos");  const [isFirstLoad, setIsFirstLoad] = useState(true);
+  const [activeTab, setActiveTab] = useState("todos");
+  const [isFirstLoad, setIsFirstLoad] = useState(true);
   // Añadir estado para controlar la hidratación
   const [isMounted, setIsMounted] = useState(false);
   // Estados para manejo de confirmación de eliminación
@@ -80,13 +86,14 @@ export default function ListadoClientesComponent({
       )
       .or(z.string().regex(/^\d{11}$/, "Debe tener 11 dígitos, sin guiones")),
 
-    direccion: z.string().min(1, "La dirección es obligatoria"),    telefono: z
+    direccion: z.string().min(1, "La dirección es obligatoria"),
+    telefono: z
       .string()
       .regex(
         /^\d{3}-\d{4}-\d{4}$/,
-        "Formato de teléfono incorrecto, debe ser xxx-xxxx-xxxx"
+        "Formato de teléfono incorrecto,ss debe ser xxx-xxxx-xxxx"
       )
-      .or(z.string().regex(/^\d{11}$/, "Debe tener 11 dígitos")),
+      .or(z.string().regex(/^\d{10}$/, "Debe tener 12 dígitos, sin barras")),
 
     email: z
       .string()
@@ -124,14 +131,14 @@ export default function ListadoClientesComponent({
   };
   const handleSearchChange = (search: string) => {
     const params = new URLSearchParams(searchParams.toString());
-    
+
     // Si no hay término de búsqueda, eliminar el parámetro
     if (!search || search.trim() === "") {
       params.delete("search");
     } else {
       params.set("search", search);
     }
-    
+
     // Siempre volver a la primera página al buscar
     params.set("page", "1");
     router.replace(`?${params.toString()}`);
@@ -143,7 +150,7 @@ export default function ListadoClientesComponent({
    * para evitar problemas de formato
    */
   const stripPhoneFormat = (phone: string): string => {
-    return phone ? phone.replace(/-/g, '') : '';
+    return phone ? phone.replace(/-/g, "") : "";
   };
 
   /**
@@ -152,16 +159,19 @@ export default function ListadoClientesComponent({
    * Convierte cualquier string de 11 dígitos al formato esperado
    */
   const formatPhoneNumber = (phone: string): string => {
-    if (!phone) return '';
-    
+    if (!phone) return "";
+
     // Quitar todos los guiones primero para asegurarnos de que no haya duplicados
     const cleaned = stripPhoneFormat(phone);
-    
+
     // Si no tiene la longitud adecuada, devolver tal cual
     if (cleaned.length !== 11) return phone;
-    
+
     // Formatear con guiones: xxx-xxxx-xxxx
-    return `${cleaned.substring(0, 3)}-${cleaned.substring(3, 7)}-${cleaned.substring(7)}`;
+    return `${cleaned.substring(0, 3)}-${cleaned.substring(
+      3,
+      7
+    )}-${cleaned.substring(7)}`;
   };
 
   const handleEditClick = (cliente: Cliente) => {
@@ -179,7 +189,7 @@ export default function ListadoClientesComponent({
 
     // Establecer todos los campos excepto el teléfono que requiere procesamiento especial
     camposFormulario.forEach((key) => setValue(key, cliente[key]));
-    
+
     // Manejar el teléfono de forma especial - quitar los guiones al cargar para editar
     setValue("telefono", stripPhoneFormat(cliente.telefono));
   };
@@ -210,20 +220,20 @@ export default function ListadoClientesComponent({
     try {
       setLoading(true);
       await deleteClient(clienteToDelete);
-      
+
       toast.success("Cliente eliminado", {
         description: "El cliente se ha eliminado correctamente.",
         duration: 3000,
       });
-      
+
       await fetchClients();
     } catch (error) {
       console.error("Error al eliminar el cliente:", error);
-      
+
       // Extraer el mensaje de error para mostrar información más precisa
-      const errorMessage = 
+      const errorMessage =
         error instanceof Error ? error.message : "Error desconocido";
-      
+
       toast.error("Error al eliminar cliente", {
         description: errorMessage,
         duration: 5000,
@@ -237,17 +247,18 @@ export default function ListadoClientesComponent({
 
   const handleTabChange = (value: string) => {
     setActiveTab(value);
-  };  const onSubmit = async (data: z.infer<typeof createClientSchema>) => {
+  };
+  const onSubmit = async (data: z.infer<typeof createClientSchema>) => {
     try {
       setLoading(true);
-      
+
       // Crear una copia de los datos para no modificar el objeto original
       const formattedData = {
         ...data,
         // Aplicar formato al teléfono antes de guardar
-        telefono: formatPhoneNumber(data.telefono)
+        telefono: formatPhoneNumber(data.telefono),
       };
-      
+
       if (selectedClient && selectedClient.clienteId) {
         await editClient(selectedClient.clienteId.toString(), formattedData);
         toast.success("Cliente actualizado", {
@@ -267,15 +278,20 @@ export default function ListadoClientesComponent({
       setSelectedClient(null);
     } catch (error) {
       console.error("Error en el envío del formulario:", error);
-      
+
       // Extraer el mensaje de error para mostrar información más precisa
-      const errorMessage = 
+      const errorMessage =
         error instanceof Error ? error.message : "Error desconocido";
-        
-      toast.error(selectedClient ? "Error al actualizar cliente" : "Error al crear cliente", {
-        description: errorMessage,
-        duration: 5000,
-      });
+
+      toast.error(
+        selectedClient
+          ? "Error al actualizar cliente"
+          : "Error al crear cliente",
+        {
+          description: errorMessage,
+          duration: 5000,
+        }
+      );
     } finally {
       setLoading(false);
     }
@@ -286,22 +302,22 @@ export default function ListadoClientesComponent({
     setLoading(true);
 
     try {
-      const fetchedClients = await getClients(
+      const fetchedClients = (await getClients(
         currentPage,
         itemsPerPage,
         search
-      ) as { items: Cliente[]; total: number; page: number };
-      
+      )) as { items: Cliente[]; total: number; page: number };
+
       setClients(fetchedClients.items);
       setTotal(fetchedClients.total);
       setPage(fetchedClients.page);
     } catch (error) {
       console.error("Error al cargar los clientes:", error);
-      
+
       // Extraer el mensaje de error para mostrar información más precisa
-      const errorMessage = 
+      const errorMessage =
         error instanceof Error ? error.message : "Error desconocido";
-      
+
       toast.error("Error al cargar clientes", {
         description: errorMessage,
         duration: 5000,
@@ -390,24 +406,35 @@ export default function ListadoClientesComponent({
             </TabsList>
           </Tabs>
         </div>
-      </CardHeader>      <CardContent className="p-6">
-        <div className="rounded-md border">          <ListadoTabla
+      </CardHeader>{" "}
+      <CardContent className="p-6">
+        <div className="rounded-md border">
+          {" "}
+          <ListadoTabla
             title=""
             data={filteredClients}
             itemsPerPage={itemsPerPage}
-            searchableKeys={["nombre", "cuit", "email", "contacto_principal", "direccion"]}
+            searchableKeys={[
+              "nombre",
+              "cuit",
+              "email",
+              "contacto_principal",
+              "direccion",
+            ]}
             remotePagination
             totalItems={total}
             currentPage={page}
             onPageChange={handlePageChange}
-            onSearchChange={handleSearchChange}            searchPlaceholder="Buscar por nombre, CUIT, email, contacto o dirección..."
+            onSearchChange={handleSearchChange}
+            searchPlaceholder="Buscar por nombre, CUIT, email, contacto o dirección..."
             columns={[
               { title: "Cliente", key: "cliente" },
               { title: "Contacto", key: "contacto" },
               { title: "Información", key: "informacion" },
               { title: "Estado", key: "estado" },
               { title: "Acciones", key: "acciones" },
-            ]}renderRow={(cliente) => (
+            ]}
+            renderRow={(cliente) => (
               <>
                 <TableCell className="min-w-[250px]">
                   <div className="flex items-center gap-3">
@@ -507,7 +534,6 @@ export default function ListadoClientesComponent({
           />
         </div>
       </CardContent>
-
       <FormDialog
         open={isCreating || selectedClient !== null}
         onOpenChange={(open) => {
@@ -539,7 +565,6 @@ export default function ListadoClientesComponent({
               />
             )}
           />
-
           <Controller
             name="cuit"
             control={control}
@@ -554,7 +579,6 @@ export default function ListadoClientesComponent({
               />
             )}
           />
-
           <Controller
             name="direccion"
             control={control}
@@ -568,7 +592,8 @@ export default function ListadoClientesComponent({
                 placeholder="Dirección completa"
               />
             )}
-          />          <Controller
+          />{" "}
+          <Controller
             name="telefono"
             control={control}
             render={({ field, fieldState }) => (
@@ -578,7 +603,7 @@ export default function ListadoClientesComponent({
                 value={field.value?.toString() || ""}
                 onChange={(value) => {
                   // Permitir solo números para simplificar la validación
-                  const numbersOnly = value.replace(/\D/g, '');
+                  const numbersOnly = value.replace(/\D/g, "");
                   field.onChange(numbersOnly.substring(0, 11)); // Limitar a 11 dígitos
                 }}
                 error={fieldState.error?.message}
@@ -587,7 +612,6 @@ export default function ListadoClientesComponent({
               />
             )}
           />
-
           <Controller
             name="email"
             control={control}
@@ -602,7 +626,6 @@ export default function ListadoClientesComponent({
               />
             )}
           />
-
           <Controller
             name="contacto_principal"
             control={control}
@@ -617,7 +640,6 @@ export default function ListadoClientesComponent({
               />
             )}
           />
-
           <Controller
             name="estado"
             control={control}
@@ -638,8 +660,8 @@ export default function ListadoClientesComponent({
               />
             )}
           />
-        </div>      </FormDialog>
-
+        </div>{" "}
+      </FormDialog>
       {/* Diálogo de confirmación para eliminación */}
       <FormDialog
         open={confirmDeleteDialogOpen}
@@ -660,8 +682,8 @@ export default function ListadoClientesComponent({
         <div className="space-y-4 py-4">
           <p className="text-destructive font-semibold">¡Atención!</p>
           <p>
-            Esta acción eliminará permanentemente este cliente. 
-            Esta operación no se puede deshacer.
+            Esta acción eliminará permanentemente este cliente. Esta operación
+            no se puede deshacer.
           </p>
           <p>¿Estás seguro de que deseas continuar?</p>
         </div>

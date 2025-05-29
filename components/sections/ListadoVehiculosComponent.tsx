@@ -692,7 +692,6 @@ const ListadoVehiculosComponent = ({
                   options={[
                     { label: "Simple", value: "Simple" },
                     { label: "Doble", value: "Doble" },
-                    { label: "Extendida", value: "Extendida" },
                   ]}
                   error={fieldState.error?.message}
                 />

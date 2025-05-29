@@ -107,6 +107,7 @@ export default function CrearInstalacionComponent() {
   const [condicionesContractuales, setCondicionesContractuales] = useState<
     CondicionContractual[]
   >([]);
+  console.log("condicioneSContractuales", condicionesContractuales);
   const [cantidadBanosRequired, setCantidadBanosRequired] = useState<number>(0);
 
   const [empleadosDisponibles, setEmpleadosDisponibles] = useState<Empleado[]>(
@@ -607,21 +608,26 @@ export default function CrearInstalacionComponent() {
               control={control}
               render={({ field, fieldState }) => (
                 <div>
-                  <label className="block text-sm font-medium mb-2">
-                    Condición Contractual
-                  </label>
-
+                  {" "}
+                  <div className="flex justify-between items-center mb-2">
+                    <label className="text-sm font-medium">
+                      Condición Contractual
+                    </label>
+                    <Badge variant="outline" className="text-xs bg-slate-100">
+                      {condicionesContractuales.length} condiciones disponibles
+                    </Badge>
+                  </div>
                   {isLoading ? (
                     <div className="flex justify-center py-8">
                       <Loader className="h-8 w-8 text-indigo-500" />
                     </div>
                   ) : (
-                    <div className="border rounded-md max-h-[350px] overflow-y-auto">
+                    <div className="max-h-[450px] overflow-y-auto px-1 py-2">
                       {condicionesContractuales.length > 0 ? (
                         condicionesContractuales.map((condicion) => (
                           <div
                             key={condicion.condicionContractualId}
-                            className={`px-4 py-3 cursor-pointer hover:bg-slate-50 ${
+                            className={`px-4 py-4 cursor-pointer hover:bg-slate-50 mb-2 border rounded-md shadow-sm ${
                               field.value === condicion.condicionContractualId
                                 ? "bg-indigo-50 border-l-4 border-indigo-500"
                                 : "border-l-4 border-transparent"
@@ -642,10 +648,14 @@ export default function CrearInstalacionComponent() {
                               );
                             }}
                           >
+                            {" "}
                             <div className="flex justify-between">
-                              <span className="font-medium">
-                                {condicion.tipo_de_contrato}
-                              </span>
+                              <Badge
+                                variant="outline"
+                                className="bg-indigo-50 text-indigo-700 mb-1"
+                              >
+                                ID: {condicion.condicionContractualId}
+                              </Badge>
                               <Badge
                                 variant={
                                   condicion.estado === "Activo"
@@ -661,14 +671,22 @@ export default function CrearInstalacionComponent() {
                                 {condicion.estado}
                               </Badge>
                             </div>
-                            <div className="text-sm text-slate-600 mt-1">
+                            <div className="text-sm text-slate-600 mt-2">
+                              <div className="mb-1">
+                                <span className="font-medium">
+                                  Tipo de Contrato:
+                                </span>{" "}
+                                <span className="text-slate-800">
+                                  {condicion.tipo_de_contrato}
+                                </span>
+                              </div>
                               <div className="flex justify-between mb-1">
                                 <span>Tarifa: ${condicion.tarifa}</span>
                                 <span>
                                   Periodicidad: {condicion.periodicidad}
                                 </span>
                               </div>
-                              <div className="flex justify-between text-xs">
+                              <div className="flex justify-between text-xs mb-2">
                                 <span>
                                   Inicio:{" "}
                                   {new Date(
@@ -682,6 +700,16 @@ export default function CrearInstalacionComponent() {
                                   ).toLocaleDateString()}
                                 </span>
                               </div>
+                              {condicion.condiciones_especificas && (
+                                <div className="border-t pt-1 border-slate-100">
+                                  <span className="font-medium text-slate-700">
+                                    Condiciones Específicas:
+                                  </span>
+                                  <p className="text-sm text-slate-700 mt-1">
+                                    {condicion.condiciones_especificas}
+                                  </p>
+                                </div>
+                              )}
                               {condicion.cantidad_banos && (
                                 <div className="mt-1 font-medium text-indigo-600">
                                   Baños requeridos: {condicion.cantidad_banos}
@@ -698,7 +726,6 @@ export default function CrearInstalacionComponent() {
                       )}
                     </div>
                   )}
-
                   {fieldState.error?.message && (
                     <p className="text-sm text-red-500 mt-1">
                       {fieldState.error.message}
