@@ -9,7 +9,6 @@ import {
   User2Icon,
   Toilet,
   Activity,
-  BarChart3,
   Clock,
   AlertCircle,
 } from "lucide-react";
@@ -30,8 +29,7 @@ import {
 import { Servicio } from "@/types/serviceTypes";
 import { getFuturesCleanings } from "@/app/actions/services";
 import { getLicenciasToExpire } from "@/app/actions/LicenciasConducir";
-import { Empleado } from "@/types/types";
-import useTokenRefresh from "@/hooks/useTokenRefresh";
+import { toast } from "sonner";
 
 export type User = {
   id: number;
@@ -70,8 +68,41 @@ export type resumeService = {
   completados: number;
 };
 
+export type Cleaning = {
+  id: number;
+  numero_de_limpieza: number;
+  fecha_de_limpieza: string;
+  cliente?: {
+    nombre: string;
+    id: number;
+  };
+  servicio?: {
+    id: number;
+  };
+};
+
+export type CleaningsResponse = {
+  items: Cleaning[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+};
+
+// Interfaz principal para la actividad reciente
+export interface ActivityRecent {
+  timestamp?: string; // Fecha general de la actividad
+  latestCompletedService?: Servicio; // Servicio completado más reciente
+  latestScheduledService?: Servicio; // Servicio programado más reciente
+  latestClient?: Cliente; // Cliente más reciente
+  latestToilet?: Sanitario; // Sanitario más reciente
+  latestMaintenance?: MantenimientoSanitario; // Mantenimiento más reciente
+  latestVehicle?: Vehiculo; // Vehículo más reciente
+}
+
 // Importar LicenciaConducir y LicenciasConducirResponse desde el archivo de tipos centralizado
-import { LicenciaConducir, LicenciaConducirWithEmpleado, LicenciasConducirResponse } from "@/types/licenciasConducirTypes";
+import { LicenciasConducirResponse } from "@/types/licenciasConducirTypes";
+import { Cliente, MantenimientoSanitario, Sanitario, Vehiculo } from "@/types/types";
 
 // Alias para mantener compatibilidad con código existente
 export type LicenciasToExpireResponse = LicenciasConducirResponse;
@@ -84,56 +115,119 @@ const DashboardComponent = () => {
   const [proximosServicios, setProximosServicios] = useState<Servicio[]>([]);
   const [servicesStats, setServicesStats] = useState<serviceStats | null>(null);
   const [resumeService, setresumeService] = useState<resumeService>();
-  const [futuresCleanings, setFuturesCleanings] = useState<any>({
+  const [futuresCleanings, setFuturesCleanings] = useState<CleaningsResponse>({
     items: [],
     total: 0,
     page: 1,
     limit: 10,
     totalPages: 0,
   });
-  const [activityRecent, setRecentActivity] = useState<any>(null);
+  const [activityRecent, setRecentActivity] = useState<ActivityRecent | null>(null);
   const [licenciasToExpire, setLicenciasToExpire] =
     useState<LicenciasToExpireResponse>();
 
-  const router = useRouter();
-
-  useEffect(() => {
+  const router = useRouter();  // Estado para tracking de errores de carga
+  const [loadingErrors, setLoadingErrors] = useState<Record<string, string>>({});useEffect(() => {
     const fetchData = async () => {
-      try {
-        const totalVehicles = await getTotalVehicles();
-        const totalEmployees = await getTotalEmployees();
-        const totalSanitarios = await getTotalSanitarios();
-        const proximosServicios = await getProximosServices();
-        const serviceStats = await getServicesStats();
-        const resumeService = await getResumeServices();
-        const futuresCleanings = await getFuturesCleanings();
-        const activity = await getRecentActivity();        const fetchLicenciasToExpire = await getLicenciasToExpire(30, 1, 10) as LicenciasConducirResponse;
-        setLicenciasToExpire(fetchLicenciasToExpire);
-        setRecentActivity(activity);
-        setFuturesCleanings(futuresCleanings);
-        setresumeService(resumeService);
-        setServicesStats(serviceStats);
-        setProximosServicios(proximosServicios);
-        setTotalEmployees(totalEmployees);
-        setTotalSanitarios(totalSanitarios);
-        setTotalVehicles(totalVehicles);
-      } catch (error) {
-        console.error("Error fetching total vehicles:", error);
+      // Definimos todas las promesas que vamos a ejecutar
+      const promises = [
+        { name: 'totalVehicles', promise: getTotalVehicles() },
+        { name: 'totalEmployees', promise: getTotalEmployees() },
+        { name: 'totalSanitarios', promise: getTotalSanitarios() },
+        { name: 'proximosServicios', promise: getProximosServices() },
+        { name: 'serviceStats', promise: getServicesStats() },
+        { name: 'resumeService', promise: getResumeServices() },
+        { name: 'futuresCleanings', promise: getFuturesCleanings() },
+        { name: 'activity', promise: getRecentActivity() },
+        { 
+          name: 'licenciasToExpire', 
+          promise: getLicenciasToExpire(30, 1, 10) as Promise<LicenciasConducirResponse> 
+        }
+      ];
+
+      // Ejecutamos todas las promesas y manejamos éxitos/errores individualmente
+      const results = await Promise.allSettled(promises.map(item => item.promise));
+      
+      // Colectamos errores para mostrar/registrar
+      const errorMessages: Record<string, string> = {};
+        // Procesamos los resultados
+      results.forEach((result, index) => {
+        const { name } = promises[index];
+        
+        if (result.status === 'fulfilled') {
+          // Si la promesa se resolvió exitosamente, actualizamos el estado
+          switch (name) {
+            case 'totalVehicles':
+              setTotalVehicles(result.value as totalVehicles);
+              break;
+            case 'totalEmployees':
+              setTotalEmployees(result.value as totalEmployees);
+              break;
+            case 'totalSanitarios':
+              setTotalSanitarios(result.value as totalSanitarios);
+              break;
+            case 'proximosServicios':
+              setProximosServicios(result.value as Servicio[]);
+              break;
+            case 'serviceStats':
+              setServicesStats(result.value as serviceStats | null);
+              break;
+            case 'resumeService':
+              setresumeService(result.value as resumeService);
+              break;
+            case 'futuresCleanings':
+              setFuturesCleanings(result.value as CleaningsResponse);
+              break;
+            case 'activity':
+              setRecentActivity(result.value as ActivityRecent | null);
+              break;
+            case 'licenciasToExpire':
+              setLicenciasToExpire(result.value as LicenciasConducirResponse);
+              break;
+          }
+        } else {
+          // Si la promesa fue rechazada, registramos y mostramos el error
+          const errorMessage = typeof result.reason === 'string' 
+            ? result.reason 
+            : result.reason instanceof Error 
+              ? result.reason.message 
+              : `Error al cargar ${name}`;
+          
+          console.error(`Error fetching ${name}:`, result.reason);
+          
+          // Guardar en el estado de errores para mostrar en el componente
+          errorMessages[name] = errorMessage;
+          
+          // Mostrar toast para errores críticos
+          const criticalResources = ['totalVehicles', 'totalEmployees', 'totalSanitarios', 'proximosServicios'];
+          if (criticalResources.includes(name)) {
+            toast.error(`Error al cargar datos importantes`, {
+              description: errorMessage,
+              duration: 5000,
+            });
+          }
+        }
+      });
+      
+      // Actualizamos el estado de errores si hay alguno
+      if (Object.keys(errorMessages).length > 0) {
+        setLoadingErrors(errorMessages);
       }
     };
 
     fetchData();
   }, []);
-
   useEffect(() => {
     const userCookie = getCookie("user");
 
     if (userCookie) {
       try {
-        const parsedUser = JSON.parse(userCookie as string);
+        const parsedUser = JSON.parse(userCookie as string) as User;
         setUser(parsedUser);
       } catch (e) {
         console.error("Error al parsear el usuario", e);
+        // Mostramos un error para que el usuario pueda tomar acción
+        setLoadingErrors(prev => ({...prev, userCookie: "Error al cargar información del usuario"}));
       }
     }
   }, []);
@@ -150,19 +244,7 @@ const DashboardComponent = () => {
         return "bg-gray-100 text-gray-800";
     }
   };
-
-  const getPriorityColor = (priority: string) => {
-    switch (priority) {
-      case "Alta":
-        return "bg-red-100 text-red-800";
-      case "Media":
-        return "bg-yellow-100 text-yellow-800";
-      case "Baja":
-        return "bg-green-100 text-green-800";
-      default:
-        return "bg-gray-100 text-gray-800";
-    }
-  };
+  // Eliminada función getPriorityColor que no se utiliza
 
   const servicesByType = servicesStats
     ? [
@@ -192,7 +274,6 @@ const DashboardComponent = () => {
         },
       ]
     : [];
-
   return (
     <div className="container mx-auto p-4">
       <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-8">
@@ -213,6 +294,31 @@ const DashboardComponent = () => {
           </Button>
         </div>
       </div>
+      
+      {/* Mostrar errores de carga si los hay */}
+      {Object.keys(loadingErrors).length > 0 && (
+        <div className="mb-4">
+          <Card className="border-red-200 bg-red-50">
+            <CardHeader className="pb-2">
+              <div className="flex items-center">
+                <AlertCircle className="h-5 w-5 mr-2 text-red-600" />
+                <CardTitle className="text-red-800">
+                  Algunos datos no pudieron cargarse
+                </CardTitle>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <ul className="list-disc pl-5 space-y-1">
+                {Object.entries(loadingErrors).map(([key, message]) => (
+                  <li key={key} className="text-sm text-red-700">
+                    {message}
+                  </li>
+                ))}
+              </ul>
+            </CardContent>
+          </Card>
+        </div>
+      )}
 
       {/* Resource summary cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
@@ -285,14 +391,13 @@ const DashboardComponent = () => {
                   )}
                   %)
                 </span>
-              </div>
-              <Progress
-                value={
-                  (totalEmployees?.totalDisponibles ||
-                    0 / (totalEmployees?.total || 1)) * 100
-                }
-                className="h-1"
-              />
+              </div>                <Progress
+                  value={
+                    ((totalEmployees?.totalDisponibles || 0) /
+                      (totalEmployees?.total || 1)) * 100
+                  }
+                  className="h-1"
+                />
               <div className="flex justify-between text-xs mt-2">
                 <Badge variant="outline" className="bg-red-50">
                   Inactivos: {totalEmployees?.totalInactivos}
@@ -316,21 +421,19 @@ const DashboardComponent = () => {
               <div className="flex items-center justify-between text-xs">
                 <span>Disponibles</span>
                 <span className="font-semibold">
-                  {totalSanitarios?.totalDisponibles} (
-                  {Math.round(
-                    (totalSanitarios?.totalDisponibles ||
-                      0 / (totalSanitarios?.total || 1)) * 10
+                  {totalSanitarios?.totalDisponibles} (                  {Math.round(
+                    ((totalSanitarios?.totalDisponibles || 0) /
+                      (totalSanitarios?.total || 1)) * 100
                   )}
                   %)
                 </span>
-              </div>
-              <Progress
-                value={
-                  (totalSanitarios?.totalDisponibles ||
-                    0 / (totalSanitarios?.total || 1)) * 10
-                }
-                className="h-1"
-              />
+              </div>                <Progress
+                  value={
+                    ((totalSanitarios?.totalDisponibles || 0) /
+                      (totalSanitarios?.total || 1)) * 100
+                  }
+                  className="h-1"
+                />
               <div className="flex justify-between text-xs mt-2">
                 <Badge variant="outline" className="bg-blue-50">
                   Asignados: {totalSanitarios?.totalAsignado}
@@ -506,7 +609,7 @@ const DashboardComponent = () => {
                 futuresCleanings.items &&
                 futuresCleanings.items.length > 0 ? (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {futuresCleanings.items.slice(0, 4).map((item: any) => (
+                    {futuresCleanings.items.slice(0, 4).map((item: Cleaning) => (
                       <div
                         key={item.id}
                         className="border rounded-md p-4 relative"
@@ -549,8 +652,7 @@ const DashboardComponent = () => {
               <CardContent>
                 <div className="space-y-4">
                   {activityRecent && (
-                    <>
-                      {/* Servicio completado */}
+                    <>                      {/* Servicio completado */}
                       {activityRecent.latestCompletedService && (
                         <div className="flex items-start pb-4 border-b">
                           <div className="w-10 h-10 rounded bg-gray-100 flex items-center justify-center">
@@ -587,7 +689,7 @@ const DashboardComponent = () => {
                       )}
 
                       {/* Servicio programado */}
-                      {activityRecent.latestScheduledService && (
+                      {activityRecent.latestScheduledService && activityRecent.timestamp && (
                         <div className="flex items-start pb-4 border-b">
                           <div className="w-10 h-10 rounded bg-gray-100 flex items-center justify-center">
                             <TruckIcon className="h-5 w-5" />
@@ -596,9 +698,9 @@ const DashboardComponent = () => {
                             <div className="flex items-center">
                               <span className="font-medium">PROGRAMADO</span>
                               <span className="ml-2 text-xs text-gray-500">
-                                {new Date(
-                                  activityRecent.timestamp
-                                ).toLocaleString()}
+                                {activityRecent.timestamp 
+                                  ? new Date(activityRecent.timestamp).toLocaleString() 
+                                  : "-"}
                               </span>
                             </div>
                             <p className="text-sm">
@@ -621,7 +723,7 @@ const DashboardComponent = () => {
                       )}
 
                       {/* Cliente nuevo */}
-                      {activityRecent.latestClient && (
+                      {activityRecent.latestClient && activityRecent.timestamp && (
                         <div className="flex items-start pb-4 border-b">
                           <div className="w-10 h-10 rounded bg-gray-100 flex items-center justify-center">
                             <User2Icon className="h-5 w-5" />
@@ -630,9 +732,7 @@ const DashboardComponent = () => {
                             <div className="flex items-center">
                               <span className="font-medium">NUEVO CLIENTE</span>
                               <span className="ml-2 text-xs text-gray-500">
-                                {new Date(
-                                  activityRecent.timestamp
-                                ).toLocaleString()}
+                                {new Date(activityRecent.timestamp).toLocaleString()}
                               </span>
                             </div>
                             <p className="text-sm">
@@ -640,14 +740,14 @@ const DashboardComponent = () => {
                             </p>
                             <p className="text-xs text-gray-500 mt-1">
                               Contacto:{" "}
-                              {activityRecent.latestClient.contacto_principal}
+                              {activityRecent.latestClient.contacto_principal || "-"}
                             </p>
                           </div>
                         </div>
                       )}
 
                       {/* Baño nuevo/actualizado */}
-                      {activityRecent.latestToilet && (
+                      {activityRecent.latestToilet && activityRecent.timestamp && (
                         <div className="flex items-start pb-4 border-b">
                           <div className="w-10 h-10 rounded bg-gray-100 flex items-center justify-center">
                             <Toilet className="h-5 w-5" />
@@ -658,9 +758,7 @@ const DashboardComponent = () => {
                                 BAÑO REGISTRADO
                               </span>
                               <span className="ml-2 text-xs text-gray-500">
-                                {new Date(
-                                  activityRecent.timestamp
-                                ).toLocaleString()}
+                                {new Date(activityRecent.timestamp).toLocaleString()}
                               </span>
                             </div>
                             <p className="text-sm">
@@ -689,12 +787,12 @@ const DashboardComponent = () => {
                                   : "PROGRAMADO"}
                               </span>
                               <span className="ml-2 text-xs text-gray-500">
-                                {new Date(
-                                  activityRecent.latestMaintenance.completado
-                                    ? activityRecent.latestMaintenance
-                                        .fechaCompletado
-                                    : activityRecent.latestMaintenance.createdAt
-                                ).toLocaleString()}
+                                {activityRecent.latestMaintenance.completado && 
+                                 activityRecent.latestMaintenance.fechaCompletado
+                                  ? new Date(activityRecent.latestMaintenance.fechaCompletado).toLocaleString()
+                                  : activityRecent.timestamp 
+                                    ? new Date(activityRecent.timestamp).toLocaleString() 
+                                    : "-"}
                               </span>
                             </div>
                             <p className="text-sm">
@@ -707,13 +805,12 @@ const DashboardComponent = () => {
                             <p className="text-xs text-gray-500 mt-1">
                               Baño:{" "}
                               {
-                                activityRecent.latestMaintenance.toilet
-                                  .codigo_interno
+                                activityRecent.latestMaintenance.toilet?.codigo_interno || "-"
                               }{" "}
                               | Técnico:{" "}
                               {
                                 activityRecent.latestMaintenance
-                                  .tecnico_responsable
+                                  .tecnico_responsable || "-"
                               }
                             </p>
                           </div>
@@ -721,7 +818,7 @@ const DashboardComponent = () => {
                       )}
 
                       {/* Vehículo nuevo */}
-                      {activityRecent.latestVehicle && (
+                      {activityRecent.latestVehicle && activityRecent.timestamp && (
                         <div className="flex items-start pb-4 border-b last:border-0">
                           <div className="w-10 h-10 rounded bg-gray-100 flex items-center justify-center">
                             <TruckIcon className="h-5 w-5" />
@@ -732,9 +829,7 @@ const DashboardComponent = () => {
                                 VEHÍCULO REGISTRADO
                               </span>
                               <span className="ml-2 text-xs text-gray-500">
-                                {new Date(
-                                  activityRecent.timestamp
-                                ).toLocaleString()}
+                                {new Date(activityRecent.timestamp).toLocaleString()}
                               </span>
                             </div>
                             <p className="text-sm">
@@ -785,7 +880,9 @@ const DashboardComponent = () => {
                       key={licencia.licencia_id}
                       className="flex items-center justify-between bg-white p-3 rounded-md border border-amber-100"
                     >
-                      <div>                        <p className="font-medium">
+                      <div>
+                        {" "}
+                        <p className="font-medium">
                           {licencia.empleado?.nombre || "Sin nombre"}{" "}
                           {licencia.empleado?.apellido || ""}
                         </p>

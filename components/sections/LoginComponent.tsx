@@ -13,9 +13,8 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { loginUser } from "@/app/actions/login";
-import { setCookie } from "cookies-next";
 import { useState, useEffect } from "react";
 import Image from "next/image";
 import Loader from "../ui/local/Loader";
@@ -27,7 +26,6 @@ const formSchema = z.object({
 });
 
 const LoginComponent = () => {
-  const router = useRouter();
   const searchParams = useSearchParams();
   const [formError, setFormError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
