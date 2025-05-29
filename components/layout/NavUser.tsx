@@ -1,6 +1,6 @@
 "use client";
 
-import { BadgeCheck, ChevronsUpDown, LogOut } from "lucide-react";
+import { ChevronsUpDown, LogOut } from "lucide-react";
 
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
@@ -41,10 +41,10 @@ export function NavUser() {
       }
     }
   }, []);
-
-  const handleAccountClick = () => {
-    router.push("admin/dashboard");
-  };
+  // Función eliminada por no ser utilizada
+  // const handleAccountClick = () => {
+  //   router.push("admin/dashboard");
+  // };
 
   const handleLogout = () => {
     deleteCookie("user");

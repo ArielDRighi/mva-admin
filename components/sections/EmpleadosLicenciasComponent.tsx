@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { /* useRouter, */ useRouter, useSearchParams } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -27,7 +27,6 @@ import {
   Calendar,
   FileText,
   Info,
-  UserRound,
   CheckCircle,
   XCircle,
   PauseCircle,
@@ -36,21 +35,45 @@ import { getLicenciasByUserId } from "@/app/actions/LicenciasEmpleados";
 import { getCookie } from "cookies-next";
 import { getUserById } from "@/app/actions/users";
 import { User } from "./DashboardComponent";
+import { ByIDUserResponse } from "@/types/userTypes";
+// No se necesitan tipos desde licenciasTypes.ts, usamos la interfaz Licencia local
+
+// Tipo para manejar posibles formatos de respuesta de la API
+interface Licencia {
+  id: number;
+  employeeId: number;
+  fechaInicio?: string;
+  fechaFin?: string;
+  tipoLicencia?: string;
+  notas?: string;
+  aprobado?: boolean;
+  start_date?: string;  // Formato alternativo
+  end_date?: string;    // Formato alternativo
+  type?: string;        // Formato alternativo para tipoLicencia
+  comentarioRechazo?: string | null;
+  employee?: {
+    id: number;
+    nombre: string;
+    apellido: string;
+    documento: string;
+    cargo?: string;
+    estado?: string;
+  };
+}
 
 export default function EmpleadosLicenciasComponent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-
-  const [licencias, setLicencias] = useState<any[]>([]);
+  const [licencias, setLicencias] = useState<Licencia[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
-  const [page, setPage] = useState<number>(1);
   const [total, setTotal] = useState<number>(0);
-  const [selectedLicencia, setSelectedLicencia] = useState<any | null>(null);
+  const [selectedLicencia, setSelectedLicencia] = useState<Licencia | null>(null);
   const [isDetailsOpen, setIsDetailsOpen] = useState<boolean>(false);
   const [user, setUser] = useState<User | null>(null);
   const [empleadoId, setEmpleadoId] = useState(0);
   console.log("licencias", licencias);
 
+  // Cargar información del usuario desde la cookie
   useEffect(() => {
     const userCookie = getCookie("user");
 
@@ -58,11 +81,19 @@ export default function EmpleadosLicenciasComponent() {
       try {
         const parsedUser = JSON.parse(userCookie as string);
         setUser(parsedUser);
-      } catch (e) {
-        console.error("Error al parsear la cookie de usuario:", e);
+      } catch (error) {
+        console.error("Error al parsear la cookie de usuario:", error);
+        toast.error("Error de autenticación", {
+          description: "No se pudo cargar la información del usuario.",
+        });
       }
+    } else {
+      toast.error("Sesión no encontrada", {
+        description: "Por favor inicie sesión nuevamente.",
+      });
+      router.push("/login");
     }
-  }, []);
+  }, [router]);
 
   // Obtener ID del empleado
   useEffect(() => {
@@ -72,58 +103,136 @@ export default function EmpleadosLicenciasComponent() {
         if (userId === 0) return;
 
         setLoading(true);
-        const datosEmpleado = await getUserById(userId);
-        setEmpleadoId(datosEmpleado.empleadoId);
+
+        // Usar type assertion para tipar correctamente la respuesta
+        const datosEmpleado = (await getUserById(userId)) as ByIDUserResponse;
+
+        // Verificar que datosEmpleado.empleadoId existe y es un número
+        if (datosEmpleado && typeof datosEmpleado.empleadoId === "number") {
+          setEmpleadoId(datosEmpleado.empleadoId);
+        } else {
+          console.error(
+            "No se encontró el ID de empleado o no es válido:",
+            datosEmpleado
+          );
+          toast.error("Error", {
+            description: "No se pudo obtener la información del empleado",
+          });
+        }
       } catch (error) {
         console.error("Error al obtener datos del empleado:", error);
+        toast.error("Error", {
+          description:
+            error instanceof Error
+              ? error.message
+              : "No se pudo obtener la información del empleado",
+        });
       } finally {
         setLoading(false);
       }
     };
 
     obtenerEmpleado();
-  }, [user?.id]);
-
+  }, [user?.id]);  // Cargar licencias del empleado
   const fetchLicencias = useCallback(async () => {
     if (!empleadoId) return;
 
-    const currentPage = Number(searchParams.get("page")) || 1;
     setLoading(true);
 
     try {
-      const fetchedLicencias = await getLicenciasByUserId(empleadoId);
+      // Obtener la respuesta de la API
+      const response = await getLicenciasByUserId(empleadoId);
+        // Función helper para adaptar datos de diferentes formatos a nuestro modelo Licencia
+      const adaptarLicencia = (item: Record<string, unknown>): Licencia => ({
+        id: typeof item.id === 'number' ? item.id : 0,
+        employeeId: typeof item.employeeId === 'number' 
+          ? item.employeeId 
+          : (typeof item.employee_id === 'number' ? item.employee_id : 0),
+        fechaInicio: typeof item.fechaInicio === 'string' 
+          ? item.fechaInicio 
+          : (typeof item.start_date === 'string' ? item.start_date : ''),
+        fechaFin: typeof item.fechaFin === 'string' 
+          ? item.fechaFin 
+          : (typeof item.end_date === 'string' ? item.end_date : ''),
+        tipoLicencia: typeof item.tipoLicencia === 'string' 
+          ? item.tipoLicencia 
+          : (typeof item.type === 'string' ? item.type : ''),
+        notas: typeof item.notas === 'string' 
+          ? item.notas 
+          : (typeof item.observations === 'string' 
+            ? item.observations 
+            : (typeof item.reason === 'string' ? item.reason : '')),
+        aprobado: typeof item.aprobado === 'boolean' 
+          ? item.aprobado 
+          : (item.status === 'APROBADO'),
+        comentarioRechazo: typeof item.comentarioRechazo === 'string' 
+          ? item.comentarioRechazo 
+          : null,
+        employee: item.employee as Licencia['employee'],
+      });
 
-      if (Array.isArray(fetchedLicencias)) {
-        setLicencias(fetchedLicencias);
-        setTotal(fetchedLicencias.length);
-      } else if (
-        fetchedLicencias.data &&
-        Array.isArray(fetchedLicencias.data)
-      ) {
-        setLicencias(fetchedLicencias.data);
-        setTotal(fetchedLicencias.totalItems || fetchedLicencias.data.length);
-      } else if (
-        fetchedLicencias.items &&
-        Array.isArray(fetchedLicencias.items)
-      ) {
-        setLicencias(fetchedLicencias.items);
-        setTotal(fetchedLicencias.total || fetchedLicencias.items.length);
+      // Manejo de diferentes formatos de respuesta con verificación de tipos
+      if (Array.isArray(response)) {
+        // Si es directamente un array
+        const licenciasAdaptadas = response.map(adaptarLicencia);
+        setLicencias(licenciasAdaptadas);
+        setTotal(licenciasAdaptadas.length);
+      } else if (response && typeof response === "object") {        // Verificar si la respuesta tiene la propiedad data
+        if ("data" in response && Array.isArray(response.data)) {
+          const licenciasAdaptadas = response.data.map((item: Record<string, unknown>) => adaptarLicencia(item));
+          setLicencias(licenciasAdaptadas);
+          // Usar totalItems si está disponible, de lo contrario usar el tamaño del array
+          const respuesta = response as { data: Record<string, unknown>[], totalItems?: number };
+          setTotal(respuesta.totalItems || licenciasAdaptadas.length);
+        }
+        // Verificar si la respuesta tiene la propiedad items
+        else if ("items" in response && Array.isArray(response.items)) {
+          const licenciasAdaptadas = response.items.map((item: Record<string, unknown>) => adaptarLicencia(item));
+          setLicencias(licenciasAdaptadas);
+          // Usar totalItems o total si están disponibles
+          const respuesta = response as { items: Record<string, unknown>[], totalItems?: number, total?: number };
+          setTotal(respuesta.totalItems || respuesta.total || licenciasAdaptadas.length);
+        }
+        // Formato desconocido
+        else {
+          console.error(
+            "Formato de respuesta no reconocido:",
+            response
+          );
+          toast.error("Error de formato", {
+            description: "El formato de los datos recibidos no es válido",
+          });
+          setLicencias([]);
+          setTotal(0);
+        }
       } else {
-        console.error("Formato de respuesta no reconocido:", fetchedLicencias);
+        console.error("Respuesta no válida:", response);
+        toast.error("Error", {
+          description: "No se pudo obtener la lista de licencias",
+        });
+        setLicencias([]);
+        setTotal(0);
       }
     } catch (error) {
       console.error("Error al cargar las licencias:", error);
       toast.error("Error", {
-        description: "No se pudieron cargar las licencias.",
+        description:
+          error instanceof Error
+            ? error.message
+            : "No se pudieron cargar las licencias.",
       });
+      setLicencias([]);
+      setTotal(0);
     } finally {
       setLoading(false);
     }
-  }, [empleadoId, searchParams]);
+  }, [empleadoId]);
 
   useEffect(() => {
-    fetchLicencias();
-  }, [fetchLicencias]);
+    if (empleadoId) {
+      fetchLicencias();
+    }
+  }, [fetchLicencias, empleadoId]);
 
   const handlePageChange = (page: number) => {
     const params = new URLSearchParams(searchParams.toString());
@@ -137,23 +246,16 @@ export default function EmpleadosLicenciasComponent() {
     params.set("page", "1");
     router.replace(`?${params.toString()}`);
   };
-
-  const handleViewDetails = (licencia: any) => {
+  const handleViewDetails = (licencia: Licencia) => {
     setSelectedLicencia(licencia);
     setIsDetailsOpen(true);
   };
-  const getApprovalStatus = (licencia: any) => {
-    // Check for direct status field first
-    if (licencia.status) {
-      if (licencia.status === "APROBADO") return "APPROVED";
-      if (licencia.status === "RECHAZADO") return "REJECTED";
-      if (licencia.status === "PENDIENTE") return "PENDING";
-    }
-
-    // Fall back to the aprobado boolean field and comentarioRechazo if status isn't present
+  const getApprovalStatus = (licencia: Licencia): "APPROVED" | "REJECTED" | "PENDING" => {
+    // Utilizar directamente el campo aprobado para determinar el estado
     if (licencia.aprobado === true) return "APPROVED";
     // Si hay un comentario de rechazo, consideramos que está rechazada
     if (licencia.comentarioRechazo) return "REJECTED";
+    // Por defecto, pendiente
     return "PENDING";
   };
 
@@ -168,8 +270,7 @@ export default function EmpleadosLicenciasComponent() {
         return "bg-blue-100 text-blue-800 hover:bg-blue-100";
     }
   };
-
-  const formatDate = (dateString: string) => {
+  const formatDate = (dateString: string | undefined) => {
     if (!dateString) return "";
     const date = new Date(dateString);
     return date.toLocaleDateString("es-AR", {
@@ -239,7 +340,7 @@ export default function EmpleadosLicenciasComponent() {
               ]}
               remotePagination
               totalItems={total}
-              currentPage={page}
+              currentPage={1}
               onPageChange={handlePageChange}
               onSearchChange={handleSearchChange}
               columns={[

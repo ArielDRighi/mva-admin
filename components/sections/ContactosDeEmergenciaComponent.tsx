@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+// import { useRouter } from "next/navigation"; // No se está utilizando
 import { z } from "zod";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -34,7 +34,7 @@ import {
   Edit2,
   Trash2,
   AlertCircle,
-  Shirt,
+  // Shirt, // No se está utilizando
   ArrowLeft,
 } from "lucide-react";
 import { getCookie } from "cookies-next";
@@ -48,6 +48,7 @@ import {
   ContactoEmergencia,
 } from "@/app/actions/contactosDeEmergencia";
 import Link from "next/link";
+import { ByIDUserResponse } from "@/types/userTypes";
 
 // Schema for form validation
 const contactoEmergenciaSchema = z.object({
@@ -64,7 +65,7 @@ const contactoEmergenciaSchema = z.object({
 });
 
 export default function ContactosDeEmergenciaComponent() {
-  const router = useRouter();
+  // const router = useRouter(); // No se está utilizando
   const [isCreating, setIsCreating] = useState(false);
   const [selectedContacto, setSelectedContacto] =
     useState<ContactoEmergencia | null>(null);
@@ -96,16 +97,28 @@ export default function ContactosDeEmergenciaComponent() {
       }
     }
   }, []);
-
   useEffect(() => {
     const fetchEmployee = async () => {
       try {
         if (userId === 0) return;
         setLoading(true);
-        const fetchEmployee = await getUserById(userId);
-        setEmployeeId(fetchEmployee.empleadoId);
+        const fetchEmployee = await getUserById(userId) as ByIDUserResponse;
+        // Verificar que empleadoId exista antes de actualizar el estado
+        if (fetchEmployee && fetchEmployee.empleadoId !== undefined) {
+          setEmployeeId(fetchEmployee.empleadoId);
+        } else {
+          console.error("No se encontró el ID del empleado o no es válido:", fetchEmployee);
+          toast.error("Error", {
+            description: "No se pudo obtener la información del empleado",
+          });
+        }
       } catch (error) {
-        console.error("Error fetching user data:", error);
+        console.error("Error al obtener datos del empleado:", error);
+        toast.error("Error", {
+          description: error instanceof Error 
+            ? error.message 
+            : "No se pudo obtener la información del empleado",
+        });
       } finally {
         setLoading(false);
       }
@@ -113,18 +126,48 @@ export default function ContactosDeEmergenciaComponent() {
 
     fetchEmployee();
   }, [userId]);
-
   useEffect(() => {
     const fetchData = async () => {
       try {
         if (employeeId === 0) return;
         setLoading(true);
         const fetchedContacts = await getMyEmergencyContacts(employeeId);
-        setContactos(fetchedContacts);
+        // Asegurarnos de que fetchedContacts sea un array
+        interface ContactosResponse {
+          data?: ContactoEmergencia[];
+          items?: ContactoEmergencia[];
+          total?: number;
+          totalItems?: number;
+        }
+
+        if (Array.isArray(fetchedContacts)) {
+          setContactos(fetchedContacts);
+        } else if (fetchedContacts && typeof fetchedContacts === "object") {
+          const response = fetchedContacts as ContactosResponse;
+          if ("data" in response && Array.isArray(response.data)) {
+            setContactos(response.data);
+          } else if ("items" in response && Array.isArray(response.items)) {
+            setContactos(response.items);
+          } else {
+            console.error("Formato de respuesta no reconocido:", fetchedContacts);
+            toast.error("Error de formato", {
+              description: "El formato de los datos recibidos no es válido",
+            });
+            setContactos([]);
+          }
+        } else {
+          console.error("Respuesta no válida:", fetchedContacts);
+          toast.error("Error", {
+            description: "No se pudieron cargar los contactos de emergencia",
+          });
+          setContactos([]);
+        }
       } catch (error) {
-        console.error("Error fetching contacts:", error);
-        toast.error("Error al cargar contactos", {
-          description: "No se pudieron cargar los contactos de emergencia.",
+        console.error("Error al cargar los contactos de emergencia:", error);
+        toast.error("Error", {
+          description: error instanceof Error 
+            ? error.message 
+            : "No se pudieron cargar los contactos de emergencia",
         });
       } finally {
         setLoading(false);
@@ -166,36 +209,39 @@ export default function ContactosDeEmergenciaComponent() {
     setSelectedContacto(null);
     setIsCreating(true);
   };
-
   // Handle delete click
   const handleDeleteClick = async (id: number) => {
     try {
-      console.log("Iniciando eliminación del contacto:", id);
       setLoading(true);
       const response = await deleteMyEmergencyContact(id);
-      console.log("Respuesta del servidor:", response);
 
-      // Update the local state after successful deletion
-      setContactos(contactos.filter((contacto) => contacto.id !== id));
-      console.log(
-        "Estado actualizado, contactos restantes:",
-        contactos.length - 1
-      );
-
-      console.log("Intentando mostrar toast con mensaje:", response.message);
-      toast.success("Contacto eliminado correctamente");
-      console.log("Toast mostrado correctamente");
+      // Verificamos el tipo de respuesta
+      if (response && typeof response === "object" && "message" in response) {
+        const message = response.message as string;
+        // Update the local state after successful deletion
+        setContactos(contactos.filter((contacto) => contacto.id !== id));
+        
+        toast.success("Contacto eliminado", {
+          description: message || "El contacto se ha eliminado correctamente"
+        });
+      } else {
+        // Si no hay un mensaje específico pero la operación fue exitosa
+        setContactos(contactos.filter((contacto) => contacto.id !== id));
+        toast.success("Contacto eliminado", {
+          description: "El contacto se ha eliminado correctamente"
+        });
+      }
     } catch (error) {
-      console.error("Error completo al eliminar el contacto:", error);
+      console.error("Error al eliminar el contacto de emergencia:", error);
       toast.error("Error", {
-        description: "No se pudo eliminar el contacto de emergencia.",
+        description: error instanceof Error 
+          ? error.message 
+          : "No se pudo eliminar el contacto de emergencia",
       });
     } finally {
       setLoading(false);
-      console.log("Proceso de eliminación finalizado");
     }
   };
-
   // Handle form submission
   const onSubmit = async (data: z.infer<typeof contactoEmergenciaSchema>) => {
     try {
@@ -210,7 +256,7 @@ export default function ContactosDeEmergenciaComponent() {
 
       if (selectedContacto) {
         // Update existing contact
-        await updateMyEmergencyContact(selectedContacto.id, data);
+        const response = await updateMyEmergencyContact(selectedContacto.id, data);
 
         // Update local state with the updated data
         const updatedContacto = { ...selectedContacto, ...data };
@@ -220,25 +266,71 @@ export default function ContactosDeEmergenciaComponent() {
           )
         );
 
-        toast.success("Contacto actualizado", {
-          description: "Los cambios se han guardado correctamente.",
-        });
+        // Verificar si hay un mensaje específico en la respuesta
+        if (response && typeof response === "object" && "message" in response) {
+          const message = response.message as string;
+          toast.success("Contacto actualizado", {
+            description: message || "Los cambios se han guardado correctamente.",
+          });
+        } else {
+          toast.success("Contacto actualizado", {
+            description: "Los cambios se han guardado correctamente.",
+          });
+        }
       } else {
         // Create new contact
         if (employeeId === 0) {
           throw new Error("ID de empleado no disponible");
         }
 
-        const newContact = await createMyEmergencyContact(employeeId, data);
+        // Crear nuevo contacto y capturar la respuesta
+        const response = await createMyEmergencyContact(employeeId, data);
 
-        // Refresh contacts instead of trying to use the return value
+        // Refresh contacts with proper type handling
         const updatedContacts = await getMyEmergencyContacts(employeeId);
-        setContactos(updatedContacts);
 
-        toast.success("Contacto agregado", {
-          description:
-            "El contacto de emergencia se ha agregado correctamente.",
-        });
+        // Usar la misma lógica del useEffect para manejar diferentes formatos de respuesta
+        interface ContactosResponse {
+          data?: ContactoEmergencia[];
+          items?: ContactoEmergencia[];
+          total?: number;
+          totalItems?: number;
+        }
+
+        if (Array.isArray(updatedContacts)) {
+          setContactos(updatedContacts);
+        } else if (updatedContacts && typeof updatedContacts === "object") {
+          const responseData = updatedContacts as ContactosResponse;
+          if ("data" in responseData && Array.isArray(responseData.data)) {
+            setContactos(responseData.data);
+          } else if ("items" in responseData && Array.isArray(responseData.items)) {
+            setContactos(responseData.items);
+          } else {
+            console.error("Formato de respuesta no reconocido:", updatedContacts);
+            toast.error("Error de formato", {
+              description: "El formato de los datos recibidos no es válido",
+            });
+            // No actualizamos el estado para mantener los contactos actuales
+          }
+        } else {
+          console.error("Respuesta no válida:", updatedContacts);
+          toast.error("Error", {
+            description: "No se pudieron obtener los contactos actualizados",
+          });
+          // No actualizamos el estado para mantener los contactos actuales
+        }
+
+        // Verificar si hay un mensaje específico en la respuesta
+        if (response && typeof response === "object" && "message" in response) {
+          const message = response.message as string;
+          toast.success("Contacto agregado", {
+            description: message || "El contacto de emergencia se ha agregado correctamente.",
+          });
+        } else {
+          toast.success("Contacto agregado", {
+            description: "El contacto de emergencia se ha agregado correctamente.",
+          });
+        }
       }
 
       setIsCreating(false);
@@ -246,9 +338,11 @@ export default function ContactosDeEmergenciaComponent() {
     } catch (error) {
       console.error("Error en el envío del formulario:", error);
       toast.error("Error", {
-        description: selectedContacto
-          ? "No se pudo actualizar el contacto."
-          : "No se pudo crear el contacto.",
+        description: error instanceof Error 
+          ? error.message 
+          : (selectedContacto
+              ? "No se pudo actualizar el contacto."
+              : "No se pudo crear el contacto."),
       });
     } finally {
       setLoading(false);

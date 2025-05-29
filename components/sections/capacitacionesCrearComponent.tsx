@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
-import { useRouter } from "next/navigation"; // Add this import
+import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
@@ -42,7 +42,7 @@ type CapacitacionFormData = {
 };
 
 export default function CapacitacionesCrearComponent() {
-  const router = useRouter(); // Add this line
+  const router = useRouter();
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -56,26 +56,35 @@ export default function CapacitacionesCrearComponent() {
     formState: { errors },
     reset,
   } = useForm<CapacitacionFormData>();
-
+  
   useEffect(() => {
     // Fetch employees when component mounts
     const fetchEmployees = async () => {
       try {
         setLoading(true);
-        const response = await getEmployees();
+        // Definimos un tipo para la respuesta esperada
+        interface EmployeeResponse {
+          data?: Employee[];
+          items?: Employee[];
+        }
+        
+        // Tipamos correctamente la respuesta para evitar 'any' implícito
+        const response = await getEmployees() as EmployeeResponse;
+
         // Extract the data array from the response
-        if (response.data && Array.isArray(response.data)) {
+        if (response && 'data' in response && Array.isArray(response.data)) {
           setEmployees(response.data);
-        } else if (response.items && Array.isArray(response.items)) {
+        } else if (response && 'items' in response && Array.isArray(response.items)) {
           setEmployees(response.items);
         } else if (Array.isArray(response)) {
-          setEmployees(response);
+          // Si la respuesta es directamente un array, usarlo
+          setEmployees(response as Employee[]);
         } else {
-          console.error("Unexpected response format:", response);
+          console.error("Formato de respuesta inesperado:", response);
           toast.error("Error: formato de respuesta inesperado");
         }
       } catch (error) {
-        console.error("Error fetching employees:", error);
+        console.error("Error al cargar empleados:", error);
         toast.error("Error al cargar los empleados");
       } finally {
         setLoading(false);
@@ -135,8 +144,10 @@ export default function CapacitacionesCrearComponent() {
   const handleEmployeeSelection = (employeeId: number) => {
     setSelectedEmployees((prev) => {
       if (prev.includes(employeeId)) {
-        return prev.filter((id) => id !== employeeId);
+        // Si el empleado ya está seleccionado, quitarlo
+        return prev.filter(id => id !== employeeId);
       } else {
+        // Si no está seleccionado, agregarlo
         return [...prev, employeeId];
       }
     });

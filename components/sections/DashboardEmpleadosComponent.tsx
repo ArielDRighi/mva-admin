@@ -1,5 +1,5 @@
 "use client";
-
+// Eliminar las importaciones no utilizadas
 import React, { useEffect, useState } from "react";
 import {
   Card,
@@ -17,8 +17,6 @@ import {
   MapPin,
   Truck,
   UserRound,
-  Bell,
-  FileSpreadsheet,
   LogOut,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -27,7 +25,6 @@ import Link from "next/link";
 import { User } from "@/components/sections/DashboardComponent";
 import { deleteCookie, getCookie } from "cookies-next";
 import {
-  getEmployeeById,
   getLastServicesByUserId,
   getMineAssignedServicesInProgress,
   getMineAssignedServicesPending,
@@ -47,8 +44,7 @@ import {
 } from "@/components/ui/dialog";
 import { updateStatusService } from "@/app/actions/services";
 import { toast } from "sonner";
-import { CreateEmployeeLeaveDto } from "@/types/types";
-import { logoutUser } from "@/app/actions/logout";
+import { CreateEmployeeLeaveDto, LeaveType } from "@/types/types";
 import { useRouter } from "next/navigation";
 
 enum serviceStatus {
@@ -155,7 +151,11 @@ interface CompletedService {
       estado: string;
     };
   }>;
-  banosInstalados?: Array<any>;
+  banosInstalados?: Array<{
+    id: number;
+    codigo: string;
+    estado: string;
+  }>;
 }
 
 const availableLeaveTypes = [
@@ -240,17 +240,34 @@ const DashboardEmployeeComponent = () => {
     useState(false);
 
   // Add these state variables after your existing useState declarations
-  const [selectedLeaveType, setSelectedLeaveType] = useState("");
+  const [selectedLeaveType, setSelectedLeaveType] = useState<LeaveType | "">(
+    ""
+  );
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [notesText, setNotesText] = useState("");
   const [isSubmittingLeave, setIsSubmittingLeave] = useState(false);
   const [isLeaveModalOpen, setIsLeaveModalOpen] = useState(false);
   const router = useRouter();
+  const handleLogoutClick = () => {
+    try {
+      deleteCookie("user");
+      deleteCookie("token");
 
-  const handleLogout = () => {
-    logoutUser();
-    router.push("/login");
+      // Es mejor usar router.push para manejar la navegación
+      // pero si no está disponible, usar window.location es una alternativa
+      router.push("/login");
+
+      toast.success("Sesión finalizada", {
+        description: "Ha cerrado sesión correctamente.",
+      });
+    } catch (error) {
+      console.error("Error al cerrar sesión:", error);
+      toast.error("Error al cerrar sesión", {
+        description:
+          "No se pudo cerrar la sesión correctamente. Por favor intente nuevamente.",
+      });
+    }
   };
   useEffect(() => {
     const userCookie = getCookie("user");
@@ -259,21 +276,47 @@ const DashboardEmployeeComponent = () => {
       try {
         const parsedUser = JSON.parse(userCookie as string);
         setUser(parsedUser);
-      } catch (e) {
-        console.error("Error al parsear el usuario", e);
+      } catch (error) {
+        console.error("Error al parsear el usuario:", error);
+        toast.error("Error de sesión", {
+          description:
+            "No se pudo cargar la información del usuario. Por favor, intente iniciar sesión nuevamente.",
+        });
+        router.push("/login");
       }
     }
-  }, []);
+  }, [router]);
 
   useEffect(() => {
     const fetchEmployee = async () => {
       try {
         if (userId === 0) return;
+
         setLoading(true);
-        const fetchEmployee = await getUserById(userId);
+
+        // Tipamos la respuesta esperada
+        interface UserResponse {
+          empleadoId: number;
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          [key: string]: any;
+        }
+
+        const fetchEmployee = (await getUserById(userId)) as UserResponse;
+
+        if (!fetchEmployee || !fetchEmployee.empleadoId) {
+          throw new Error("No se encontró la información del empleado");
+        }
+
         setEmployeeId(fetchEmployee.empleadoId);
       } catch (error) {
-        console.error("Error fetching services:", error);
+        console.error("Error al obtener información del empleado:", error);
+        toast.error("Error de datos", {
+          description:
+            error instanceof Error
+              ? error.message
+              : "No se pudo cargar la información del empleado. Por favor, refresque la página.",
+        });
+        setEmployeeId(0); // Reset to safe default
       } finally {
         setLoading(false);
       }
@@ -286,34 +329,140 @@ const DashboardEmployeeComponent = () => {
     const fetchData = async () => {
       try {
         if (employeeId === 0) return;
+
         setLoading(true);
-        const fetchServiciosPending = await getMineAssignedServicesPending(
-          employeeId
-        );
-        const fetchServiciosInProgress =
-          await getMineAssignedServicesInProgress(employeeId);
-        const fetchLicencias = await getLicenciasByUserId(employeeId);
-        const fetchLastServices = await getLastServicesByUserId(employeeId);
-        setLastServices(fetchLastServices);
-        setLicencias(fetchLicencias);
-        setProximosServicios(fetchServiciosPending);
-        setInProgressServices(fetchServiciosInProgress);
+
+        // Definimos interfaces para las respuestas esperadas
+        interface ServiceResponse {
+          id: number;
+          clienteId: number;
+          fechaProgramada: string;
+          ubicacion: string;
+          tipoServicio: string;
+          estado: string;
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          [key: string]: any;
+        }
+
+        interface LicenciaResponse {
+          id: number;
+          employeeId: number;
+          fechaInicio: string;
+          fechaFin: string;
+          tipoLicencia: string;
+          notas: string;
+          aprobado: boolean;
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          [key: string]: any;
+        }
+
+        // Usamos Promise.allSettled para manejar múltiples peticiones independientemente
+        const [
+          pendingServicesResult,
+          inProgressServicesResult,
+          licenciasResult,
+          lastServicesResult,
+        ] = await Promise.allSettled([
+          getMineAssignedServicesPending(employeeId),
+          getMineAssignedServicesInProgress(employeeId),
+          getLicenciasByUserId(employeeId),
+          getLastServicesByUserId(employeeId),
+        ]);
+
+        // Manejo de cada resultado individualmente
+        if (pendingServicesResult.status === "fulfilled") {
+          setProximosServicios(
+            pendingServicesResult.value as ServiceResponse[]
+          );
+        } else {
+          console.error(
+            "Error al cargar servicios pendientes:",
+            pendingServicesResult.reason
+          );
+          toast.error("Error al cargar servicios pendientes", {
+            description: "Algunos datos pueden estar incompletos.",
+          });
+          setProximosServicios([]);
+        }
+
+        if (inProgressServicesResult.status === "fulfilled") {
+          setInProgressServices(
+            inProgressServicesResult.value as ProximoServicio[]
+          );
+        } else {
+          console.error(
+            "Error al cargar servicios en progreso:",
+            inProgressServicesResult.reason
+          );
+          toast.error("Error al cargar servicios en progreso", {
+            description: "Algunos datos pueden estar incompletos.",
+          });
+          setInProgressServices([]);
+        }
+
+        if (licenciasResult.status === "fulfilled") {
+          setLicencias(licenciasResult.value as LicenciaResponse[]);
+        } else {
+          console.error("Error al cargar licencias:", licenciasResult.reason);
+          toast.error("Error al cargar licencias", {
+            description: "Algunos datos pueden estar incompletos.",
+          });
+          setLicencias([]);
+        }
+
+        if (lastServicesResult.status === "fulfilled") {
+          setLastServices(lastServicesResult.value as CompletedService[]);
+        } else {
+          console.error(
+            "Error al cargar servicios completados:",
+            lastServicesResult.reason
+          );
+          toast.error("Error al cargar servicios completados", {
+            description: "Algunos datos pueden estar incompletos.",
+          });
+          setLastServices([]);
+        }
       } catch (error) {
-        console.error("Error fetching services:", error);
+        console.error("Error general al cargar datos:", error);
+        toast.error("Error de conexión", {
+          description:
+            error instanceof Error
+              ? error.message
+              : "No se pudieron cargar algunos datos. Por favor, refresque la página.",
+        });
       } finally {
         setLoading(false);
       }
     };
 
     fetchData();
-  }, [employeeId, userId]);
+  }, [employeeId]);
 
-  // Add this function to handle starting a task
   const handleStartTask = async (serviceId: number) => {
     try {
       setStartingTask(true);
 
-      await updateStatusService(serviceId, serviceStatus.EN_PROGRESO);
+      // Verificamos que el ID sea válido
+      if (!serviceId || serviceId <= 0) {
+        throw new Error("ID de servicio inválido");
+      }
+
+      // Definimos una interfaz para la respuesta
+      interface UpdateResponse {
+        success?: boolean;
+        message?: string;
+      }
+
+      const response = (await updateStatusService(
+        serviceId,
+        serviceStatus.EN_PROGRESO
+      )) as UpdateResponse;
+
+      if (!response || response.success === false) {
+        throw new Error(
+          response?.message || "Error al actualizar el estado del servicio"
+        );
+      }
 
       toast.success("Tarea iniciada", {
         description: "La tarea se ha iniciado correctamente.",
@@ -321,15 +470,24 @@ const DashboardEmployeeComponent = () => {
 
       // Actualizar la lista de servicios después de iniciar la tarea
       if (employeeId) {
-        const fetchServicios = await getMineAssignedServicesPending(employeeId);
-        setProximosServicios(fetchServicios);
+        // Actualizamos ambas listas para mantener consistencia
+        const [pendingServices, inProgressServices] = await Promise.all([
+          getMineAssignedServicesPending(employeeId),
+          getMineAssignedServicesInProgress(employeeId),
+        ]);
+
+        setProximosServicios(pendingServices as ProximoServicio[]);
+        setInProgressServices(inProgressServices as ProximoServicio[]);
       }
 
       setIsModalOpen(false);
     } catch (error) {
-      console.error("Error starting task:", error);
-      toast.error("Error", {
-        description: "No se pudo iniciar la tarea. Intente nuevamente.",
+      console.error("Error al iniciar tarea:", error);
+      toast.error("Error al iniciar la tarea", {
+        description:
+          error instanceof Error
+            ? error.message
+            : "No se pudo iniciar la tarea. Intente nuevamente.",
       });
     } finally {
       setStartingTask(false);
@@ -341,7 +499,27 @@ const DashboardEmployeeComponent = () => {
     try {
       setCompletingTask(true);
 
-      await updateStatusService(serviceId, serviceStatus.COMPLETADO);
+      // Verificamos que el ID sea válido
+      if (!serviceId || serviceId <= 0) {
+        throw new Error("ID de servicio inválido");
+      }
+
+      // Definimos una interfaz para la respuesta
+      interface UpdateResponse {
+        success?: boolean;
+        message?: string;
+      }
+
+      const response = (await updateStatusService(
+        serviceId,
+        serviceStatus.COMPLETADO
+      )) as UpdateResponse;
+
+      if (!response || response.success === false) {
+        throw new Error(
+          response?.message || "Error al actualizar el estado del servicio"
+        );
+      }
 
       toast.success("Tarea completada", {
         description: "La tarea se ha completado correctamente.",
@@ -349,16 +527,24 @@ const DashboardEmployeeComponent = () => {
 
       // Actualizar las listas de servicios después de completar la tarea
       if (employeeId) {
-        const fetchServiciosInProgress =
-          await getMineAssignedServicesInProgress(employeeId);
-        setInProgressServices(fetchServiciosInProgress);
+        // Actualizamos todas las listas para mantener consistencia
+        const [inProgressServices, lastServices] = await Promise.all([
+          getMineAssignedServicesInProgress(employeeId),
+          getLastServicesByUserId(employeeId),
+        ]);
+
+        setInProgressServices(inProgressServices as ProximoServicio[]);
+        setLastServices(lastServices as CompletedService[]);
       }
 
       setIsModalOpen(false);
     } catch (error) {
-      console.error("Error completing task:", error);
-      toast.error("Error", {
-        description: "No se pudo completar la tarea. Intente nuevamente.",
+      console.error("Error al completar tarea:", error);
+      toast.error("Error al completar la tarea", {
+        description:
+          error instanceof Error
+            ? error.message
+            : "No se pudo completar la tarea. Intente nuevamente.",
       });
     } finally {
       setCompletingTask(false);
@@ -368,8 +554,17 @@ const DashboardEmployeeComponent = () => {
   // Update the handleLeaveRequest function
   const handleLeaveRequest = async () => {
     if (!selectedLeaveType || !startDate || !endDate || !employeeId) {
-      toast.error("Error", {
+      toast.error("Datos incompletos", {
         description: "Por favor complete todos los campos requeridos.",
+      });
+      return;
+    }
+
+    // Validamos que la fecha de fin no sea anterior a la fecha de inicio
+    if (new Date(endDate) < new Date(startDate)) {
+      toast.error("Fechas inválidas", {
+        description:
+          "La fecha de fin no puede ser anterior a la fecha de inicio.",
       });
       return;
     }
@@ -379,15 +574,26 @@ const DashboardEmployeeComponent = () => {
     try {
       const leaveData: CreateEmployeeLeaveDto = {
         employeeId: employeeId,
-        fechaInicio: new Date(startDate),
-        fechaFin: new Date(endDate),
-        tipoLicencia: selectedLeaveType as any,
-        notas: notesText,
-        // No need to set aprobado as it defaults to false on the backend
+        fechaInicio: startDate,
+        fechaFin: endDate,
+        tipoLicencia: selectedLeaveType as LeaveType,
+        notas: notesText.trim(),
       };
 
-      // Import the createEmployeeLeave function at the top of your file
-      await createEmployeeLeave(leaveData);
+      // Tipamos la respuesta esperada
+      interface LeaveResponse {
+        id?: number;
+        success?: boolean;
+        message?: string;
+      }
+
+      const response = (await createEmployeeLeave(leaveData)) as LeaveResponse;
+
+      if (!response || response.success === false) {
+        throw new Error(
+          response?.message || "Error al crear la solicitud de licencia"
+        );
+      }
 
       toast.success("Solicitud enviada", {
         description:
@@ -405,12 +611,14 @@ const DashboardEmployeeComponent = () => {
 
       // Refresh the licencias list
       const fetchLicencias = await getLicenciasByUserId(employeeId);
-      setLicencias(fetchLicencias);
+      setLicencias(fetchLicencias as Licencia[]);
     } catch (error) {
       console.error("Error al solicitar licencia:", error);
-      toast.error("Error", {
+      toast.error("Error al solicitar licencia", {
         description:
-          "No se pudo enviar la solicitud. Por favor intente nuevamente.",
+          error instanceof Error
+            ? error.message
+            : "No se pudo enviar la solicitud. Por favor intente nuevamente.",
       });
     } finally {
       setIsSubmittingLeave(false);
@@ -476,14 +684,11 @@ const DashboardEmployeeComponent = () => {
             </div>
           </div>
           <div className="flex gap-2">
+            {" "}
             <Button
               variant="outline"
               className="bg-red-500 text-white hover:bg-red-600 border-none"
-              onClick={() => {
-                deleteCookie("user");
-                deleteCookie("token");
-                window.location.href = "/login";
-              }}
+              onClick={handleLogoutClick}
             >
               <LogOut className="h-4 w-4 mr-2" /> Cerrar sesión
             </Button>
@@ -824,7 +1029,7 @@ const DashboardEmployeeComponent = () => {
                       </div>
                       {licencia.notas && (
                         <div className="text-muted-foreground mt-1 italic">
-                          "{licencia.notas}"
+                          &quot;{licencia.notas}&quot;
                         </div>
                       )}
                     </div>
@@ -1119,7 +1324,7 @@ const DashboardEmployeeComponent = () => {
                           Equipo y Vehículos
                         </h3>
                         {selectedCompletedService.asignaciones.map(
-                          (asignacion, index) => (
+                          (asignacion) => (
                             <div key={asignacion.id} className="mt-1">
                               {asignacion.empleado && (
                                 <div className="flex items-center gap-2">
@@ -1214,7 +1419,7 @@ const DashboardEmployeeComponent = () => {
                 id="leaveType"
                 className="w-full rounded-md border border-input bg-background px-3 py-2"
                 value={selectedLeaveType}
-                onChange={(e) => setSelectedLeaveType(e.target.value)}
+                onChange={(e) => setSelectedLeaveType(e.target.value as LeaveType)}
               >
                 <option value="">-- Selecciona un tipo --</option>
                 {availableLeaveTypes.map((type) => (

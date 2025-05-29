@@ -4,7 +4,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { ListadoTabla } from "@/components/ui/local/ListadoTabla";
 import { Badge } from "@/components/ui/badge";
 import { TableCell } from "@/components/ui/table";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { FormDialog } from "../ui/local/FormDialog";
 import { FormField } from "../ui/local/FormField";
@@ -85,7 +85,7 @@ export default function ListadoCondicionesContractualesComponent({
   const searchParams = useSearchParams();
 
   // Asegurarnos de que data siempre sea un array
-  const safeData = Array.isArray(data) ? data : [];
+  const safeData = useMemo(() => (Array.isArray(data) ? data : []), [data]);
 
   // Estado para manejar los datos
   const [condiciones, setCondiciones] =
@@ -126,7 +126,7 @@ export default function ListadoCondicionesContractualesComponent({
     },
   });
 
-  const { handleSubmit, reset, setValue, control } = form;
+  const { handleSubmit, setValue, control } = form;
 
   // Función para manejar cambio de página
   const handlePageChange = (page: number) => {
@@ -175,22 +175,52 @@ export default function ListadoCondicionesContractualesComponent({
   //   setSelectedCondicion(null);
   //   setIsCreating(true);
   // };
-
   // Función para manejar eliminación
   const handleDeleteClick = async (id: number) => {
     try {
-      await deleteContractualCondition(id);
-      setCondiciones(
-        condiciones.filter((c) => c.condicionContractualId !== id)
-      );
-      toast.success("Condición contractual eliminada", {
-        description: "La condición contractual se ha eliminado correctamente.",
-      });
+      setLoading(true);
+      const response = await deleteContractualCondition(id);
+
+      // Verificamos el tipo de respuesta
+      if (response && typeof response === "object") {
+        // Si la respuesta tiene un mensaje específico, lo usamos
+        const message = "message" in response ? response.message as string : "";
+        
+        // Actualizamos el estado local tras la eliminación exitosa
+        setCondiciones(
+          condiciones.filter((c) => c.condicionContractualId !== id)
+        );
+        
+        toast.success("Condición contractual eliminada", {
+          description: message || "La condición contractual se ha eliminado correctamente."
+        });
+      } else {
+        // Si no hay respuesta específica pero la operación fue exitosa
+        setCondiciones(
+          condiciones.filter((c) => c.condicionContractualId !== id)
+        );
+        
+        toast.success("Condición contractual eliminada", {
+          description: "La condición contractual se ha eliminado correctamente."
+        });
+      }
     } catch (error) {
       console.error("Error al eliminar la condición contractual:", error);
-      toast.error("Error", {
-        description: "No se pudo eliminar la condición contractual.",
+      
+      // Extraemos el mensaje de error si está disponible
+      let errorMessage = "No se pudo eliminar la condición contractual.";
+      
+      if (error instanceof Error) {
+        errorMessage = error.message;
+      } else if (typeof error === "object" && error !== null && "message" in error) {
+        errorMessage = error.message as string;
+      }
+      
+      toast.error("Error al eliminar", {
+        description: errorMessage
       });
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -865,11 +895,11 @@ export default function ListadoCondicionesContractualesComponent({
                     variant="destructive"
                     size="sm"
                     onClick={() => {
-                      setIsViewModalOpen(false);
-                      selectedCondicion.condicionContractualId &&
+                      setIsViewModalOpen(false);                      if (selectedCondicion.condicionContractualId) {
                         handleDeleteClick(
                           selectedCondicion.condicionContractualId
                         );
+                      }
                     }}
                     className="cursor-pointer bg-red-100 text-red-700 hover:bg-red-200 hover:text-red-800"
                   >

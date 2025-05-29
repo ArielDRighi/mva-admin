@@ -10,7 +10,7 @@ import {
   User,
   Clock,
   X,
-  Edit,
+  // Edit, // No se está utilizando
   Trash2,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -59,6 +59,7 @@ interface Capacitacion {
   asignaciones: Asignacion[];
 }
 
+// Definimos la interfaz para la respuesta esperada
 interface CapacitacionesResponse {
   data: Capacitacion[];
   totalItems: number;
@@ -68,12 +69,11 @@ interface CapacitacionesResponse {
 
 export function CapacitacionesListadoComponent() {
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const [capacitaciones, setCapacitaciones] = useState<Capacitacion[]>([]);
+  const searchParams = useSearchParams();  const [capacitaciones, setCapacitaciones] = useState<Capacitacion[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
-  const [totalItems, setTotalItems] = useState(0);
+  // const [totalItems, setTotalItems] = useState(0); // No se está utilizando
   const [totalPages, setTotalPages] = useState(1);
   const [selectedCapacitacion, setSelectedCapacitacion] =
     useState<Capacitacion | null>(null);
@@ -91,18 +91,16 @@ export function CapacitacionesListadoComponent() {
         const searchParam = searchParams.get("search") || "";
 
         setPage(parseInt(pageParam));
-        setSearch(searchParam);
-
-        const response = await getCapacitaciones({
-          page: parseInt(pageParam),
-          limit: 10, // You can adjust the limit as needed
-          search: searchParam,
-        });
+        setSearch(searchParam);        const response = await getCapacitaciones(
+          parseInt(pageParam),
+          10, // You can adjust the limit as needed
+          searchParam
+        ) as CapacitacionesResponse;
 
         if (response) {
-          setCapacitaciones(response.data);
-          setTotalItems(response.totalItems);
-          setTotalPages(response.totalPages);
+          setCapacitaciones(response.data || []);
+          // setTotalItems(response.totalItems || 0);
+          setTotalPages(response.totalPages || 1);
         }
       } catch (error) {
         console.error("Error al cargar capacitaciones:", error);
@@ -187,14 +185,12 @@ export function CapacitacionesListadoComponent() {
       await deleteService(capacitacionToDelete);
       toast.success("Capacitación eliminada", {
         description: "La capacitación ha sido eliminada correctamente.",
-      });
-
-      // Refresh the list after deletion
-      const response = await getCapacitaciones();
+      });      // Refresh the list after deletion
+      const response = await getCapacitaciones(page, 10, search) as CapacitacionesResponse;
       if (response) {
-        setCapacitaciones(response.data);
-        setTotalItems(response.totalItems);
-        setTotalPages(response.totalPages);
+        setCapacitaciones(response.data || []);
+        // setTotalItems(response.totalItems || 0);
+        setTotalPages(response.totalPages || 1);
       }
     } catch (error) {
       console.error("Error al eliminar la capacitación:", error);

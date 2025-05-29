@@ -15,7 +15,10 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { getClients } from "@/app/actions/clientes";
 import { getContractualConditionsByClient } from "@/app/actions/contractualConditions";
-import { createServicioGenerico } from "@/app/actions/services";
+import {
+  CreateLimpiezaDto,
+  createServicioGenerico,
+} from "@/app/actions/services";
 import { Badge } from "@/components/ui/badge";
 import Loader from "@/components/ui/local/Loader";
 import { Cliente, Empleado, Sanitario, Vehiculo } from "@/types/types";
@@ -82,6 +85,16 @@ type CondicionContractual = {
   periodicidad: string;
   estado: string;
 };
+
+interface EmpleadosResponse {
+  data?: Empleado[];
+  items?: Empleado[];
+}
+
+interface VehiculosResponse {
+  data?: Vehiculo[];
+  items?: Vehiculo[];
+}
 
 export function CrearServicioGenericoComponent() {
   const router = useRouter();
@@ -156,15 +169,64 @@ export function CrearServicioGenericoComponent() {
     const fetchClientes = async () => {
       try {
         setIsLoading(true);
-        const clientesData = await getClients();
-        setClientes(clientesData.items || []);
-        setFilteredClientes(clientesData.items || []);
+
+        // Definimos una interfaz para la respuesta esperada
+        interface ClientesResponse {
+          items?: Cliente[];
+          data?: Cliente[];
+          total?: number;
+          page?: number;
+        }
+
+        const clientesData = (await getClients()) as ClientesResponse;
+
+        if (clientesData && typeof clientesData === "object") {
+          // Si tiene la propiedad items, usarla
+          if ("items" in clientesData && Array.isArray(clientesData.items)) {
+            setClientes(clientesData.items);
+            setFilteredClientes(clientesData.items);
+          }
+          // Si tiene la propiedad data, usarla como alternativa
+          else if ("data" in clientesData && Array.isArray(clientesData.data)) {
+            setClientes(clientesData.data);
+            setFilteredClientes(clientesData.data);
+          }
+          // Si es directamente un array
+          else if (Array.isArray(clientesData)) {
+            setClientes(clientesData);
+            setFilteredClientes(clientesData);
+          }
+          // Si no coincide con ninguno de los formatos esperados
+          else {
+            console.error("Formato de respuesta no reconocido:", clientesData);
+            setClientes([]);
+            setFilteredClientes([]);
+            toast.error("Error en el formato de datos", {
+              description:
+                "El servidor devolvió datos en un formato inesperado",
+            });
+          }
+        } else {
+          console.error(
+            "La respuesta de getClients no es un objeto:",
+            clientesData
+          );
+          setClientes([]);
+          setFilteredClientes([]);
+          toast.error("Error en la respuesta", {
+            description: "No se recibió una respuesta válida del servidor",
+          });
+        }
       } catch (error) {
         console.error("Error al cargar los clientes:", error);
         toast.error("Error al cargar los clientes", {
           description:
-            "No se pudieron cargar los clientes. Por favor, intente nuevamente.",
+            error instanceof Error
+              ? error.message
+              : "No se pudieron cargar los clientes. Por favor, intente nuevamente.",
         });
+        setClientes([]);
+        setFilteredClientes([]);
       } finally {
         setIsLoading(false);
       }
@@ -187,17 +249,56 @@ export function CrearServicioGenericoComponent() {
       );
       setFilteredClientes(filtered);
     }
-  }, [searchTermCliente, clientes]);
-  // Cargar condiciones contractuales cuando se selecciona un cliente
+  }, [searchTermCliente, clientes]); // Cargar condiciones contractuales cuando se selecciona un cliente
+
   useEffect(() => {
     const fetchCondicionesContractuales = async () => {
       if (selectedClientId && selectedClientId > 0) {
         try {
           setIsLoading(true);
-          const condicionesData = await getContractualConditionsByClient(
+
+          interface CondicionesResponse {
+            items?: CondicionContractual[];
+            data?: CondicionContractual[];
+          }
+
+          const condicionesData = (await getContractualConditionsByClient(
             selectedClientId
-          );
-          setCondicionesContractuales(condicionesData || []);
+          )) as CondicionesResponse | CondicionContractual[];
+
+          let procesadas: CondicionContractual[] = [];
+
+          if (Array.isArray(condicionesData)) {
+            procesadas = condicionesData;
+          } else if (condicionesData && typeof condicionesData === "object") {
+            if (
+              "items" in condicionesData &&
+              Array.isArray(condicionesData.items)
+            ) {
+              procesadas = condicionesData.items;
+            } else if (
+              "data" in condicionesData &&
+              Array.isArray(condicionesData.data)
+            ) {
+              procesadas = condicionesData.data;
+            } else {
+              console.error(
+                "Formato de respuesta no reconocido:",
+                condicionesData
+              );
+              toast.error("Error en el formato de datos", {
+                description:
+                  "El servidor devolvió datos en un formato inesperado",
+              });
+            }
+          } else {
+            console.error("Tipo de respuesta no esperado:", condicionesData);
+            toast.error("Error en la respuesta", {
+              description: "No se recibió una respuesta válida del servidor",
+            });
+          }
+
+          setCondicionesContractuales(procesadas);
 
           // Solo resetear el valor si estamos cambiando de cliente
           // No lo resetea si ya se ha seleccionado una condición
@@ -206,10 +307,13 @@ export function CrearServicioGenericoComponent() {
           }
         } catch (error) {
           console.error("Error al cargar condiciones contractuales:", error);
-          toast.error("Error", {
+          toast.error("Error al cargar condiciones", {
             description:
-              "No se pudieron cargar las condiciones contractuales. Por favor, intente nuevamente.",
+              error instanceof Error
+                ? error.message
+                : "No se pudieron cargar las condiciones contractuales. Por favor, intente nuevamente.",
           });
+          setCondicionesContractuales([]);
         } finally {
           setIsLoading(false);
         }
@@ -228,37 +332,146 @@ export function CrearServicioGenericoComponent() {
         try {
           setIsLoading(true);
 
-          // Cargar empleados y vehículos disponibles
-          const [empleadosResponse, vehiculosResponse] = await Promise.all([
-            getEmployees(),
-            getVehicles(),
-          ]);
+          // Cargar empleados y vehículos disponibles con tipos correctos
+          const empleadosResponse = (await getEmployees()) as EmpleadosResponse;
+          const vehiculosResponse = (await getVehicles()) as VehiculosResponse;
 
-          // Filtrar por disponibles
-          const empleadosDisp =
-            empleadosResponse?.data?.filter(
-              (empleado: Empleado) => empleado.estado === "DISPONIBLE"
-            ) || [];
+          // Procesar respuesta de empleados
+          let empleadosDisp: Empleado[] = [];
+          if (empleadosResponse && typeof empleadosResponse === "object") {
+            if (
+              "data" in empleadosResponse &&
+              Array.isArray(empleadosResponse.data)
+            ) {
+              empleadosDisp = empleadosResponse.data.filter(
+                (empleado) => empleado.estado === "DISPONIBLE"
+              );
+            } else if (
+              "items" in empleadosResponse &&
+              Array.isArray(empleadosResponse.items)
+            ) {
+              empleadosDisp = empleadosResponse.items.filter(
+                (empleado) => empleado.estado === "DISPONIBLE"
+              );
+            } else {
+              console.error(
+                "Formato de respuesta de empleados no reconocido:",
+                empleadosResponse
+              );
+              toast.error("Error al cargar empleados", {
+                description:
+                  "El servidor devolvió datos en un formato inesperado",
+              });
+            }
+          } else {
+            console.error(
+              "Tipo de respuesta de empleados no esperado:",
+              empleadosResponse
+            );
+            toast.error("Error al cargar empleados", {
+              description: "No se recibió una respuesta válida del servidor",
+            });
+          }
 
-          const vehiculosDisp =
-            vehiculosResponse?.data?.filter(
-              (vehiculo: Vehiculo) => vehiculo.estado === "DISPONIBLE"
-            ) || [];
+          // Procesar respuesta de vehículos
+          let vehiculosDisp: Vehiculo[] = [];
+          if (vehiculosResponse && typeof vehiculosResponse === "object") {
+            if (
+              "data" in vehiculosResponse &&
+              Array.isArray(vehiculosResponse.data)
+            ) {
+              vehiculosDisp = vehiculosResponse.data.filter(
+                (vehiculo) => vehiculo.estado === "DISPONIBLE"
+              );
+            } else if (
+              "items" in vehiculosResponse &&
+              Array.isArray(vehiculosResponse.items)
+            ) {
+              vehiculosDisp = vehiculosResponse.items.filter(
+                (vehiculo) => vehiculo.estado === "DISPONIBLE"
+              );
+            } else {
+              console.error(
+                "Formato de respuesta de vehículos no reconocido:",
+                vehiculosResponse
+              );
+              toast.error("Error al cargar vehículos", {
+                description:
+                  "El servidor devolvió datos en un formato inesperado",
+              });
+            }
+          } else {
+            console.error(
+              "Tipo de respuesta de vehículos no esperado:",
+              vehiculosResponse
+            );
+            toast.error("Error al cargar vehículos", {
+              description: "No se recibió una respuesta válida del servidor",
+            });
+          }
 
           setEmpleadosDisponibles(empleadosDisp);
           setVehiculosDisponibles(vehiculosDisp);
 
-          // Cargar baños instalados para el cliente
-          const banosClienteResponse = await getSanitariosByClient(
+          // Cargar baños instalados para el cliente con manejo adecuado de tipos
+          interface SanitariosResponse {
+            data?: Sanitario[];
+            items?: Sanitario[];
+          }
+
+          const banosClienteResponse = (await getSanitariosByClient(
             selectedClientId
-          );
-          setBanosInstalados(banosClienteResponse || []);
+          )) as SanitariosResponse | Sanitario[];
+
+          // Procesamiento de la respuesta
+          if (Array.isArray(banosClienteResponse)) {
+            setBanosInstalados(banosClienteResponse);
+          } else if (
+            banosClienteResponse &&
+            typeof banosClienteResponse === "object"
+          ) {
+            if (
+              "data" in banosClienteResponse &&
+              Array.isArray(banosClienteResponse.data)
+            ) {
+              setBanosInstalados(banosClienteResponse.data);
+            } else if (
+              "items" in banosClienteResponse &&
+              Array.isArray(banosClienteResponse.items)
+            ) {
+              setBanosInstalados(banosClienteResponse.items);
+            } else {
+              console.error(
+                "Formato de respuesta de baños no reconocido:",
+                banosClienteResponse
+              );
+              setBanosInstalados([]);
+              toast.error("Error al cargar baños", {
+                description:
+                  "El servidor devolvió datos en un formato inesperado",
+              });
+            }
+          } else {
+            console.error(
+              "Tipo de respuesta de baños no esperado:",
+              banosClienteResponse
+            );
+            setBanosInstalados([]);
+            toast.error("Error al cargar baños", {
+              description: "No se recibió una respuesta válida del servidor",
+            });
+          }
         } catch (error) {
           console.error("Error al cargar recursos:", error);
-          toast.error("Error", {
+          toast.error("Error al cargar recursos", {
             description:
-              "No se pudieron cargar los recursos necesarios. Por favor, intente nuevamente.",
+              error instanceof Error
+                ? error.message
+                : "No se pudieron cargar los recursos necesarios. Por favor, intente nuevamente.",
           });
+          setEmpleadosDisponibles([]);
+          setVehiculosDisponibles([]);
+          setBanosInstalados([]);
         } finally {
           setIsLoading(false);
         }
@@ -360,33 +573,30 @@ export function CrearServicioGenericoComponent() {
     setStep((prevStep) => prevStep - 1);
   }; // Enviar formulario
   const onSubmit = async (data: FormData) => {
-    console.log("Submit function called with data:", data);
     try {
       setIsSubmitting(true);
-      console.log("Form submission started, isSubmitting set to true");
 
-      // Preparar las asignaciones manuales según el formato esperado por CreateLimpiezaDto
-      // Debe ser un array con exactamente 2 elementos
+      // Preparar las asignaciones manuales según el formato exacto requerido por CreateLimpiezaDto
       const asignacionesManual: [
         { empleadoId: number; vehiculoId: number },
         { empleadoId: number }
       ] = [
         {
-          // Primera asignación principal
+          // Primera asignación principal (conductor y vehículo)
           empleadoId: data.empleadosIds.length > 0 ? data.empleadosIds[0] : 0,
           vehiculoId: data.vehiculosIds.length > 0 ? data.vehiculosIds[0] : 0,
         },
         {
-          // Segunda asignación (empleado adicional si existe)
+          // Segunda asignación (empleado adicional)
           empleadoId: data.empleadosIds.length > 1 ? data.empleadosIds[1] : 0,
         },
       ];
 
-      console.log("asignacionesManual prepared:", asignacionesManual); // Objeto para enviar a la API
-      const servicioRequest = {
-        tipoServicio: "LIMPIEZA",
+      // Objeto para enviar a la API - usando la estructura exacta de CreateLimpiezaDto
+      const servicioRequest: CreateLimpiezaDto = {
+        tipoServicio: "LIMPIEZA", // Tipo literal exacto
         condicionContractualId:
-          selectedCondicionId || data.condicionContractualId, // Use selectedCondicionId as fallback
+          selectedCondicionId || data.condicionContractualId,
         cantidadVehiculos: data.cantidadVehiculos,
         fechaProgramada: data.fechaProgramada.toISOString(),
         ubicacion: data.ubicacion,
@@ -396,47 +606,74 @@ export function CrearServicioGenericoComponent() {
         notas: data.notas || "Limpieza mensual según contrato",
       };
 
-      // Verificación adicional para asegurar que condicionContractualId tenga un valor válido
+      // Verificación adicional
       if (
         !servicioRequest.condicionContractualId ||
         servicioRequest.condicionContractualId <= 0
       ) {
-        console.error(
-          "condicionContractualId no es válido:",
-          servicioRequest.condicionContractualId
-        );
         toast.error("Error en el formulario", {
           description: "Por favor seleccione una condición contractual válida.",
         });
-        return; // Detener el envío del formulario
+        return;
       }
-      console.log("servicioRequest object prepared:", servicioRequest);
-      console.log("Form values before submission:", {
-        formCondicionId: form.getValues("condicionContractualId"),
-        stateCondicionId: selectedCondicionId,
-        finalCondicionId: servicioRequest.condicionContractualId,
-      });
 
-      // Crear el servicio
-      console.log("Calling createServicioGenerico function");
-      const response = await createServicioGenerico(servicioRequest);
-      console.log("Servicio creado, response:", response);
+      // Crear el servicio y tipar correctamente la respuesta
+      // Define ServicioResponse type if not imported
+      type ServicioResponse = {
+        id?: number;
+        success?: boolean;
+        message?: string;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        [key: string]: any;
+      };
 
-      toast.success("Servicio de limpieza creado", {
-        description: "El servicio de limpieza se ha creado exitosamente.",
-      });
+      const response = (await createServicioGenerico(
+        servicioRequest
+      )) as ServicioResponse;
 
-      // Redireccionar a la página de listado de servicios
-      router.push("/admin/services");
+      // Verificar la respuesta
+      if (response && response.id) {
+        toast.success("Servicio de limpieza creado", {
+          description: `El servicio de limpieza #${response.id} se ha creado exitosamente.`,
+        });
+      } else if (response && response.success) {
+        toast.success("Servicio de limpieza creado", {
+          description:
+            response.message ||
+            "El servicio de limpieza se ha creado exitosamente.",
+        });
+      } else {
+        toast.success("Servicio de limpieza creado", {
+          description: "El servicio de limpieza se ha creado exitosamente.",
+        });
+      }
+
+      // Redireccionar a la página de listado de servicios después de un breve retraso
+      setTimeout(() => {
+        router.push("/admin/services");
+      }, 1000);
     } catch (error) {
       console.error("Error al crear el servicio:", error);
-      console.log("Error details:", JSON.stringify(error, null, 2));
+
+      // Extraer el mensaje de error
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : "No se pudo crear el servicio. Por favor, intente nuevamente.";
+
+      // Log detallado para debugging
+      console.log({
+        errorType: typeof error,
+        errorObject: JSON.stringify(error, null, 2),
+        errorMessage,
+      });
+
+      // Mostrar toast con el mensaje específico del error
       toast.error("Error al crear el servicio", {
-        description:
-          "No se pudo crear el servicio. Por favor, intente nuevamente.",
+        description: errorMessage,
+        duration: 5000,
       });
     } finally {
-      console.log("Setting isSubmitting back to false");
       setIsSubmitting(false);
     }
   };
@@ -641,9 +878,9 @@ export function CrearServicioGenericoComponent() {
                             <div className="text-sm text-gray-500 mt-2">
                               <span className="font-medium">
                                 Condiciones específicas:
-                              </span>
+                              </span>{" "}
                               <p className="italic">
-                                "{condicion.condiciones_especificas}"
+                                &quot;{condicion.condiciones_especificas}&quot;
                               </p>
                             </div>
                           )}

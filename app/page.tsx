@@ -2,6 +2,7 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { LogoMVA } from "@/assets/ImgDatabase";
 
@@ -26,7 +27,7 @@ export default async function Home() {
     <div className="flex min-h-screen flex-col items-center justify-center bg-gradient-to-b from-white to-gray-50">
       <div className="flex flex-col items-center space-y-8">
         <div className="flex items-center space-x-2">
-          <img src={LogoMVA} alt="MVA Logo" className="h-16 w-auto" />
+          <Image src={LogoMVA} alt="MVA Logo" className="h-16 w-auto" width={64} height={64} />
           <span className="font-bold text-2xl">MVA SRL</span>
         </div>
         <h1 className="text-3xl font-bold text-primary text-center">

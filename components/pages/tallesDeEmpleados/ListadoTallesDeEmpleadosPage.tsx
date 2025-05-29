@@ -33,9 +33,8 @@ export default function ListadoTallesDeEmpleadosPage() {
         
         // Verificar si el componente sigue montado antes de continuar
         if (!isActive) return;
-        
-        // Usamos revalidación para asegurarnos de obtener datos frescos
-        const result = await getTallesEmpleados(undefined, undefined, { revalidate: true });
+          // Usamos revalidación para asegurarnos de obtener datos frescos
+        const result = await getTallesEmpleados(undefined, undefined, "", { revalidate: true });
         
         // Verificar nuevamente el estado de montaje antes de actualizar estados
         if (isActive) {

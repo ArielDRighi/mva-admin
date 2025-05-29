@@ -1,4 +1,4 @@
-import ContactosDeEmergenciaComponent from "@/components/sections/ContactosDeEmergenciaPage";
+import ContactosDeEmergenciaComponent from "@/components/sections/ContactosDeEmergenciaComponent";
 import React from "react";
 
 const ContactosDeEmergenciaPage = () => {

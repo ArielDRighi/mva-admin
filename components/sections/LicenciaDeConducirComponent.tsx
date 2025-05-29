@@ -15,11 +15,8 @@ import {
   InputLabel,
   MenuItem,
   Select,
-  Typography,
   Alert,
   Snackbar,
-  Box,
-  Divider,
 } from "@mui/material";
 import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
 import { LocalizationProvider, DatePicker } from "@mui/x-date-pickers";
@@ -33,14 +30,13 @@ import {
   updateLicenciaConducir,
   createLicenciaConducir,
 } from "@/app/actions/LicenciasConducir";
-import Grid from "@mui/material/Grid";
 import {
   ArrowLeft,
   ShieldCheck,
   AlertTriangle,
   Clock,
   Calendar,
-  LucideIcon,
+  // LucideIcon, // No se está utilizando
   CarFront,
   FileText,
 } from "lucide-react";
@@ -99,19 +95,22 @@ const LicenciaDeConducirComponent = () => {
   const [originalLicencia, setOriginalLicencia] =
     useState<LicenciaConducir | null>(null);
   console.log("licencia", licencia);
-
   // Cargar usuario
   useEffect(() => {
     const userCookie = getCookie("user");
     if (userCookie) {
       try {
         setUser(JSON.parse(userCookie as string));
-      } catch (e) {
-        console.error("Error al parsear el usuario", e);
+      } catch (error) {
+        console.error("Error al parsear la cookie de usuario:", error);
+        setSnackbar({
+          open: true,
+          message: "Error de autenticación: No se pudo cargar la información del usuario",
+          severity: "error",
+        });
       }
     }
   }, []);
-
   // Cargar ID del empleado
   useEffect(() => {
     const fetchEmployee = async () => {
@@ -119,10 +118,28 @@ const LicenciaDeConducirComponent = () => {
 
       try {
         setLoading(true);
-        const fetchedUser = await getUserById(user.id);
-        setEmployeeId(fetchedUser.empleadoId);
+        // Usar type assertion para tipar correctamente la respuesta
+        const fetchedUser = await getUserById(user.id) as { empleadoId?: number };
+        
+        if (fetchedUser && typeof fetchedUser.empleadoId === "number") {
+          setEmployeeId(fetchedUser.empleadoId);
+        } else {
+          console.error("No se encontró el ID del empleado o no es válido:", fetchedUser);
+          setSnackbar({
+            open: true,
+            message: "Error: No se pudo obtener la información del empleado",
+            severity: "error",
+          });
+        }
       } catch (error) {
-        console.error("Error fetching employee:", error);
+        console.error("Error al obtener datos del empleado:", error);
+        setSnackbar({
+          open: true,
+          message: error instanceof Error 
+            ? `Error: ${error.message}` 
+            : "Error: No se pudo obtener la información del empleado",
+          severity: "error",
+        });
       } finally {
         setLoading(false);
       }
@@ -130,7 +147,6 @@ const LicenciaDeConducirComponent = () => {
 
     if (user?.id) fetchEmployee();
   }, [user?.id]);
-
   // Cargar licencia de conducir
   useEffect(() => {
     const fetchData = async () => {
@@ -138,25 +154,50 @@ const LicenciaDeConducirComponent = () => {
 
       try {
         setLoading(true);
-        const fetchedLicencia = await getLicenciaByEmpleadoId(employeeId);
-
-        if (fetchedLicencia) {
-          setOriginalLicencia(fetchedLicencia);
-          setLicencia({
-            categoria: fetchedLicencia.categoria || "",
-            fecha_expedicion: fetchedLicencia.fecha_expedicion
-              ? new Date(fetchedLicencia.fecha_expedicion)
-              : null,
-            fecha_vencimiento: fetchedLicencia.fecha_vencimiento
-              ? new Date(fetchedLicencia.fecha_vencimiento)
-              : null,
+        const response = await getLicenciaByEmpleadoId(employeeId);
+        
+        // Verificar si hay respuesta y tiene la estructura correcta
+        if (response && typeof response === "object") {
+          // Verificar si tiene las propiedades esperadas de una licencia
+          if ("categoria" in response || "fecha_expedicion" in response || "fecha_vencimiento" in response) {
+            const fetchedLicencia = response as LicenciaConducir;
+            
+            setOriginalLicencia(fetchedLicencia);
+            setLicencia({
+              categoria: fetchedLicencia.categoria || "",
+              fecha_expedicion: fetchedLicencia.fecha_expedicion
+                ? new Date(fetchedLicencia.fecha_expedicion)
+                : null,
+              fecha_vencimiento: fetchedLicencia.fecha_vencimiento
+                ? new Date(fetchedLicencia.fecha_vencimiento)
+                : null,
+            });
+          } else if ("message" in response && typeof response.message === "string") {
+            // Si es una respuesta de "no hay licencia" pero es normal (no un error)
+            console.log("No hay licencia registrada:", response.message);
+            setOriginalLicencia(null);
+          } else {
+            console.error("Formato de respuesta no reconocido:", response);
+          }
+        } else if (response === null || response === undefined) {
+          // Es normal que no haya licencia registrada
+          console.log("No hay licencia registrada para el empleado");
+          setOriginalLicencia(null);
+        } else {
+          console.error("Respuesta no válida:", response);
+          setSnackbar({
+            open: true,
+            message: "Error: Formato de datos no válido",
+            severity: "error",
           });
         }
       } catch (error) {
-        console.error("Error fetching license:", error);
+        console.error("Error al cargar licencia de conducir:", error);
         setSnackbar({
           open: true,
-          message: "Error al cargar la licencia de conducir",
+          message: error instanceof Error 
+            ? `Error: ${error.message}` 
+            : "Error al cargar la licencia de conducir",
           severity: "error",
         });
       } finally {
@@ -198,65 +239,126 @@ const LicenciaDeConducirComponent = () => {
     setErrors(newErrors);
     return !Object.values(newErrors).some(Boolean);
   };
-
   const handleSubmit = async () => {
     if (!validateForm()) return;
 
     setLoading(true);
     try {
+      // Preparar datos para enviar a la API
+      const licenciaData = {
+        categoria: licencia.categoria,
+        fecha_expedicion: licencia.fecha_expedicion || new Date(),
+        fecha_vencimiento: licencia.fecha_vencimiento || new Date(),
+      };
+
+      let response;
       if (!originalLicencia) {
-        // Create new license
-        await createLicenciaConducir(employeeId, {
-          categoria: licencia.categoria,
-          fecha_expedicion: licencia.fecha_expedicion || new Date(),
-          fecha_vencimiento: licencia.fecha_vencimiento || new Date(),
-        });
-
-        setSnackbar({
-          open: true,
-          message: "Licencia de conducir creada con éxito",
-          severity: "success",
-        });
+        // Crear nueva licencia
+        response = await createLicenciaConducir(employeeId, licenciaData);
+        
+        // Verificar respuesta
+        if (response && typeof response === "object") {
+          // Intentar extraer mensaje personalizado si existe
+          let successMessage = "Licencia de conducir creada con éxito";
+          
+          if ("message" in response && typeof response.message === "string") {
+            successMessage = response.message;
+          }
+          
+          setSnackbar({
+            open: true,
+            message: successMessage,
+            severity: "success",
+          });
+        } else {
+          setSnackbar({
+            open: true,
+            message: "Licencia de conducir creada con éxito",
+            severity: "success",
+          });
+        }
       } else {
-        // Update existing license
-        await updateLicenciaConducir(employeeId, {
-          categoria: licencia.categoria,
-          fecha_expedicion: licencia.fecha_expedicion || new Date(),
-          fecha_vencimiento: licencia.fecha_vencimiento || new Date(),
-        });
-
-        setSnackbar({
-          open: true,
-          message: "Licencia de conducir actualizada con éxito",
-          severity: "success",
-        });
+        // Actualizar licencia existente
+        response = await updateLicenciaConducir(employeeId, licenciaData);
+        
+        // Verificar respuesta
+        if (response && typeof response === "object") {
+          // Intentar extraer mensaje personalizado si existe
+          let successMessage = "Licencia de conducir actualizada con éxito";
+          
+          if ("message" in response && typeof response.message === "string") {
+            successMessage = response.message;
+          }
+          
+          setSnackbar({
+            open: true,
+            message: successMessage,
+            severity: "success",
+          });
+        } else {
+          setSnackbar({
+            open: true,
+            message: "Licencia de conducir actualizada con éxito",
+            severity: "success",
+          });
+        }
       }
 
+      // Desactivar modo edición
       setEditMode(false);
 
-      // Refresh data
+      // Refrescar datos de la licencia
       if (employeeId) {
-        const updatedLicense = await getLicenciaByEmpleadoId(employeeId);
-        if (updatedLicense) {
-          setOriginalLicencia(updatedLicense);
-          setLicencia({
-            categoria: updatedLicense.categoria || "",
-            fecha_expedicion: updatedLicense.fecha_expedicion
-              ? new Date(updatedLicense.fecha_expedicion)
-              : null,
-            fecha_vencimiento: updatedLicense.fecha_vencimiento
-              ? new Date(updatedLicense.fecha_vencimiento)
-              : null,
-          });
+        try {
+          const updatedResponse = await getLicenciaByEmpleadoId(employeeId);
+          
+          if (updatedResponse && typeof updatedResponse === "object") {
+            // Verificar si tiene las propiedades esperadas de una licencia
+            if ("categoria" in updatedResponse || "fecha_expedicion" in updatedResponse || "fecha_vencimiento" in updatedResponse) {
+              const updatedLicense = updatedResponse as LicenciaConducir;
+              
+              setOriginalLicencia(updatedLicense);
+              setLicencia({
+                categoria: updatedLicense.categoria || "",
+                fecha_expedicion: updatedLicense.fecha_expedicion
+                  ? new Date(updatedLicense.fecha_expedicion)
+                  : null,
+                fecha_vencimiento: updatedLicense.fecha_vencimiento
+                  ? new Date(updatedLicense.fecha_vencimiento)
+                  : null,
+              });
+            } else {
+              console.error("Formato de licencia actualizada no reconocido:", updatedResponse);
+            }
+          } else {
+            console.error("No se pudo refrescar la información de la licencia");
+          }
+        } catch (refreshError) {
+          console.error("Error al refrescar datos de licencia:", refreshError);
+          // No mostramos error al usuario porque ya se completó la operación principal
         }
       }
     } catch (error) {
       console.error("Error al procesar la licencia:", error);
+      
+      // Determinar mensaje de error específico
+      let errorMessage = originalLicencia
+        ? "Error al actualizar la licencia"
+        : "Error al crear la licencia";
+      
+      if (error instanceof Error) {
+        errorMessage = `Error: ${error.message}`;
+      } else if (typeof error === "object" && error !== null) {
+        if ("message" in error && typeof error.message === "string") {
+          errorMessage = error.message;
+        } else if ("error" in error && typeof error.error === "string") {
+          errorMessage = error.error;
+        }
+      }
+      
       setSnackbar({
         open: true,
-        message: originalLicencia
-          ? "Error al actualizar la licencia"
-          : "Error al crear la licencia",
+        message: errorMessage,
         severity: "error",
       });
     } finally {

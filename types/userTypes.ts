@@ -58,3 +58,14 @@ export interface UsersResponse {
   totalPages: number;
   itemsPerPage?: number;
 }
+
+export interface ByIDUserResponse {
+  id: number;
+  user: User;
+  nombre: string;
+  email: string;
+  password: string;
+  estado: "ACTIVO" | "INACTIVO";
+  roles: string[];
+  empleadoId: number;
+}

@@ -1,4 +1,4 @@
-import CapacitacionesCrearComponent from "@/components/sections/capacitacionesCrearComponent";
+// import CapacitacionesCrearComponent from "@/components/sections/capacitacionesCrearComponent";
 import { CapacitacionesListadoComponent } from "@/components/sections/capacitacionesListadoComponent";
 
 import React from "react";

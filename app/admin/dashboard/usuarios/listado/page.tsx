@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic';
+
 import ListadoUsuariosPage from "@/components/pages/usuarios/ListadoUsuariosPage";
 import React from "react";
 

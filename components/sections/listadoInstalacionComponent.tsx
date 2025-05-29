@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import Link from "next/link";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { toast } from "sonner";
@@ -11,8 +10,6 @@ import { deleteService, getInstalaciones } from "@/app/actions/services";
 import {
   Card,
   CardContent,
-  CardDescription,
-  CardFooter,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
@@ -32,34 +29,14 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ListadoTabla } from "../ui/local/ListadoTabla";
-import { PaginationLocal } from "../ui/local/PaginationLocal";
-import { Skeleton } from "@/components/ui/skeleton";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
-  Calendar,
   CalendarDays,
-  Clock,
   FileText,
   MapPin,
-  MoreHorizontal,
-  MoreVertical,
   Trash2,
   Truck,
   User,
@@ -129,6 +106,7 @@ interface Instalacion {
   ubicacion: string;
   notas: string;
   asignacionAutomatica: boolean;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   banosInstalados: any[];
   condicionContractualId: number | null;
   fechaFinAsignacion: string | null;
@@ -166,9 +144,8 @@ export function ListadoInstalacionComponent() {
       try {
         setLoading(true);
         const page = Number(searchParams.get("page")) || 1;
-        const search = searchParams.get("search") || "";
 
-        const response = await getInstalaciones(page);
+        const response = await getInstalaciones(page) as InstalacionesResponse;
 
         if (response && response.data) {
           setInstalaciones(response.data);
@@ -668,25 +645,74 @@ export function ListadoInstalacionComponent() {
               </Button>
               <Button
                 variant="destructive"
-                onClick={() => {
-                  deleteService(selectedInstalacion.id)
-                    .then(() => {
+                onClick={async () => {
+                  try {
+                    setLoading(true);
+                    const response = await deleteService(selectedInstalacion.id);
+
+                    // Verificamos la respuesta
+                    if (response && typeof response === "object") {
+                      // Si la respuesta tiene un mensaje específico, lo usamos
+                      const message =
+                        "message" in response
+                          ? (response.message as string)
+                          : "";
+
+                      // Actualizamos la lista local eliminando el elemento
+                      setInstalaciones(
+                        instalaciones.filter(
+                          (instalacion) => instalacion.id !== selectedInstalacion.id
+                        )
+                      );
+
+                      setIsDeleteDialogOpen(false);
+
                       toast.success("Instalación eliminada", {
                         description:
+                          message ||
                           "La instalación ha sido eliminada correctamente",
                       });
-                      setIsDeleteDialogOpen(false);
-                      // Refresh the list
-                    })
-                    .catch((error) => {
-                      console.error("Error deleting installation:", error);
-                      toast.error("Error al eliminar la instalación", {
-                        description:
-                          "No se pudo eliminar la instalación. Intenta nuevamente.",
-                      });
-                    });
 
-                  // Refresh the list
+                      // Actualizamos la página actual
+                      const page = Number(searchParams.get("page")) || 1;
+                      handlePageChange(page);
+                    } else {
+                      // Si no hay respuesta específica pero la operación fue exitosa
+                      setInstalaciones(
+                        instalaciones.filter(
+                          (instalacion) => instalacion.id !== selectedInstalacion.id
+                        )
+                      );
+
+                      setIsDeleteDialogOpen(false);
+
+                      toast.success("Instalación eliminada", {
+                        description: "La instalación ha sido eliminada correctamente",
+                      });
+                    }
+                  } catch (error) {
+                    console.error("Error al eliminar la instalación:", error);
+
+                    // Extraemos el mensaje de error si está disponible
+                    let errorMessage =
+                      "No se pudo eliminar la instalación. Intenta nuevamente.";
+
+                    if (error instanceof Error) {
+                      errorMessage = error.message;
+                    } else if (
+                      typeof error === "object" &&
+                      error !== null &&
+                      "message" in error
+                    ) {
+                      errorMessage = (error as { message: string }).message;
+                    }
+
+                    toast.error("Error al eliminar", {
+                      description: errorMessage,
+                    });
+                  } finally {
+                    setLoading(false);
+                  }
                 }}
               >
                 Eliminar

@@ -28,7 +28,6 @@ import {
   Search,
   FileText,
   Calendar,
-  Truck,
   MapPin,
   Users,
   ChevronLeft,
@@ -152,19 +151,50 @@ export default function CrearInstalacionComponent() {
   const selectedClientId = watch("clienteId");
   const selectedCondicionId = watch("condicionContractualId");
   const selectedFechaProgramada = watch("fechaProgramada");
-
   useEffect(() => {
     const fetchClientes = async () => {
       try {
         setIsLoading(true);
-        const clientesData = await getClients();
-        setClientes(clientesData.items || []);
-        setFilteredClientes(clientesData.items || []);
+        // Tipar correctamente la respuesta
+        interface ClienteResponse {
+          items?: Cliente[];
+          data?: Cliente[];
+          total?: number;
+          totalItems?: number;
+        }
+        
+        const clientesData = await getClients() as ClienteResponse;
+        
+        if (clientesData && typeof clientesData === "object") {
+          // Determinar qué propiedad contiene los datos (items o data)
+          if ("items" in clientesData && Array.isArray(clientesData.items)) {
+            setClientes(clientesData.items);
+            setFilteredClientes(clientesData.items);
+          } else if ("data" in clientesData && Array.isArray(clientesData.data)) {
+            setClientes(clientesData.data);
+            setFilteredClientes(clientesData.data);
+          } else {
+            console.error("Formato de respuesta no reconocido:", clientesData);
+            toast.error("Error de formato", {
+              description: "El formato de los datos recibidos no es válido",
+            });
+            setClientes([]);
+            setFilteredClientes([]);
+          }
+        } else {
+          console.error("Respuesta no válida:", clientesData);
+          toast.error("Error", {
+            description: "No se pudieron obtener los datos de clientes",
+          });
+          setClientes([]);
+          setFilteredClientes([]);
+        }
       } catch (error) {
         console.error("Error al cargar los clientes:", error);
         toast.error("Error al cargar los clientes", {
-          description:
-            "No se pudieron cargar los clientes. Por favor, intente nuevamente.",
+          description: error instanceof Error 
+            ? error.message 
+            : "No se pudieron cargar los clientes. Por favor, intente nuevamente.",
         });
       } finally {
         setIsLoading(false);
@@ -188,7 +218,6 @@ export default function CrearInstalacionComponent() {
       setFilteredClientes(filtered);
     }
   }, [searchTermCliente, clientes]);
-
   useEffect(() => {
     const fetchCondicionesContractuales = async () => {
       if (selectedClientId && selectedClientId > 0) {
@@ -197,8 +226,38 @@ export default function CrearInstalacionComponent() {
           const condicionesData = await getContractualConditionsByClient(
             selectedClientId
           );
-          setCondicionesContractuales(condicionesData || []);
+          
+          // Verificar que la respuesta sea válida
+          if (condicionesData && Array.isArray(condicionesData)) {
+            setCondicionesContractuales(condicionesData);
+          } else if (condicionesData && typeof condicionesData === "object") {
+            // Si la respuesta es un objeto, intentamos extraer los datos del formato adecuado
+            interface CondicionesResponse {
+              data?: CondicionContractual[];
+              items?: CondicionContractual[];
+            }
+            
+            const response = condicionesData as CondicionesResponse;
+            if ("data" in response && Array.isArray(response.data)) {
+              setCondicionesContractuales(response.data);
+            } else if ("items" in response && Array.isArray(response.items)) {
+              setCondicionesContractuales(response.items);
+            } else {
+              console.error("Formato de respuesta no reconocido:", condicionesData);
+              toast.error("Error de formato", {
+                description: "El formato de los datos recibidos no es válido",
+              });
+              setCondicionesContractuales([]);
+            }
+          } else {
+            console.error("Respuesta no válida:", condicionesData);
+            toast.error("Error", {
+              description: "No se pudieron obtener las condiciones contractuales",
+            });
+            setCondicionesContractuales([]);
+          }
 
+          // Resetear valores
           setValue("condicionContractualId", 0);
           setCantidadBanosRequired(0);
         } catch (error) {
@@ -207,9 +266,11 @@ export default function CrearInstalacionComponent() {
             error
           );
           toast.error("Error al cargar condiciones contractuales", {
-            description:
-              "No se pudieron cargar las condiciones del cliente seleccionado.",
+            description: error instanceof Error 
+              ? error.message 
+              : "No se pudieron cargar las condiciones del cliente seleccionado.",
           });
+          setCondicionesContractuales([]);
         } finally {
           setIsLoading(false);
         }
@@ -220,42 +281,99 @@ export default function CrearInstalacionComponent() {
       fetchCondicionesContractuales();
     }
   }, [selectedClientId, step, setValue]);
-
   useEffect(() => {
     const fetchResources = async () => {
       if (selectedFechaProgramada && step >= 4) {
         try {
           setIsLoading(true);
 
-          const [empleadosResponse, vehiculosResponse, sanitariosResponse] =
-            await Promise.all([getEmployees(), getVehicles(), getSanitarios()]);
+          // Define interfaces para tipado correcto de respuestas
+          interface EmpleadosResponse {
+            data?: Empleado[];
+            items?: Empleado[];
+          }
+          
+          interface VehiculosResponse {
+            data?: Vehiculo[];
+            items?: Vehiculo[];
+          }
+          
+          interface SanitariosResponse {
+            data?: Sanitario[];
+            items?: Sanitario[];
+          }
 
-          const empleadosDisp =
-            empleadosResponse?.data?.filter(
-              (empleado: Empleado) => empleado.estado === "DISPONIBLE"
-            ) || [];
+          // Obtener datos con Promise.all para optimizar las peticiones
+          const [empleadosResponseRaw, vehiculosResponseRaw, sanitariosResponseRaw] =
+            await Promise.all([
+              getEmployees(), 
+              getVehicles(), 
+              getSanitarios()
+            ]);
+            
+          // Procesar respuesta de empleados con verificación de tipo
+          const empleadosResponse = empleadosResponseRaw as EmpleadosResponse;
+          let empleadosDisp: Empleado[] = [];
+          
+          if (empleadosResponse && typeof empleadosResponse === "object") {
+            if ("data" in empleadosResponse && Array.isArray(empleadosResponse.data)) {
+              empleadosDisp = empleadosResponse.data.filter(
+                (empleado) => empleado.estado === "DISPONIBLE"
+              );
+            } else if ("items" in empleadosResponse && Array.isArray(empleadosResponse.items)) {
+              empleadosDisp = empleadosResponse.items.filter(
+                (empleado) => empleado.estado === "DISPONIBLE"
+              );
+            }
+          }
 
-          const vehiculosDisp =
-            vehiculosResponse?.data?.filter(
-              (vehiculo: Vehiculo) => vehiculo.estado === "DISPONIBLE"
-            ) || [];
+          // Procesar respuesta de vehículos con verificación de tipo
+          const vehiculosResponse = vehiculosResponseRaw as VehiculosResponse;
+          let vehiculosDisp: Vehiculo[] = [];
+          
+          if (vehiculosResponse && typeof vehiculosResponse === "object") {
+            if ("data" in vehiculosResponse && Array.isArray(vehiculosResponse.data)) {
+              vehiculosDisp = vehiculosResponse.data.filter(
+                (vehiculo) => vehiculo.estado === "DISPONIBLE"
+              );
+            } else if ("items" in vehiculosResponse && Array.isArray(vehiculosResponse.items)) {
+              vehiculosDisp = vehiculosResponse.items.filter(
+                (vehiculo) => vehiculo.estado === "DISPONIBLE"
+              );
+            }
+          }
 
-          const sanitariosDisp =
-            sanitariosResponse?.items?.filter(
-              (sanitario: Sanitario) => sanitario.estado === "DISPONIBLE"
-            ) || [];
+          // Procesar respuesta de sanitarios con verificación de tipo
+          const sanitariosResponse = sanitariosResponseRaw as SanitariosResponse;
+          let sanitariosDisp: Sanitario[] = [];
+          
+          if (sanitariosResponse && typeof sanitariosResponse === "object") {
+            if ("data" in sanitariosResponse && Array.isArray(sanitariosResponse.data)) {
+              sanitariosDisp = sanitariosResponse.data.filter(
+                (sanitario) => sanitario.estado === "DISPONIBLE"
+              );
+            } else if ("items" in sanitariosResponse && Array.isArray(sanitariosResponse.items)) {
+              sanitariosDisp = sanitariosResponse.items.filter(
+                (sanitario) => sanitario.estado === "DISPONIBLE"
+              );
+            }
+          }
 
+          // Actualizar estados con los datos procesados
           setEmpleadosDisponibles(empleadosDisp);
           setVehiculosDisponibles(vehiculosDisp);
           setBanosDisponibles(sanitariosDisp);
 
+          // Resetear las selecciones
           setValue("empleadosIds", []);
           setValue("vehiculosIds", []);
           setValue("banosIds", []);
         } catch (error) {
           console.error("Error al cargar recursos:", error);
           toast.error("Error al cargar recursos", {
-            description: "No se pudieron cargar los recursos disponibles.",
+            description: error instanceof Error 
+              ? error.message 
+              : "No se pudieron cargar los recursos disponibles.",
           });
         } finally {
           setIsLoading(false);
@@ -288,27 +406,27 @@ export default function CrearInstalacionComponent() {
     }
   }, [selectedCondicionId, condicionesContractuales, setValue]);
 
-  const validateStep = (currentStep: number): boolean => {
-    switch (currentStep) {
-      case 1:
-        return getValues().clienteId > 0;
-      case 2:
-        return getValues().condicionContractualId > 0;
-      case 3:
-        return (
-          !!getValues().fechaProgramada &&
-          getValues().cantidadVehiculos > 0 &&
-          getValues().ubicacion.length >= 3
-        );
-      case 4:
-        return (
-          getValues().empleadosIds.length > 0 &&
-          getValues().vehiculosIds.length > 0
-        );
-      default:
-        return true;
-    }
-  };
+  // const validateStep = (currentStep: number): boolean => {
+  //   switch (currentStep) {
+  //     case 1:
+  //       return getValues().clienteId > 0;
+  //     case 2:
+  //       return getValues().condicionContractualId > 0;
+  //     case 3:
+  //       return (
+  //         !!getValues().fechaProgramada &&
+  //         getValues().cantidadVehiculos > 0 &&
+  //         getValues().ubicacion.length >= 3
+  //       );
+  //     case 4:
+  //       return (
+  //         getValues().empleadosIds.length > 0 &&
+  //         getValues().vehiculosIds.length > 0
+  //       );
+  //     default:
+  //       return true;
+  //   }
+  // };
 
   const handleNext = async () => {
     let isValid = false;
@@ -358,11 +476,11 @@ export default function CrearInstalacionComponent() {
 
   const handleBack = () => {
     setStep(step - 1);
-  };
-  const onSubmit = async (data: FormData) => {
+  };  const onSubmit = async (data: FormData) => {
     setIsSubmitting(true);
 
     try {
+      // Validar que haya una condición contractual seleccionada
       const effectiveCondicionId =
         data.condicionContractualId || selectedCondicionContractualId;
 
@@ -372,12 +490,21 @@ export default function CrearInstalacionComponent() {
 
       const empleadosSeleccionados = data.empleadosIds;
 
+      // Validar que haya al menos un empleado seleccionado
+      if (!empleadosSeleccionados || empleadosSeleccionados.length === 0) {
+        throw new Error("Se requiere seleccionar al menos un empleado");
+      }
+
+      // Validar que haya al menos un vehículo seleccionado
+      if (!data.vehiculosIds || data.vehiculosIds.length === 0) {
+        throw new Error("Se requiere seleccionar al menos un vehículo");
+      }
+
+      // Formatear fecha correctamente
       const date = new Date(data.fechaProgramada);
-      // Formato YYYY-MM-DD
       const formattedDate = date.toISOString().split("T")[0];
 
       // Crear las asignaciones manuales según el formato requerido para CreateInstalacionDto
-      // El DTO espera exactamente 2 elementos en un formato específico
       const firstEmployeeId =
         empleadosSeleccionados.length > 0
           ? empleadosSeleccionados[0]
@@ -387,24 +514,22 @@ export default function CrearInstalacionComponent() {
           ? empleadosSeleccionados[1]
           : undefined;
 
-      // Siempre debe tener exactamente 2 elementos en este formato específico
       // Asegurar que asignacionesManual cumpla con el tipo esperado [{ empleadoId?, vehiculoId, banosIds }, { empleadoId? }]
       const asignacionesManual: [
         { empleadoId?: number; vehiculoId: number; banosIds: number[] },
         { empleadoId?: number }
       ] = [
         {
-          // Primer elemento debe tener vehiculoId y banosIds
           empleadoId: firstEmployeeId,
           vehiculoId: data.vehiculosIds.length > 0 ? data.vehiculosIds[0] : 0,
           banosIds: data.banosIds || [],
         },
         {
-          // Segundo elemento solo necesita empleadoId opcional
           empleadoId: secondEmployeeId,
         },
       ];
 
+      // Construir objeto con datos del servicio
       const serviceData = {
         condicionContractualId: effectiveCondicionId,
         fechaProgramada: formattedDate,
@@ -415,27 +540,54 @@ export default function CrearInstalacionComponent() {
         notas: data.notas || "",
       };
 
-      try {
-        const response = await createServiceInstalacion(serviceData);
+      // Realizar la llamada a la API
+      const response = await createServiceInstalacion(serviceData);
 
+      // Verificar respuesta
+      if (response && typeof response === "object") {
+        let successMessage = "El servicio ha sido programado con éxito.";
+        
+        // Intentar extraer un mensaje específico de la respuesta si existe
+        if ("message" in response && typeof response.message === "string") {
+          successMessage = response.message;
+        } else if ("id" in response) {
+          // Si tiene un ID, asumimos que se creó correctamente
+          successMessage = `Servicio creado correctamente con ID: ${response.id}`;
+        }
+        
+        toast.success("¡Servicio creado correctamente!", {
+          description: successMessage,
+        });
+      } else {
         toast.success("¡Servicio creado correctamente!", {
           description: "El servicio ha sido programado con éxito.",
         });
-
-        setTimeout(() => {
-          router.push("/admin/dashboard/servicios");
-        }, 2000);
-      } catch (apiError) {
-        console.error("❌ API call failed:", apiError);
-        throw apiError;
       }
+
+      // Redireccionar después de un breve delay
+      setTimeout(() => {
+        router.push("/admin/dashboard/servicios");
+      }, 2000);
     } catch (error) {
-      console.error("❌ Error details:", error);
+      console.error("Error al crear el servicio:", error);
+      
+      // Manejo detallado del error
+      let errorMessage = "Ocurrió un error inesperado";
+      
+      if (error instanceof Error) {
+        errorMessage = error.message;
+      } else if (typeof error === "object" && error !== null) {
+        if ("message" in error && typeof error.message === "string") {
+          errorMessage = error.message;
+        } else if ("error" in error && typeof error.error === "string") {
+          errorMessage = error.error;
+        } else if ("detail" in error && typeof error.detail === "string") {
+          errorMessage = error.detail;
+        }
+      }
+      
       toast.error("Error al crear el servicio", {
-        description:
-          error instanceof Error
-            ? error.message
-            : "Ocurrió un error inesperado",
+        description: errorMessage
       });
     } finally {
       setIsSubmitting(false);
@@ -824,7 +976,7 @@ export default function CrearInstalacionComponent() {
             <div>
               <h3 className="font-medium mb-1">Empleados Disponibles</h3>
               <p className="text-xs text-slate-500 mb-3">
-                Solo se muestran empleados con estado "DISPONIBLE"
+                Solo se muestran empleados con estado &quot;DISPONIBLE&quot;
               </p>
               {isLoading ? (
                 <div className="flex justify-center py-4">
@@ -894,7 +1046,7 @@ export default function CrearInstalacionComponent() {
             <div>
               <h3 className="font-medium mb-1">Vehículos Disponibles</h3>
               <p className="text-xs text-slate-500 mb-3">
-                Solo se muestran vehículos con estado "DISPONIBLE"
+                Solo se muestran vehículos con estado &quot;DISPONIBLE&quot;
               </p>
               {isLoading ? (
                 <div className="flex justify-center py-4">
@@ -968,7 +1120,7 @@ export default function CrearInstalacionComponent() {
                   `(${cantidadBanosRequired} requeridos)`}
               </h3>
               <p className="text-xs text-slate-500 mb-3">
-                Solo se muestran baños con estado "DISPONIBLE"
+                Solo se muestran baños con estado &quot;DISPONIBLE&quot;
               </p>
               {isLoading ? (
                 <div className="flex justify-center py-4">

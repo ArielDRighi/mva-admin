@@ -5,7 +5,6 @@ import {
   handleApiResponse,
   createServerAction,
 } from "@/lib/actions";
-import { User } from "@/types/userTypes";
 
 /**
  * Obtiene los usuarios del sistema con paginación y búsqueda opcional
@@ -43,7 +42,7 @@ export const getUserById = createServerAction(async (id: number) => {
     }
   );
 
-  return handleApiResponse<User>(res, "Error al obtener usuario");
+  return handleApiResponse(res, "Error al obtener usuario");
 }, "Error al obtener usuario");
 
 /**

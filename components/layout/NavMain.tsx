@@ -31,13 +31,11 @@ export function NavMain({ items }: { items: NavMainItem[] }) {
         Gestión
       </SidebarGroupLabel>
       <SidebarMenu>
-        {items.map((item) => {
-          const isActive =
+        {items.map((item) => {          const isActive =
             pathname === item.url || pathname.startsWith(item.url);
           const hasActiveChild = item.items?.some(
             (subItem) => pathname === subItem.url
           );
-          const hasSubItems = item.items && item.items.length > 0;
 
           return (
             <Collapsible

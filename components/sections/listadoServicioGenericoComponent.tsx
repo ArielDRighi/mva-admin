@@ -2,21 +2,17 @@
 
 import { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import Link from "next/link";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { toast } from "sonner";
 
 import {
   deleteService,
-  getInstalaciones,
   getServiciosGenericos,
 } from "@/app/actions/services";
 import {
   Card,
   CardContent,
-  CardDescription,
-  CardFooter,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
@@ -36,34 +32,14 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ListadoTabla } from "../ui/local/ListadoTabla";
-import { PaginationLocal } from "../ui/local/PaginationLocal";
-import { Skeleton } from "@/components/ui/skeleton";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
-  Calendar,
   CalendarDays,
-  Clock,
   FileText,
   MapPin,
-  MoreHorizontal,
-  MoreVertical,
   Trash2,
   Truck,
   User,
@@ -133,6 +109,7 @@ interface Instalacion {
   ubicacion: string;
   notas: string;
   asignacionAutomatica: boolean;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   banosInstalados: any[];
   condicionContractualId: number | null;
   fechaFinAsignacion: string | null;
@@ -172,9 +149,8 @@ export function ListadoServicioGenericoComponent() {
       try {
         setLoading(true);
         const page = Number(searchParams.get("page")) || 1;
-        const search = searchParams.get("search") || "";
 
-        const response = await getServiciosGenericos(page);
+        const response = await getServiciosGenericos(page) as InstalacionesResponse;
 
         if (response && response.data) {
           setServicios(response.data);
@@ -670,25 +646,60 @@ export function ListadoServicioGenericoComponent() {
               </Button>
               <Button
                 variant="destructive"
-                onClick={() => {
-                  deleteService(selectedServicio.id)
-                    .then(() => {
-                      toast.success("Servicio eliminado", {
-                        description:
-                          "El servicio ha sido eliminado correctamente",
-                      });
+                onClick={async () => {
+                  try {
+                    setLoading(true);
+                    const response = await deleteService(selectedServicio.id);
+                    
+                    // Verificamos el tipo de respuesta
+                    if (response && typeof response === "object") {
+                      // Si la respuesta tiene un mensaje específico, lo usamos
+                      const message = "message" in response ? response.message as string : "";
+                      
+                      // Actualizamos la lista local eliminando el elemento
+                      setServicios(servicios.filter(
+                        (servicio) => servicio.id !== selectedServicio.id
+                      ));
+                      
                       setIsDeleteDialogOpen(false);
-                      // Refresh the list
-                    })
-                    .catch((error) => {
-                      console.error("Error deleting installation:", error);
-                      toast.error("Error al eliminar el servicio", {
-                        description:
-                          "No se pudo eliminar el servicio. Intenta nuevamente.",
+                      
+                      toast.success("Servicio eliminado", {
+                        description: message || "El servicio ha sido eliminado correctamente",
                       });
+                      
+                      // Actualizamos la página actual
+                      const page = Number(searchParams.get("page")) || 1;
+                      handlePageChange(page);
+                    } else {
+                      // Si no hay respuesta específica pero la operación fue exitosa
+                      setServicios(servicios.filter(
+                        (servicio) => servicio.id !== selectedServicio.id
+                      ));
+                      
+                      setIsDeleteDialogOpen(false);
+                      
+                      toast.success("Servicio eliminado", {
+                        description: "El servicio ha sido eliminado correctamente",
+                      });
+                    }
+                  } catch (error) {
+                    console.error("Error al eliminar el servicio:", error);
+                    
+                    // Extraemos el mensaje de error si está disponible
+                    let errorMessage = "No se pudo eliminar el servicio. Intenta nuevamente.";
+                    
+                    if (error instanceof Error) {
+                      errorMessage = error.message;
+                    } else if (typeof error === "object" && error !== null && "message" in error) {
+                      errorMessage = (error as { message: string }).message;
+                    }
+                    
+                    toast.error("Error al eliminar", {
+                      description: errorMessage,
                     });
-
-                  // Refresh the list
+                  } finally {
+                    setLoading(false);
+                  }
                 }}
               >
                 Eliminar

@@ -98,21 +98,22 @@ export const updateMyClothing = createServerAction(
  */
 
 // Interfaces para los formatos de respuesta posibles
-interface DataPaginationResponse {
-  data: RopaTalles[];
-  totalItems?: number;
-  currentPage?: number;
-  itemsPerPage?: number;
-}
+// interface DataPaginationResponse {
+//   data: RopaTalles[];
+//   totalItems?: number;
+//   currentPage?: number;
+//   itemsPerPage?: number;
+// }
 
-interface ItemsPaginationResponse {
-  items: RopaTalles[];
-  total?: number;
-  page?: number;
-  limit?: number;
-}
+// interface ItemsPaginationResponse {
+//   items: RopaTalles[];
+//   total?: number;
+//   page?: number;
+//   limit?: number;
+// }
 
 // Type guards para verificar estructura
+/* Eliminados por no ser usados actualmente
 function isDataPaginationResponse(obj: unknown): obj is DataPaginationResponse {
   return (
     typeof obj === "object" &&
@@ -132,6 +133,7 @@ function isItemsPaginationResponse(
     Array.isArray((obj as { items: unknown }).items)
   );
 }
+*/
 
 interface RevalidationOptions {
   revalidate?: boolean;

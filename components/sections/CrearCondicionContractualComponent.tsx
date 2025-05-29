@@ -25,7 +25,7 @@ import {
   Search,
   FileText,
   Calendar,
-  Clock,
+  // Clock, // No se está utilizando
   DollarSign,
   Tag,
   ChevronLeft,
@@ -39,6 +39,7 @@ const clienteSchema = z.object({
   clientId: z.number().min(1, "Debe seleccionar un cliente"),
 });
 
+/* Este esquema se ha comentado por no estar en uso actualmente
 const condicionesSchema = z
   .object({
     tipo_de_contrato: z.enum(["Temporal", "Permanente", "Por Evento"], {
@@ -69,6 +70,7 @@ const condicionesSchema = z
       });
     }
   });
+*/
 
 const detallesSchema = z.object({
   condiciones_especificas: z.string().optional(),
@@ -155,15 +157,55 @@ export default function CrearCondicionContractualComponent() {
     const fetchClientes = async () => {
       try {
         setIsLoading(true);
-        const clientesData = await getClients();
-        setClientes(clientesData.items || []);
-        setFilteredClientes(clientesData.items || []);
+
+        // Definimos una interfaz para la respuesta esperada
+        interface ClientesResponse {
+          items?: Cliente[];
+          data?: Cliente[];
+          total?: number;
+          page?: number;
+        }
+
+        const clientesData = (await getClients()) as ClientesResponse;
+
+        if (clientesData && typeof clientesData === "object") {
+          // Si tiene la propiedad items, usarla
+          if ("items" in clientesData && Array.isArray(clientesData.items)) {
+            setClientes(clientesData.items);
+            setFilteredClientes(clientesData.items);
+          }
+          // Si tiene la propiedad data, usarla como alternativa
+          else if ("data" in clientesData && Array.isArray(clientesData.data)) {
+            setClientes(clientesData.data);
+            setFilteredClientes(clientesData.data);
+          }
+          // Si es directamente un array
+          else if (Array.isArray(clientesData)) {
+            setClientes(clientesData);
+            setFilteredClientes(clientesData);
+          }
+          // Si no coincide con ninguno de los formatos esperados
+          else {
+            console.error("Formato de respuesta no reconocido:", clientesData);
+            setClientes([]);
+            setFilteredClientes([]);
+          }
+        } else {
+          console.error(
+            "La respuesta de getClients no es un objeto:",
+            clientesData
+          );
+          setClientes([]);
+          setFilteredClientes([]);
+        }
       } catch (error) {
         console.error("Error al cargar los clientes:", error);
         toast.error("Error al cargar los clientes", {
           description:
             "No se pudieron cargar los clientes. Por favor, intente nuevamente.",
         });
+        setClientes([]);
+        setFilteredClientes([]);
       } finally {
         setIsLoading(false);
       }
@@ -208,13 +250,14 @@ export default function CrearCondicionContractualComponent() {
       cantidad_banos: 1,
     },
   });
-
   const {
     control,
     handleSubmit,
     watch,
     trigger,
-    formState: { errors },
+    formState: {
+      /* errors */
+    }, // No se está utilizando errors
   } = form;
 
   // Crear un efecto para ajustar fecha_fin cuando cambia el tipo de contrato
@@ -273,12 +316,29 @@ export default function CrearCondicionContractualComponent() {
     setStep(step - 1);
   };
 
-  // Maneja el envío del formulario
   const onSubmit = async (data: FormDataSchema) => {
     setIsSubmitting(true);
     try {
-      // Aquí se enviaría la data al servidor
-      await createContractualCondition(data);
+      // Aquí garantizamos que los datos son del tipo correcto antes de enviar
+      const conditionData = {
+        clientId: data.clientId,
+        tipo_de_contrato: data.tipo_de_contrato,
+        fecha_inicio: data.fecha_inicio,
+        // Aseguramos que fecha_fin siempre sea string (requerido por CreateContractualCondition)
+        fecha_fin: data.fecha_fin || data.fecha_inicio, // Fallback a fecha_inicio si no hay fecha_fin
+        tipo_servicio: data.tipo_servicio || "INSTALACION", // Valor por defecto
+        cantidad_banos: data.cantidad_banos || 0,
+        condiciones_especificas: data.condiciones_especificas || "",
+        tarifa: data.tarifa,
+        tarifa_alquiler: data.tarifa_alquiler || 0,
+        tarifa_instalacion: data.tarifa_instalacion || 0,
+        tarifa_limpieza: data.tarifa_limpieza || 0,
+        periodicidad: data.periodicidad,
+        estado: data.estado,
+      };
+
+      // Enviamos los datos ya procesados y tipados correctamente
+      await createContractualCondition(conditionData);
 
       toast.success("¡Contrato creado correctamente!", {
         description: "La condición contractual ha sido registrada con éxito.",

@@ -1,8 +1,12 @@
 import LoginPage from "@/components/pages/LoginPage";
-import React from "react";
+import React, { Suspense } from "react";
 
 const Login = () => {
-  return <LoginPage />;
+  return (
+    <Suspense fallback={<div>Cargando...</div>}>
+      <LoginPage />
+    </Suspense>
+  );
 };
 
 export default Login;
