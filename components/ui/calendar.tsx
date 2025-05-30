@@ -6,7 +6,7 @@ import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { buttonVariants } from "@/components/ui/button";
 
-function CustomCaption({ displayMonth }: CaptionProps) {
+function CustomCaption({ calendarMonth }: CaptionProps) {
   const { goToMonth, nextMonth, previousMonth } = useNavigation();
 
   const handlePrevious = () => {
@@ -30,7 +30,9 @@ function CustomCaption({ displayMonth }: CaptionProps) {
       >
         <ChevronLeft className="size-4" />
       </button>
-      <span className="text-sm font-medium">{format(displayMonth, "MMMM yyyy")}</span>
+      <span className="text-sm font-medium">
+        {format(calendarMonth.date, "MMMM yyyy")}
+      </span>
       <button
         onClick={handleNext}
         className={cn(buttonVariants({ variant: "outline" }), "size-7 p-0")}
@@ -95,7 +97,7 @@ function Calendar({
         ...classNames,
       }}
       components={{
-        Caption: CustomCaption,
+        MonthCaption: CustomCaption,
       }}
       {...props}
     />
