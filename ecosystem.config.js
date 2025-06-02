@@ -9,18 +9,26 @@ module.exports = {
         PORT: 3001,
         NODE_ENV: "production"
       },
-      watch: false
+      watch: false,
+      exec_mode: "fork",
+      instances: 1,
+      autorestart: true,
+      max_restarts: 3
     },
     {
       name: "mva-backend",
       script: "npm",
       args: "start",
-      cwd: "/root/mva-backend",  // cambia esta ruta a la ruta real de tu backend
+      cwd: "/root/mva-backend",
       env: {
-        PORT: 3000,
+        PORT: 3002,
         NODE_ENV: "production"
       },
-      watch: false
+      watch: false,
+      exec_mode: "fork",
+      instances: 1,
+      autorestart: true,
+      max_restarts: 3
     }
   ]
 };
