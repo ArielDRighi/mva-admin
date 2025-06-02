@@ -10,17 +10,14 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import {
-  FormControl,
-  FormHelperText,
-  InputLabel,
-  MenuItem,
   Select,
-  Alert,
-  Snackbar,
-} from "@mui/material";
-import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
-import { LocalizationProvider, DatePicker } from "@mui/x-date-pickers";
-import { es } from "date-fns/locale";
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
+import { useToast } from "@/components/ui/use-toast";
 import { format, isAfter, isValid, differenceInDays } from "date-fns";
 import { User } from "./DashboardComponent";
 import { getCookie } from "cookies-next";
@@ -36,12 +33,12 @@ import {
   AlertTriangle,
   Clock,
   Calendar,
-  // LucideIcon, // No se está utilizando
   CarFront,
   FileText,
 } from "lucide-react";
 import Loader from "../ui/local/Loader";
 import { LicenciaConducir } from "@/types/licenciasConducirTypes";
+import { CustomDatePicker } from "../ui/local/CustomDatePicker";
 
 // Categorías de licencia de conducir
 const CATEGORIAS_LICENCIA = [
@@ -78,11 +75,6 @@ const LicenciaDeConducirComponent = () => {
   // Estados para control de UI
   const [loading, setLoading] = useState(true);
   const [editMode, setEditMode] = useState(false);
-  const [snackbar, setSnackbar] = useState({
-    open: false,
-    message: "",
-    severity: "success" as "success" | "error",
-  });
   const [errors, setErrors] = useState({
     categoria: false,
     fecha_expedicion: false,
@@ -94,7 +86,10 @@ const LicenciaDeConducirComponent = () => {
   const [employeeId, setEmployeeId] = useState(0);
   const [originalLicencia, setOriginalLicencia] =
     useState<LicenciaConducir | null>(null);
-  console.log("licencia", licencia);
+  
+  // Toast para notificaciones
+  const { toast } = useToast();
+  
   // Cargar usuario
   useEffect(() => {
     const userCookie = getCookie("user");
@@ -103,14 +98,15 @@ const LicenciaDeConducirComponent = () => {
         setUser(JSON.parse(userCookie as string));
       } catch (error) {
         console.error("Error al parsear la cookie de usuario:", error);
-        setSnackbar({
-          open: true,
-          message: "Error de autenticación: No se pudo cargar la información del usuario",
-          severity: "error",
+        toast({
+          variant: "destructive",
+          title: "Error de autenticación",
+          description: "No se pudo cargar la información del usuario"
         });
       }
     }
-  }, []);
+  }, [toast]);
+
   // Cargar ID del empleado
   useEffect(() => {
     const fetchEmployee = async () => {
@@ -125,20 +121,20 @@ const LicenciaDeConducirComponent = () => {
           setEmployeeId(fetchedUser.empleadoId);
         } else {
           console.error("No se encontró el ID del empleado o no es válido:", fetchedUser);
-          setSnackbar({
-            open: true,
-            message: "Error: No se pudo obtener la información del empleado",
-            severity: "error",
+          toast({
+            variant: "destructive",
+            title: "Error",
+            description: "No se pudo obtener la información del empleado"
           });
         }
       } catch (error) {
         console.error("Error al obtener datos del empleado:", error);
-        setSnackbar({
-          open: true,
-          message: error instanceof Error 
-            ? `Error: ${error.message}` 
-            : "Error: No se pudo obtener la información del empleado",
-          severity: "error",
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: error instanceof Error 
+            ? error.message 
+            : "No se pudo obtener la información del empleado"
         });
       } finally {
         setLoading(false);
@@ -146,7 +142,8 @@ const LicenciaDeConducirComponent = () => {
     };
 
     if (user?.id) fetchEmployee();
-  }, [user?.id]);
+  }, [user?.id, toast]);
+
   // Cargar licencia de conducir
   useEffect(() => {
     const fetchData = async () => {
@@ -185,20 +182,20 @@ const LicenciaDeConducirComponent = () => {
           setOriginalLicencia(null);
         } else {
           console.error("Respuesta no válida:", response);
-          setSnackbar({
-            open: true,
-            message: "Error: Formato de datos no válido",
-            severity: "error",
+          toast({
+            variant: "destructive",
+            title: "Error",
+            description: "Formato de datos no válido"
           });
         }
       } catch (error) {
         console.error("Error al cargar licencia de conducir:", error);
-        setSnackbar({
-          open: true,
-          message: error instanceof Error 
-            ? `Error: ${error.message}` 
-            : "Error al cargar la licencia de conducir",
-          severity: "error",
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: error instanceof Error 
+            ? error.message 
+            : "Error al cargar la licencia de conducir"
         });
       } finally {
         setLoading(false);
@@ -206,13 +203,12 @@ const LicenciaDeConducirComponent = () => {
     };
 
     if (employeeId) fetchData();
-  }, [employeeId]);
+  }, [employeeId, toast]);
 
   // Manejadores de eventos
-  const handleChange = (e: { target: { name: string; value: string } }) => {
-    const { name, value } = e.target;
-    setLicencia((prev) => ({ ...prev, [name]: value }));
-    setErrors((prev) => ({ ...prev, [name]: false }));
+  const handleChange = (value: string) => {
+    setLicencia((prev) => ({ ...prev, categoria: value }));
+    setErrors((prev) => ({ ...prev, categoria: false }));
   };
 
   const handleDateChange = (name: string, date: Date | null) => {
@@ -239,6 +235,7 @@ const LicenciaDeConducirComponent = () => {
     setErrors(newErrors);
     return !Object.values(newErrors).some(Boolean);
   };
+
   const handleSubmit = async () => {
     if (!validateForm()) return;
 
@@ -265,16 +262,14 @@ const LicenciaDeConducirComponent = () => {
             successMessage = response.message;
           }
           
-          setSnackbar({
-            open: true,
-            message: successMessage,
-            severity: "success",
+          toast({
+            title: "Éxito",
+            description: successMessage
           });
         } else {
-          setSnackbar({
-            open: true,
-            message: "Licencia de conducir creada con éxito",
-            severity: "success",
+          toast({
+            title: "Éxito",
+            description: "Licencia de conducir creada con éxito"
           });
         }
       } else {
@@ -290,16 +285,14 @@ const LicenciaDeConducirComponent = () => {
             successMessage = response.message;
           }
           
-          setSnackbar({
-            open: true,
-            message: successMessage,
-            severity: "success",
+          toast({
+            title: "Éxito",
+            description: successMessage
           });
         } else {
-          setSnackbar({
-            open: true,
-            message: "Licencia de conducir actualizada con éxito",
-            severity: "success",
+          toast({
+            title: "Éxito",
+            description: "Licencia de conducir actualizada con éxito"
           });
         }
       }
@@ -356,10 +349,10 @@ const LicenciaDeConducirComponent = () => {
         }
       }
       
-      setSnackbar({
-        open: true,
-        message: errorMessage,
-        severity: "error",
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: errorMessage
       });
     } finally {
       setLoading(false);
@@ -521,74 +514,63 @@ const LicenciaDeConducirComponent = () => {
                     Registro de Licencia
                   </h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <FormControl fullWidth error={errors.categoria}>
-                      <InputLabel id="categoria-label">Categoría</InputLabel>
+                    <div className="space-y-2">
+                      <Label htmlFor="categoria">Categoría</Label>
                       <Select
-                        labelId="categoria-label"
-                        name="categoria"
                         value={licencia.categoria}
-                        onChange={handleChange}
-                        label="Categoría"
+                        onValueChange={handleChange}
                       >
-                        {CATEGORIAS_LICENCIA.map((cat) => (
-                          <MenuItem key={cat.value} value={cat.value}>
-                            {cat.label}
-                          </MenuItem>
-                        ))}
+                        <SelectTrigger id="categoria" className={errors.categoria ? "border-red-500" : ""}>
+                          <SelectValue placeholder="Selecciona una categoría" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {CATEGORIAS_LICENCIA.map((cat) => (
+                            <SelectItem key={cat.value} value={cat.value}>
+                              {cat.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
                       </Select>
                       {errors.categoria && (
-                        <FormHelperText className="text-red-500">
+                        <p className="text-red-500 text-sm">
                           La categoría es obligatoria
-                        </FormHelperText>
+                        </p>
                       )}
-                    </FormControl>
+                    </div>
 
                     <div className="space-y-6">
-                      <LocalizationProvider
-                        dateAdapter={AdapterDateFns}
-                        adapterLocale={es}
-                      >
-                        <DatePicker
-                          label="Fecha de expedición"
-                          value={licencia.fecha_expedicion}
-                          onChange={(date) =>
-                            handleDateChange("fecha_expedicion", date)
-                          }
-                          format="dd/MM/yyyy"
-                          slotProps={{
-                            textField: {
-                              fullWidth: true,
-                              error: errors.fecha_expedicion,
-                              helperText: errors.fecha_expedicion
-                                ? "Fecha de expedición inválida"
-                                : "",
-                            },
-                          }}
+                      <div className="space-y-2">
+                        <Label htmlFor="fecha_expedicion">Fecha de expedición</Label>
+                        <CustomDatePicker
+                          id="fecha_expedicion"
+                          date={licencia.fecha_expedicion}
+                          onChange={(date) => handleDateChange("fecha_expedicion", date)}
+                          placeholder="Selecciona fecha de expedición"
+                          className={errors.fecha_expedicion ? "border-red-500" : ""}
                         />
-                      </LocalizationProvider>
+                        {errors.fecha_expedicion && (
+                          <p className="text-red-500 text-sm">
+                            Fecha de expedición inválida
+                          </p>
+                        )}
+                      </div>
 
-                      <LocalizationProvider
-                        dateAdapter={AdapterDateFns}
-                        adapterLocale={es}
-                      >
-                        <DatePicker
-                          label="Fecha de vencimiento"
-                          value={licencia.fecha_vencimiento}
-                          onChange={(date) =>
-                            handleDateChange("fecha_vencimiento", date)
-                          }
-                          format="dd/MM/yyyy"
-                          slotProps={{
-                            textField: {
-                              fullWidth: true,
-                              error: errors.fecha_vencimiento,
-                              helperText: errors.fecha_vencimiento
-                                ? "Fecha inválida o anterior a la expedición"
-                                : "",
-                            },
-                          }}
+                      <div className="space-y-2">
+                        <Label htmlFor="fecha_vencimiento">Fecha de vencimiento</Label>
+                        <CustomDatePicker
+                          id="fecha_vencimiento"
+                          date={licencia.fecha_vencimiento}
+                          onChange={(date) => handleDateChange("fecha_vencimiento", date)}
+                          placeholder="Selecciona fecha de vencimiento"
+                          className={errors.fecha_vencimiento ? "border-red-500" : ""}
+                          minDate={licencia.fecha_expedicion || undefined}
                         />
-                      </LocalizationProvider>
+                        {errors.fecha_vencimiento && (
+                          <p className="text-red-500 text-sm">
+                            Fecha inválida o anterior a la expedición
+                          </p>
+                        )}
+                      </div>
                     </div>
                   </div>
 
@@ -659,74 +641,63 @@ const LicenciaDeConducirComponent = () => {
                 <div className="p-5">
                   {editMode ? (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <FormControl fullWidth error={errors.categoria}>
-                        <InputLabel id="categoria-label">Categoría</InputLabel>
+                      <div className="space-y-2">
+                        <Label htmlFor="categoria">Categoría</Label>
                         <Select
-                          labelId="categoria-label"
-                          name="categoria"
                           value={licencia.categoria}
-                          onChange={handleChange}
-                          label="Categoría"
+                          onValueChange={handleChange}
                         >
-                          {CATEGORIAS_LICENCIA.map((cat) => (
-                            <MenuItem key={cat.value} value={cat.value}>
-                              {cat.label}
-                            </MenuItem>
-                          ))}
+                          <SelectTrigger id="categoria" className={errors.categoria ? "border-red-500" : ""}>
+                            <SelectValue placeholder="Selecciona una categoría" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {CATEGORIAS_LICENCIA.map((cat) => (
+                              <SelectItem key={cat.value} value={cat.value}>
+                                {cat.label}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
                         </Select>
                         {errors.categoria && (
-                          <FormHelperText className="text-red-500">
+                          <p className="text-red-500 text-sm">
                             La categoría es obligatoria
-                          </FormHelperText>
+                          </p>
                         )}
-                      </FormControl>
+                      </div>
 
                       <div className="space-y-6">
-                        <LocalizationProvider
-                          dateAdapter={AdapterDateFns}
-                          adapterLocale={es}
-                        >
-                          <DatePicker
-                            label="Fecha de expedición"
-                            value={licencia.fecha_expedicion}
-                            onChange={(date) =>
-                              handleDateChange("fecha_expedicion", date)
-                            }
-                            format="dd/MM/yyyy"
-                            slotProps={{
-                              textField: {
-                                fullWidth: true,
-                                error: errors.fecha_expedicion,
-                                helperText: errors.fecha_expedicion
-                                  ? "Fecha de expedición inválida"
-                                  : "",
-                              },
-                            }}
+                        <div className="space-y-2">
+                          <Label htmlFor="fecha_expedicion">Fecha de expedición</Label>
+                          <CustomDatePicker
+                            id="fecha_expedicion"
+                            date={licencia.fecha_expedicion}
+                            onChange={(date) => handleDateChange("fecha_expedicion", date)}
+                            placeholder="Selecciona fecha de expedición"
+                            className={errors.fecha_expedicion ? "border-red-500" : ""}
                           />
-                        </LocalizationProvider>
+                          {errors.fecha_expedicion && (
+                            <p className="text-red-500 text-sm">
+                              Fecha de expedición inválida
+                            </p>
+                          )}
+                        </div>
 
-                        <LocalizationProvider
-                          dateAdapter={AdapterDateFns}
-                          adapterLocale={es}
-                        >
-                          <DatePicker
-                            label="Fecha de vencimiento"
-                            value={licencia.fecha_vencimiento}
-                            onChange={(date) =>
-                              handleDateChange("fecha_vencimiento", date)
-                            }
-                            format="dd/MM/yyyy"
-                            slotProps={{
-                              textField: {
-                                fullWidth: true,
-                                error: errors.fecha_vencimiento,
-                                helperText: errors.fecha_vencimiento
-                                  ? "Fecha inválida o anterior a la expedición"
-                                  : "",
-                              },
-                            }}
+                        <div className="space-y-2">
+                          <Label htmlFor="fecha_vencimiento">Fecha de vencimiento</Label>
+                          <CustomDatePicker
+                            id="fecha_vencimiento"
+                            date={licencia.fecha_vencimiento}
+                            onChange={(date) => handleDateChange("fecha_vencimiento", date)}
+                            placeholder="Selecciona fecha de vencimiento"
+                            className={errors.fecha_vencimiento ? "border-red-500" : ""}
+                            minDate={licencia.fecha_expedicion || undefined}
                           />
-                        </LocalizationProvider>
+                          {errors.fecha_vencimiento && (
+                            <p className="text-red-500 text-sm">
+                              Fecha inválida o anterior a la expedición
+                            </p>
+                          )}
+                        </div>
                       </div>
                     </div>
                   ) : (
@@ -824,20 +795,6 @@ const LicenciaDeConducirComponent = () => {
           )}
         </CardContent>
       </Card>
-
-      <Snackbar
-        open={snackbar.open}
-        autoHideDuration={6000}
-        onClose={() => setSnackbar((prev) => ({ ...prev, open: false }))}
-      >
-        <Alert
-          onClose={() => setSnackbar((prev) => ({ ...prev, open: false }))}
-          severity={snackbar.severity}
-          sx={{ width: "100%", boxShadow: 2 }}
-        >
-          {snackbar.message}
-        </Alert>
-      </Snackbar>
     </div>
   );
 };

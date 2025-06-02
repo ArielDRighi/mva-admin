@@ -4,7 +4,6 @@ import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { SimpleDatePicker } from "@/components/ui/simple-date-picker";
 import { getEmployees } from "@/app/actions/empleados";
 import { createServiceCapacitacion } from "@/app/actions/services";
 import {
@@ -20,6 +19,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { CalendarDays, UserCheck, MapPin, RefreshCcw } from "lucide-react";
 import Loader from "@/components/ui/local/Loader";
+import { CustomDatePicker } from '../ui/local/CustomDatePicker';
 
 type Employee = {
   id: number;
@@ -180,9 +180,10 @@ export default function CapacitacionesCrearComponent() {
                   </div>
                 </Label>
                 <div className="relative">
-                  <SimpleDatePicker
+                  <CustomDatePicker
                     date={startDate}
-                    onChange={(date) => setStartDate(date)}
+                    onChange={setStartDate}
+                    showTimeSelect={true}
                     format="yyyy-MM-dd HH:mm"
                     placeholder="Selecciona fecha y hora de inicio"
                     className="w-full"
@@ -204,16 +205,15 @@ export default function CapacitacionesCrearComponent() {
                   </div>
                 </Label>
                 <div className="relative">
-                  <DatePicker
+                  <CustomDatePicker
                     id="fechaFin"
-                    selected={endDate}
-                    onChange={(date) => setEndDate(date)}
-                    showTimeSelect
-                    dateFormat="yyyy-MM-dd HH:mm"
-                    className="w-full p-2 border border-slate-200 rounded-md focus:ring-2 focus:ring-slate-200 focus:border-slate-300"
-                    placeholderText="Selecciona fecha y hora de fin"
+                    date={endDate}
+                    onChange={setEndDate}
+                    showTimeSelect={true}
+                    format="yyyy-MM-dd HH:mm"
+                    placeholder="Selecciona fecha y hora de fin"
                     minDate={startDate || undefined}
-                    wrapperClassName="w-full"
+                    className="w-full"
                   />
                 </div>
                 {!endDate && (

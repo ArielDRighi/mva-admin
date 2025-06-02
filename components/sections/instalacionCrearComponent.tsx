@@ -35,8 +35,7 @@ import {
   Save,
   Check,
 } from "lucide-react";
-import DatePicker from "react-datepicker";
-import "react-datepicker/dist/react-datepicker.css";
+import { CustomDatePicker } from "@/components/ui/local/CustomDatePicker";
 import { getEmployees } from "@/app/actions/empleados";
 import { getVehicles } from "@/app/actions/vehiculos";
 import { getSanitarios } from "@/app/actions/sanitarios";
@@ -900,17 +899,15 @@ export default function CrearInstalacionComponent() {
                   <div>
                     <label className="block text-sm font-medium mb-2">
                       Fecha Programada
-                    </label>
-                    <DatePicker
-                      selected={field.value}
-                      onSelect={field.onChange}
+                    </label>                    <CustomDatePicker
+                      date={field.value}
+                      onChange={field.onChange}
                       disabled={isSubmitting}
                       minDate={new Date()}
                       showTimeSelect
-                      dateFormat="yyyy-MM-dd HH:mm"
-                      className="w-full p-2 border border-slate-200 rounded-md focus:ring-2 focus:ring-slate-200 focus:border-slate-300"
-                      placeholderText="Selecciona fecha y hora de inicio"
-                      wrapperClassName="w-full"
+                      format="yyyy-MM-dd HH:mm"
+                      placeholder="Selecciona fecha y hora de inicio"
+                      className="w-full"
                     />
                     {fieldState.error?.message && (
                       <p className="text-sm text-red-500 mt-1">

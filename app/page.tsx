@@ -21,15 +21,14 @@ export default async function Home() {
       redirect("/empleado/dashboard");
     }
   }
-
   // If not authenticated, show the simple home page
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-gradient-to-b from-white to-gray-50">
-      <div className="flex flex-col items-center space-y-8">
-        <div className="flex items-center space-x-2">
+    <main className="flex min-h-screen flex-col items-center justify-between py-8 bg-gradient-to-b from-white to-gray-50">
+      <div className="flex-1 flex flex-col items-center justify-center space-y-8">
+        <header className="flex items-center space-x-2">
           <Image src={LogoMVA} alt="MVA Logo" className="h-16 w-auto" width={64} height={64} />
-          <span className="font-bold text-2xl">MVA SRL</span>
-        </div>
+          <h2 className="font-bold text-2xl">MVA SRL</h2>
+        </header>
         <h1 className="text-3xl font-bold text-primary text-center">
           Sistema de Gestión
         </h1>
@@ -39,9 +38,9 @@ export default async function Home() {
           </Button>
         </Link>
       </div>
-      <footer className="absolute bottom-4 text-center text-sm text-gray-500">
+      <footer className="w-full text-center text-sm text-gray-500 mt-8">
         © 2025 MVA SRL. Todos los derechos reservados.
       </footer>
-    </div>
+    </main>
   );
 }
