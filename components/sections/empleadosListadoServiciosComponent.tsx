@@ -26,7 +26,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Calendar } from "@/components/ui/calendar";
+import { SimpleCalendar } from "@/components/ui/simple-calendar";
 import {
   Popover,
   PopoverContent,
@@ -342,11 +342,10 @@ const EmpleadosHistorialServiciosComponent = () => {
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent className="w-auto p-0">
-                    <Calendar
+                    <SimpleCalendar
                       mode="single"
                       selected={filtroFecha}
                       onSelect={setFiltroFecha}
-                      initialFocus
                     />
                     {filtroFecha && (
                       <div className="p-2 border-t flex justify-center">

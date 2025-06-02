@@ -4,8 +4,7 @@ import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import DatePicker from "react-datepicker";
-import "react-datepicker/dist/react-datepicker.css";
+import { SimpleDatePicker } from "@/components/ui/simple-date-picker";
 import { getEmployees } from "@/app/actions/empleados";
 import { createServiceCapacitacion } from "@/app/actions/services";
 import {
@@ -181,15 +180,12 @@ export default function CapacitacionesCrearComponent() {
                   </div>
                 </Label>
                 <div className="relative">
-                  <DatePicker
-                    id="fechaInicio"
-                    selected={startDate}
+                  <SimpleDatePicker
+                    date={startDate}
                     onChange={(date) => setStartDate(date)}
-                    showTimeSelect
-                    dateFormat="yyyy-MM-dd HH:mm"
-                    className="w-full p-2 border border-slate-200 rounded-md focus:ring-2 focus:ring-slate-200 focus:border-slate-300"
-                    placeholderText="Selecciona fecha y hora de inicio"
-                    wrapperClassName="w-full"
+                    format="yyyy-MM-dd HH:mm"
+                    placeholder="Selecciona fecha y hora de inicio"
+                    className="w-full"
                   />
                 </div>
                 {!startDate && (

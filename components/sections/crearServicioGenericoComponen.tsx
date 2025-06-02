@@ -33,8 +33,7 @@ import {
   Clipboard,
   Bath,
 } from "lucide-react";
-import DatePicker from "react-datepicker";
-import "react-datepicker/dist/react-datepicker.css";
+import { SimpleDatePicker } from "@/components/ui/simple-date-picker";
 import { getEmployees } from "@/app/actions/empleados";
 import { getVehicles } from "@/app/actions/vehiculos";
 import { getSanitariosByClient } from "@/app/actions/sanitarios";
@@ -964,15 +963,12 @@ export function CrearServicioGenericoComponent() {
                         control={control}
                         render={({ field }) => (
                           <div className="flex flex-col">
-                            <DatePicker
-                              selected={field.value}
-                              onChange={(date: Date | null) =>
-                                field.onChange(date)
-                              }
-                              dateFormat="dd/MM/yyyy"
-                              className="w-full rounded-md border border-gray-300 px-3 py-2"
-                              minDate={new Date()}
-                              placeholderText="Seleccione fecha"
+                            <SimpleDatePicker
+                              date={field.value}
+                              onChange={(date) => field.onChange(date)}
+                              format="dd/MM/yyyy"
+                              placeholder="Seleccione fecha"
+                              className="w-full"
                             />
                             {errors.fechaProgramada && (
                               <p className="text-red-500 text-sm mt-1">
