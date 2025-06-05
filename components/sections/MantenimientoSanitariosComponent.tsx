@@ -6,7 +6,9 @@ import {
   editSanitarioEnMantenimiento,
   getSanitariosEnMantenimiento,
 } from "@/app/actions/sanitarios";
+import { getEmployeeById } from "@/app/actions/empleados";
 import { SanitarioSelector } from "@/components/ui/local/SearchSelector/Selectors/SanitarioSelector";
+import { EmpleadoSelector } from "@/components/ui/local/SearchSelector/Selectors/EmpleadoSelector";
 import { MantenimientoSanitario } from "@/types/types";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -87,21 +89,22 @@ const MantenimientoSanitariosComponent = ({
           "El tipo de mantenimiento debe ser 'Preventivo' o 'Correctivo'",
       }),
     }),
-
     descripcion: z.string().min(1, "La descripción es obligatoria"),
 
     tecnico_responsable: z
-      .string()
-      .min(1, "El técnico responsable es obligatorio"),
+      .number({
+        required_error: "El técnico responsable es obligatorio",
+        invalid_type_error: "Debe seleccionar un empleado válido",
+      })
+      .positive("Debe seleccionar un empleado válido"),
 
     costo: z
       .number({
-        required_error: "El costo es obligatorio",
         invalid_type_error: "El costo debe ser un número",
       })
-      .nonnegative("El costo no puede ser negativo"),
+      .nonnegative("El costo no puede ser negativo")
+      .optional(),
   });
-
   const form = useForm<z.infer<typeof createSanitarioSchema>>({
     resolver: zodResolver(createSanitarioSchema),
     defaultValues: {
@@ -109,8 +112,8 @@ const MantenimientoSanitariosComponent = ({
       fecha_mantenimiento: new Date().toISOString().split("T")[0],
       tipo_mantenimiento: "Preventivo",
       descripcion: "",
-      tecnico_responsable: "",
-      costo: 0,
+      tecnico_responsable: 0,
+      costo: undefined,
     },
   });
 
@@ -174,18 +177,22 @@ const MantenimientoSanitariosComponent = ({
         : "Correctivo"
     );
     setValue("descripcion", mantenimientoSanitario.descripcion);
-    setValue("tecnico_responsable", mantenimientoSanitario.tecnico_responsable);
+    setValue(
+      "tecnico_responsable",
+      typeof mantenimientoSanitario.tecnico_responsable === "string"
+        ? 0 // Si es string (legacy data), usar 0 como default
+        : mantenimientoSanitario.tecnico_responsable || 0
+    );
     setValue("costo", mantenimientoSanitario.costo);
   };
-
   const handleCreateClick = () => {
     reset({
       baño_id: 0,
       fecha_mantenimiento: new Date().toISOString().split("T")[0],
       tipo_mantenimiento: "Preventivo",
       descripcion: "",
-      tecnico_responsable: "",
-      costo: 0,
+      tecnico_responsable: 0,
+      costo: undefined,
     });
     setSelectedMantenimientoSanitario(null);
     setIsCreating(true);
@@ -258,6 +265,35 @@ const MantenimientoSanitariosComponent = ({
     try {
       setLoading(true);
 
+      // Fetch employee name from ID
+      let empleadoNombre = "";
+      if (data.tecnico_responsable && data.tecnico_responsable > 0) {
+        try {
+          const empleado = (await getEmployeeById(
+            data.tecnico_responsable.toString()
+          )) as {
+            nombre: string;
+            apellido: string;
+          };
+          empleadoNombre = `${empleado.nombre} ${empleado.apellido}`;
+        } catch (error) {
+          console.error("Error fetching employee:", error);
+          toast.error("Error", {
+            description:
+              "No se pudo obtener la información del empleado seleccionado",
+            duration: 5000,
+          });
+          return;
+        }
+      }
+
+      // Transform the form data to match API expectations
+      const submitData: MantenimientoSanitario = {
+        ...data,
+        tecnico_responsable: empleadoNombre, // Send employee name as string
+        costo: data.costo || 0, // Default to 0 if undefined
+      };
+
       if (
         selectedMantenimientoSanitario &&
         selectedMantenimientoSanitario.mantenimiento_id
@@ -265,7 +301,7 @@ const MantenimientoSanitariosComponent = ({
         // Actualizar mantenimiento existente
         const result = await editSanitarioEnMantenimiento(
           selectedMantenimientoSanitario.mantenimiento_id,
-          data
+          submitData
         );
 
         // Verificar resultado
@@ -277,7 +313,7 @@ const MantenimientoSanitariosComponent = ({
         }
       } else {
         // Crear nuevo mantenimiento
-        const result = await createSanitarioEnMantenimiento(data);
+        const result = await createSanitarioEnMantenimiento(submitData);
 
         // Verificar resultado
         if (result) {
@@ -371,8 +407,8 @@ const MantenimientoSanitariosComponent = ({
           fecha_mantenimiento: new Date().toISOString().split("T")[0],
           tipo_mantenimiento: "Preventivo",
           descripcion: "",
-          tecnico_responsable: "",
-          costo: 0,
+          tecnico_responsable: 0,
+          costo: undefined,
         });
 
         // Mostrar el formulario de creación
@@ -678,18 +714,21 @@ const MantenimientoSanitariosComponent = ({
                 error={fieldState.error?.message}
               />
             )}
-          />
+          />{" "}
           <Controller
             name="costo"
             control={control}
             render={({ field, fieldState }) => (
               <FormField
-                label="Costo"
+                label="Costo (Opcional)"
                 name="costo"
                 type="number"
-                value={String(field.value)}
-                onChange={(value) => field.onChange(parseFloat(value))}
+                value={field.value ? String(field.value) : ""}
+                onChange={(value) =>
+                  field.onChange(value ? parseFloat(value) : undefined)
+                }
                 error={fieldState.error?.message}
+                placeholder="$0.00"
               />
             )}
           />
@@ -697,14 +736,22 @@ const MantenimientoSanitariosComponent = ({
             name="tecnico_responsable"
             control={control}
             render={({ field, fieldState }) => (
-              <FormField
-                label="Técnico responsable"
-                name="tecnico_responsable"
-                value={field.value}
-                onChange={field.onChange}
-                error={fieldState.error?.message}
-                placeholder="Nombre del técnico"
-              />
+              <div className="space-y-2">
+                <label
+                  htmlFor="tecnico_responsable"
+                  className="text-sm font-medium"
+                >
+                  Técnico Responsable
+                </label>
+                <EmpleadoSelector
+                  value={field.value || 0}
+                  onChange={(empleadoId) => field.onChange(empleadoId)}
+                  name="tecnico_responsable"
+                  label=""
+                  error={fieldState.error?.message}
+                  disabled={false}
+                />
+              </div>
             )}
           />
           <Controller
