@@ -141,6 +141,7 @@ export type UpdateServiceDto = {
   estado?: ServiceState;
   cantidadBanos?: number;
   cantidadEmpleados?: number;
+  condicionContractualId?: number;
   cantidadVehiculos?: number;
   ubicacion?: string;
   notas?: string;

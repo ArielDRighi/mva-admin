@@ -98,6 +98,11 @@ const dataSideBar = {
           title: "Listado Servicios Genericos",
           url: "/admin/dashboard/servicios/genericos/listado",
         },
+        {
+          title: "Editar Servicio Generico",
+          url: "/admin/dashboard/servicios/genericos/editar",
+          hidden: true,
+        },
       ],
     },
     {
