@@ -130,15 +130,22 @@ const MantenimientoVehiculosComponent = ({
     params.set("page", String(page));
     router.replace(`?${params.toString()}`);
   };
-
   const handleSearchChange = (search: string) => {
     const params = new URLSearchParams(searchParams.toString());
-    params.set("search", search);
+
+    // Si no hay término de búsqueda, eliminar el parámetro
+    if (!search || search.trim() === "") {
+      params.delete("search");
+    } else {
+      params.set("search", search);
+    }
+
+    // Siempre volver a la primera página al buscar
     params.set("page", "1");
     router.replace(`?${params.toString()}`);
 
-    // Update the URL and then fetch with the updated search parameter
-    fetchMantenimientos();
+    // No llamar fetchMantenimientos aquí ya que se ejecutará automáticamente
+    // cuando cambien los searchParams a través del useEffect
   };
 
   const handleTabChange = (value: string) => {
@@ -398,6 +405,11 @@ const MantenimientoVehiculosComponent = ({
       setLoading(false);
     }
   }, [searchParams, itemsPerPage, loadVehiclesInfo]);
+
+  // useEffect to call fetchMantenimientos when searchParams change
+  useEffect(() => {
+    fetchMantenimientos();
+  }, [fetchMantenimientos]);
 
   // En el componente MantenimientoVehiculosComponent
   useEffect(() => {

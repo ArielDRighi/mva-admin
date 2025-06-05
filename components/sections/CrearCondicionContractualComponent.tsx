@@ -620,6 +620,29 @@ export default function CrearCondicionContractualComponent() {
             <h3 className="text-lg font-medium text-slate-800 mt-6 mb-3">
               Tarifas
             </h3>
+            <div className="text-sm text-slate-600 mb-4 p-3 bg-blue-50 rounded-md border border-blue-200">
+              <p className="font-medium mb-2">
+                ℹ️ Información sobre las tarifas:
+              </p>
+              <ul className="space-y-1 text-xs">
+                <li>
+                  <strong>Tarifa Principal:</strong> Costo base del alquiler
+                  según la periodicidad establecida (mensual, semanal, etc.)
+                </li>
+                <li>
+                  <strong>Tarifa de Alquiler:</strong> Costo adicional
+                  específico para el período de alquiler del equipo
+                </li>
+                <li>
+                  <strong>Tarifa de Instalación:</strong> Costo único por el
+                  servicio de instalación de los baños químicos
+                </li>
+                <li>
+                  <strong>Tarifa de Limpieza:</strong> Costo por cada servicio
+                  de limpieza y mantenimiento periódico
+                </li>
+              </ul>
+            </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <Controller
                 name="tarifa"
@@ -637,6 +660,7 @@ export default function CrearCondicionContractualComponent() {
                     error={fieldState.error?.message}
                     type="number"
                     prefix="$"
+                    placeholder="Ej: 2500 (costo base según periodicidad)"
                   />
                 )}
               />
@@ -657,6 +681,7 @@ export default function CrearCondicionContractualComponent() {
                     error={fieldState.error?.message}
                     type="number"
                     prefix="$"
+                    placeholder="Ej: 500 (costo adicional de alquiler)"
                   />
                 )}
               />
@@ -677,6 +702,7 @@ export default function CrearCondicionContractualComponent() {
                     error={fieldState.error?.message}
                     type="number"
                     prefix="$"
+                    placeholder="Ej: 800 (costo único de instalación)"
                   />
                 )}
               />
@@ -697,6 +723,7 @@ export default function CrearCondicionContractualComponent() {
                     error={fieldState.error?.message}
                     type="number"
                     prefix="$"
+                    placeholder="Ej: 300 (costo por servicio de limpieza)"
                   />
                 )}
               />
