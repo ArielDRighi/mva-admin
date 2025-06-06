@@ -206,7 +206,6 @@ export default function CapacitacionesCrearComponent() {
                 </Label>
                 <div className="relative">
                   <CustomDatePicker
-                    id="fechaFin"
                     date={endDate}
                     onChange={setEndDate}
                     showTimeSelect={true}
