@@ -348,8 +348,7 @@ export function ListadoServicioGenericoComponent() {
                             <FileText className="h-4 w-4 mr-2 text-muted-foreground" />
                             <span>{servicio.cantidadBanos} baños</span>
                           </div>
-                        </TableCell>
-                        <TableCell>
+                        </TableCell>                        <TableCell>
                           <div className="flex space-x-2">
                             <Button
                               variant="outline"
@@ -360,6 +359,18 @@ export function ListadoServicioGenericoComponent() {
                               }}
                             >
                               Ver
+                            </Button>
+                            
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => {
+                                router.push(`/admin/dashboard/servicios/genericos/editar/${servicio.id}`);
+                              }}
+                              className="cursor-pointer bg-blue-100 text-blue-700 hover:bg-blue-200 hover:text-blue-800"
+                            >
+                              <FileText className="h-3.5 w-3.5 mr-1" />
+                              Editar
                             </Button>
 
                             <Button
