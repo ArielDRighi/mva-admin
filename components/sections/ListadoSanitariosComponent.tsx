@@ -30,6 +30,7 @@ import {
   Toilet,
   RefreshCcw,
   PlusCircle,
+  Info, // Agregar este icono
 } from "lucide-react";
 import {
   Card,
@@ -341,6 +342,83 @@ const ListadoSanitariosComponent = ({
             <PlusCircle className="mr-2 h-4 w-4" />
             Nuevo Sanitario
           </Button>
+        </div>
+
+        {/* Agregar esta sección de información de estados */}
+        <div className="mt-4 p-4 bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-lg">
+          <div className="flex items-start gap-2">
+            <Info className="h-5 w-5 text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" />
+            <div className="space-y-2">
+              <h4 className="font-semibold text-blue-900 dark:text-blue-100">
+                Estados de Sanitarios
+              </h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 text-sm">
+                <div className="flex items-center gap-2">
+                  <Badge className="bg-green-100 text-green-800 hover:bg-green-100">
+                    DISPONIBLE
+                  </Badge>
+                  <span className="text-blue-800 dark:text-blue-200">
+                    Listo para ser asignado a servicios
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-100">
+                    ASIGNADO
+                  </Badge>
+                  <span className="text-blue-800 dark:text-blue-200">
+                    Actualmente instalado en un cliente
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Badge className="bg-amber-100 text-amber-800 hover:bg-amber-100">
+                    MANTENIMIENTO
+                  </Badge>
+                  <span className="text-blue-800 dark:text-blue-200">
+                    En proceso de mantenimiento
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Badge className="bg-red-50 text-red-600 hover:bg-red-50">
+                    FUERA DE SERVICIO
+                  </Badge>
+                  <span className="text-blue-800 dark:text-blue-200">
+                    Temporalmente fuera de servicio
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Badge className="bg-red-100 text-red-800 hover:bg-red-100">
+                    BAJA
+                  </Badge>
+                  <span className="text-blue-800 dark:text-blue-200">
+                    Dado de baja definitivamente
+                  </span>
+                </div>
+              </div>
+              <div className="mt-3 space-y-1 text-xs text-blue-700 dark:text-blue-300">
+                <p>
+                  <strong>Importante:</strong>
+                </p>
+                <ul className="list-disc list-inside space-y-1 ml-2">
+                  <li>
+                    Solo sanitarios <strong>DISPONIBLES</strong> pueden ser
+                    asignados a nuevos servicios
+                  </li>
+                  <li>
+                    Sanitarios <strong>ASIGNADOS</strong> solo se usan para
+                    servicios de limpieza, retiro o mantenimiento in-situ
+                  </li>
+                  <li>
+                    El estado <strong>MANTENIMIENTO</strong> se asigna
+                    automáticamente al programar un mantenimiento
+                  </li>
+                  <li>
+                    Después de un servicio de retiro, los sanitarios pasan
+                    automáticamente a <strong>MANTENIMIENTO</strong>
+                  </li>
+                </ul>
+              </div>
+            </div>
+          </div>
         </div>
 
         <div className="mt-4">

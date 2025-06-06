@@ -184,40 +184,48 @@ export default function ListadoCondicionesContractualesComponent({
       // Verificamos el tipo de respuesta
       if (response && typeof response === "object") {
         // Si la respuesta tiene un mensaje específico, lo usamos
-        const message = "message" in response ? response.message as string : "";
-        
+        const message =
+          "message" in response ? (response.message as string) : "";
+
         // Actualizamos el estado local tras la eliminación exitosa
         setCondiciones(
           condiciones.filter((c) => c.condicionContractualId !== id)
         );
-        
+
         toast.success("Condición contractual eliminada", {
-          description: message || "La condición contractual se ha eliminado correctamente."
+          description:
+            message ||
+            "La condición contractual se ha eliminado correctamente.",
         });
       } else {
         // Si no hay respuesta específica pero la operación fue exitosa
         setCondiciones(
           condiciones.filter((c) => c.condicionContractualId !== id)
         );
-        
+
         toast.success("Condición contractual eliminada", {
-          description: "La condición contractual se ha eliminado correctamente."
+          description:
+            "La condición contractual se ha eliminado correctamente.",
         });
       }
     } catch (error) {
       console.error("Error al eliminar la condición contractual:", error);
-      
+
       // Extraemos el mensaje de error si está disponible
       let errorMessage = "No se pudo eliminar la condición contractual.";
-      
+
       if (error instanceof Error) {
         errorMessage = error.message;
-      } else if (typeof error === "object" && error !== null && "message" in error) {
+      } else if (
+        typeof error === "object" &&
+        error !== null &&
+        "message" in error
+      ) {
         errorMessage = error.message as string;
       }
-      
+
       toast.error("Error al eliminar", {
-        description: errorMessage
+        description: errorMessage,
       });
     } finally {
       setLoading(false);
@@ -393,6 +401,7 @@ export default function ListadoCondicionesContractualesComponent({
 
       <CardContent className="p-6">
         <div className="rounded-md border">
+          {" "}
           <ListadoTabla
             title=""
             data={filteredCondiciones}
@@ -401,6 +410,7 @@ export default function ListadoCondicionesContractualesComponent({
               "condiciones_especificas",
               "tipo_de_contrato",
               "periodicidad",
+              "cliente.nombre",
             ]}
             remotePagination
             totalItems={total}
@@ -408,6 +418,7 @@ export default function ListadoCondicionesContractualesComponent({
             onPageChange={handlePageChange}
             onSearchChange={handleSearchChange}
             columns={[
+              { title: "Cliente", key: "cliente" },
               { title: "Detalles", key: "detalles" },
               { title: "Información del Contrato", key: "informacion" },
               { title: "Financieros", key: "financieros" },
@@ -416,6 +427,23 @@ export default function ListadoCondicionesContractualesComponent({
             ]}
             renderRow={(condicion) => (
               <>
+                <TableCell className="min-w-[180px]">
+                  <div
+                    className="space-y-1 cursor-pointer hover:bg-slate-50 p-2 rounded-md transition-colors"
+                    onClick={() => handleViewDetails(condicion)}
+                  >
+                    <div className="flex items-center text-sm font-medium">
+                      <User className="h-3.5 w-3.5 mr-2 text-muted-foreground" />
+                      <span>{condicion.cliente?.nombre || "Sin cliente"}</span>
+                    </div>
+                    {condicion.cliente?.email && (
+                      <div className="text-xs text-muted-foreground">
+                        {condicion.cliente.email}
+                      </div>
+                    )}
+                  </div>
+                </TableCell>
+
                 <TableCell className="min-w-[250px]">
                   <div
                     className="space-y-1 cursor-pointer hover:bg-slate-50 p-2 rounded-md transition-colors"
@@ -895,7 +923,8 @@ export default function ListadoCondicionesContractualesComponent({
                     variant="destructive"
                     size="sm"
                     onClick={() => {
-                      setIsViewModalOpen(false);                      if (selectedCondicion.condicionContractualId) {
+                      setIsViewModalOpen(false);
+                      if (selectedCondicion.condicionContractualId) {
                         handleDeleteClick(
                           selectedCondicion.condicionContractualId
                         );

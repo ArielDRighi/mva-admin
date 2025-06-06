@@ -33,6 +33,7 @@ import {
   Phone,
   Briefcase,
   Calendar,
+  Info, // Agregar este icono
 } from "lucide-react";
 import {
   Card,
@@ -476,6 +477,72 @@ export default function ListadoEmpleadosComponent({
             <UserPlus className="mr-2 h-4 w-4" />
             Nuevo Empleado
           </Button>
+        </div>
+
+        {/* Agregar esta sección de información de estados */}
+        <div className="mt-4 p-4 bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-lg">
+          <div className="flex items-start gap-2">
+            <Info className="h-5 w-5 text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" />
+            <div className="space-y-2">
+              <h4 className="font-semibold text-blue-900 dark:text-blue-100">
+                Estados de Empleados
+              </h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 text-sm">
+                <div className="flex items-center gap-2">
+                  <Badge className="bg-green-100 text-green-800 hover:bg-green-100">
+                    DISPONIBLE
+                  </Badge>
+                  <span className="text-blue-800 dark:text-blue-200">
+                    Listo para ser asignado a servicios
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-100">
+                    ASIGNADO
+                  </Badge>
+                  <span className="text-blue-800 dark:text-blue-200">
+                    Actualmente asignado a un servicio
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Badge className="bg-yellow-100 text-yellow-800 hover:bg-yellow-100">
+                    VACACIONES
+                  </Badge>
+                  <span className="text-blue-800 dark:text-blue-200">
+                    Empleado de vacaciones
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Badge className="bg-orange-100 text-orange-800 hover:bg-orange-100">
+                    LICENCIA
+                  </Badge>
+                  <span className="text-blue-800 dark:text-blue-200">
+                    Con licencia médica u otra
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Badge className="bg-gray-100 text-gray-800 hover:bg-gray-100">
+                    INACTIVO
+                  </Badge>
+                  <span className="text-blue-800 dark:text-blue-200">
+                    Temporalmente inactivo
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Badge className="bg-red-100 text-red-800 hover:bg-red-100">
+                    BAJA
+                  </Badge>
+                  <span className="text-blue-800 dark:text-blue-200">
+                    Ya no trabaja en la empresa
+                  </span>
+                </div>
+              </div>
+              <div className="mt-2 text-xs text-blue-700 dark:text-blue-300">
+                <strong>Nota:</strong> Solo los empleados con estado
+                "DISPONIBLE" o "ASIGNADO" pueden ser asignados a servicios.
+              </div>
+            </div>
+          </div>
         </div>
 
         <div className="mt-4">
