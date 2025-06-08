@@ -16,6 +16,7 @@ export type ContractualCondition = {
   };
   clientId?: number;
   tipo_de_contrato: "Temporal" | "Permanente";
+  tipo_servicio?: "INSTALACION" | "LIMPIEZA" | "MANTENIMIENTO" | string; // Agregando tipo de servicio
   fecha_inicio: string;
   fecha_fin: string;
   condiciones_especificas?: string;
@@ -27,6 +28,7 @@ export type ContractualCondition = {
 export type CreateContractualCondition = {
   clientId: number;
   tipo_de_contrato: "Temporal" | "Permanente" | string;
+  tipo_servicio?: "INSTALACION" | "LIMPIEZA" | "MANTENIMIENTO" | string; // Agregando tipo de servicio
   fecha_inicio: string;
   fecha_fin: string;
   condiciones_especificas?: string;
