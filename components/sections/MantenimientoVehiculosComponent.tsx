@@ -129,15 +129,22 @@ const MantenimientoVehiculosComponent = ({
     const params = new URLSearchParams(searchParams.toString());
     params.set("page", String(page));
     router.replace(`?${params.toString()}`);
-  };
-  const handleSearchChange = (search: string) => {
+  };  const handleSearchChange = (search: string) => {
     const params = new URLSearchParams(searchParams.toString());
 
     // Si no hay término de búsqueda, eliminar el parámetro
     if (!search || search.trim() === "") {
       params.delete("search");
     } else {
-      params.set("search", search);
+      // Verificar si es una búsqueda directa de tipo de mantenimiento
+      if (search.toLowerCase() === "preventivo" || search.toLowerCase() === "correctivo") {
+        // Añadir exactamente el tipo con la primera letra mayúscula
+        const tipoFormateado = search.charAt(0).toUpperCase() + search.slice(1).toLowerCase();
+        params.set("search", tipoFormateado);
+        console.log("Buscando por tipo específico:", tipoFormateado);
+      } else {
+        params.set("search", search);
+      }
     }
 
     // Siempre volver a la primera página al buscar
@@ -365,30 +372,46 @@ const MantenimientoVehiculosComponent = ({
         duration: 5000, // Duración aumentada para mejor visibilidad
       });
     }
-  };
-  const fetchMantenimientos = useCallback(async () => {
+  };  const fetchMantenimientos = useCallback(async () => {
     const currentPage = Number(searchParams.get("page")) || 1;
     const searchTerm = searchParams.get("search") || "";
+    const isSearchingByType = searchTerm.toLowerCase() === "correctivo" || searchTerm.toLowerCase() === "preventivo";
+    
     setLoading(true);
     console.log("currentPage", currentPage);
     console.log("itemsPerPage", itemsPerPage);
     console.log("search term:", searchTerm);
+    console.log("isSearchingByType:", isSearchingByType);
+    
     try {
+      // Si estamos buscando por tipo específicamente, hacemos la llamada sin término de búsqueda
+      // y luego filtramos los resultados localmente para mayor precisión
       const fetchedMantenimientos = (await getMantenimientosVehiculos(
         currentPage,
         itemsPerPage,
-        searchTerm // Make sure this value is passed correctly
+        isSearchingByType ? "" : searchTerm
       )) as {
         data: VehicleMaintenance[];
         totalItems: number;
         currentPage: number;
-      };
-      setMantenimientos(fetchedMantenimientos.data);
-      setTotal(fetchedMantenimientos.totalItems);
-      setPage(fetchedMantenimientos.currentPage);
+      };      // Si estamos buscando por tipo, filtramos los resultados localmente
+      if (isSearchingByType) {
+        const tipoFormateado = searchTerm.charAt(0).toUpperCase() + searchTerm.slice(1).toLowerCase();
+        const mantenimientosFiltrados = fetchedMantenimientos.data.filter(
+          mantenimiento => mantenimiento.tipoMantenimiento === tipoFormateado
+        );
+        console.log(`Filtrado local por tipo "${tipoFormateado}": ${mantenimientosFiltrados.length} resultados`);
+        setMantenimientos(mantenimientosFiltrados);
+        setTotal(mantenimientosFiltrados.length); // Ajustamos el total para la paginación
+        setPage(1); // Volvemos a la primera página
+      } else {
+        setMantenimientos(fetchedMantenimientos.data);
+        setTotal(fetchedMantenimientos.totalItems);
+        setPage(fetchedMantenimientos.currentPage);
+      }
 
       // Cargar información de vehículos
-      loadVehiclesInfo(fetchedMantenimientos.data);
+      loadVehiclesInfo(isSearchingByType ? fetchedMantenimientos.data : fetchedMantenimientos.data);
     } catch (error) {
       console.error("Error al cargar los mantenimientos:", error);
 
@@ -539,7 +562,7 @@ const MantenimientoVehiculosComponent = ({
               "vehicle.modelo",
               "vehicle.numeroInterno",
             ]}
-            searchPlaceholder="Buscar por tipo, descripción o vehículo..."
+            searchPlaceholder="Buscar por tipo, descripción o vehículo"
             remotePagination
             totalItems={total}
             currentPage={page}

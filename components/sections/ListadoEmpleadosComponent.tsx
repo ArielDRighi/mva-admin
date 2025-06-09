@@ -33,7 +33,8 @@ import {
   Phone,
   Briefcase,
   Calendar,
-  Info, // Agregar este icono
+  Info,
+  FileText, // Icono para documentos
 } from "lucide-react";
 import {
   Card,
@@ -539,7 +540,8 @@ export default function ListadoEmpleadosComponent({
               </div>
               <div className="mt-2 text-xs text-blue-700 dark:text-blue-300">
                 <strong>Nota:</strong> Solo los empleados con estado
-                "DISPONIBLE" o "ASIGNADO" pueden ser asignados a servicios.
+                &quot;DISPONIBLE&quot; o &quot;ASIGNADO&quot; pueden ser
+                asignados a servicios.
               </div>
             </div>
           </div>
@@ -587,7 +589,7 @@ export default function ListadoEmpleadosComponent({
               "estado",
               "numero_legajo",
             ]}
-            searchPlaceholder="Buscar por nombre, apellido, documento, cargo o estado..."
+            searchPlaceholder="Buscar por nombre, apellido, documento..."
             remotePagination
             totalItems={total}
             currentPage={page}
@@ -597,6 +599,7 @@ export default function ListadoEmpleadosComponent({
               { title: "Empleado", key: "empleado" },
               { title: "Contacto", key: "contacto" },
               { title: "Información", key: "informacion" },
+              { title: "Documentación", key: "documentacion" },
               { title: "Estado", key: "estado" },
               { title: "Acciones", key: "acciones" },
             ]}
@@ -615,7 +618,6 @@ export default function ListadoEmpleadosComponent({
                     </div>
                   </div>
                 </TableCell>
-
                 <TableCell className="min-w-[220px]">
                   <div className="space-y-1">
                     <div className="flex items-center text-sm">
@@ -628,7 +630,6 @@ export default function ListadoEmpleadosComponent({
                     </div>
                   </div>
                 </TableCell>
-
                 <TableCell className="min-w-[200px]">
                   <div className="space-y-1">
                     <div className="flex items-center text-sm">
@@ -646,7 +647,20 @@ export default function ListadoEmpleadosComponent({
                     </div>
                   </div>
                 </TableCell>
-
+                <TableCell className="min-w-[200px]">
+                  <div className="space-y-1">
+                    <div className="flex items-center text-sm">
+                      <FileText className="h-3.5 w-3.5 mr-2 text-muted-foreground" />
+                      <span>
+                        DNI: {empleado.documento || "No especificado"}
+                      </span>
+                    </div>
+                    <div className="flex items-center text-sm">
+                      <FileText className="h-3.5 w-3.5 mr-2 text-muted-foreground" />
+                      <span>CUIL: {empleado.cuil || "No especificado"}</span>
+                    </div>
+                  </div>
+                </TableCell>
                 <TableCell>
                   {" "}
                   <Badge
@@ -668,7 +682,6 @@ export default function ListadoEmpleadosComponent({
                     {empleado.estado}
                   </Badge>
                 </TableCell>
-
                 <TableCell className="flex gap-2">
                   <Button
                     variant="outline"
