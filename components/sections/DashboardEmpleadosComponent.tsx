@@ -18,6 +18,7 @@ import {
   Truck,
   UserRound,
   LogOut,
+  DollarSign,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -639,10 +640,8 @@ const DashboardEmployeeComponent = () => {
               <Badge className="bg-white/20 text-white hover:bg-white/30 ml-1">
                 {user?.estado}
               </Badge>
-            </p>
-
-            {/* Quick links section moved to header */}
-            <div className="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-2">
+            </p>            {/* Quick links section moved to header */}
+            <div className="mt-4 grid grid-cols-2 sm:grid-cols-4 gap-2">
               <Button
                 variant="outline"
                 className="justify-start bg-white/10 hover:bg-white/20 text-white border-0 h-auto py-2"
@@ -679,6 +678,19 @@ const DashboardEmployeeComponent = () => {
                 >
                   <Truck className="mr-2 h-4 w-4 flex-shrink-0" />
                   <span className="text-sm">Mi licencia de conducir</span>
+                </Link>
+              </Button>
+              <Button
+                variant="outline"
+                className="justify-start bg-white/10 hover:bg-white/20 text-white border-0 h-auto py-2"
+                asChild
+              >
+                <Link
+                  href="/empleado/adelantos-salario"
+                  className="flex items-center"
+                >
+                  <DollarSign className="mr-2 h-4 w-4 flex-shrink-0" />
+                  <span className="text-sm">Adelantos de salario</span>
                 </Link>
               </Button>
             </div>

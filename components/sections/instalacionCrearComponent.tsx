@@ -82,6 +82,7 @@ type CondicionContractual = {
   condicionContractualId: number;
   clientId: number;
   tipo_de_contrato: string;
+  tipo_servicio?: string; // Agregando tipo de servicio
   fecha_inicio: string;
   fecha_fin: string;
   condiciones_especificas: string;
@@ -221,10 +222,12 @@ export default function CrearInstalacionComponent() {
     const fetchCondicionesContractuales = async () => {
       if (selectedClientId && selectedClientId > 0) {
         try {
-          setIsLoading(true);
-          const condicionesData = await getContractualConditionsByClient(
+          setIsLoading(true);          const condicionesData = await getContractualConditionsByClient(
             selectedClientId
           );
+          
+          // Debug temporal para ver la estructura de datos
+          console.log("Condiciones contractuales recibidas (instalación):", condicionesData);
           
           // Verificar que la respuesta sea válida
           if (condicionesData && Array.isArray(condicionesData)) {
@@ -799,13 +802,12 @@ export default function CrearInstalacionComponent() {
                               );
                             }}
                           >
-                            {" "}
-                            <div className="flex justify-between">
+                            {" "}                            <div className="flex justify-between">
                               <Badge
                                 variant="outline"
                                 className="bg-indigo-50 text-indigo-700 mb-1"
                               >
-                                ID: {condicion.condicionContractualId}
+                                {condicion.tipo_servicio || condicion.tipo_de_contrato}
                               </Badge>
                               <Badge
                                 variant={
@@ -821,8 +823,15 @@ export default function CrearInstalacionComponent() {
                               >
                                 {condicion.estado}
                               </Badge>
-                            </div>
-                            <div className="text-sm text-slate-600 mt-2">
+                            </div>                            <div className="text-sm text-slate-600 mt-2">
+                              <div className="mb-1">
+                                <span className="font-medium">
+                                  Tipo de Servicio:
+                                </span>{" "}
+                                <span className="text-slate-800">
+                                  {condicion.tipo_servicio || condicion.tipo_de_contrato}
+                                </span>
+                              </div>
                               <div className="mb-1">
                                 <span className="font-medium">
                                   Tipo de Contrato:

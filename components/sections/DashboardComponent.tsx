@@ -27,7 +27,7 @@ import {
   getServicesStats,
 } from "@/app/actions/services";
 import { Servicio } from "@/types/serviceTypes";
-import { getFuturesCleanings } from "@/app/actions/services";
+import { getFuturesCleanings, getUpcomingFutureCleanings } from "@/app/actions/services";
 import { getLicenciasToExpire } from "@/app/actions/LicenciasConducir";
 import { toast } from "sonner";
 
@@ -137,7 +137,7 @@ const DashboardComponent = () => {
         { name: 'proximosServicios', promise: getProximosServices() },
         { name: 'serviceStats', promise: getServicesStats() },
         { name: 'resumeService', promise: getResumeServices() },
-        { name: 'futuresCleanings', promise: getFuturesCleanings() },
+        { name: 'futuresCleanings', promise: getUpcomingFutureCleanings(30, 1, 10) },
         { name: 'activity', promise: getRecentActivity() },
         { 
           name: 'licenciasToExpire', 

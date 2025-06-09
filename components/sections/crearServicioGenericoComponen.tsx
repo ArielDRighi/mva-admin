@@ -77,6 +77,7 @@ type CondicionContractual = {
   condicionContractualId: number;
   clientId: number;
   tipo_de_contrato: string;
+  tipo_servicio?: string; // Agregando tipo de servicio
   fecha_inicio: string;
   fecha_fin: string;
   condiciones_especificas: string;
@@ -261,11 +262,12 @@ export function CrearServicioGenericoComponent() {
           interface CondicionesResponse {
             items?: CondicionContractual[];
             data?: CondicionContractual[];
-          }
-
-          const condicionesData = (await getContractualConditionsByClient(
+          }          const condicionesData = (await getContractualConditionsByClient(
             selectedClientId
           )) as CondicionesResponse | CondicionContractual[];
+
+          // Debug temporal para ver la estructura de datos
+          console.log("Condiciones contractuales recibidas:", condicionesData);
 
           let procesadas: CondicionContractual[] = [];
 
@@ -998,10 +1000,12 @@ export function CrearServicioGenericoComponent() {
                             setSelectedCondicionId(
                               condicion.condicionContractualId
                             );
-                          }}
-                        >
+                          }}                        >
                           <div className="font-medium">
-                            {condicion.tipo_de_contrato}
+                            {condicion.tipo_servicio || condicion.tipo_de_contrato}
+                          </div>
+                          <div className="text-sm text-gray-500">
+                            Tipo de Contrato: {condicion.tipo_de_contrato}
                           </div>
                           <div className="text-sm text-gray-500">
                             Período:{" "}
