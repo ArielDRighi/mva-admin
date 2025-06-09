@@ -50,3 +50,38 @@ export async function loginUser(email: string, password: string) {
     throw error;
   }
 }
+
+export async function forgotPassword(email: string): Promise<{
+  user: {
+    email: string;
+    nombre: string;
+    newPassword: string;
+  };
+}> {
+  try {
+    const res = await fetch(
+      `${process.env.NEXT_PUBLIC_API_URL}/api/auth/forgot_password`,
+      {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ email }),
+      }
+    );
+
+    if (!res.ok) {
+      const error = await res.json().catch(() => ({}));
+      throw new Error(
+        error.message || "Error al enviar el email de restablecimiento"
+      );
+    }
+
+    const data = await res.json();
+    return data;
+  } catch (error) {
+    const message = getErrorMessage(error) || "Error al enviar el email";
+    console.error("Error en forgot password:", error);
+    throw new Error(message);
+  }
+}
