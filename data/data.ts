@@ -131,7 +131,8 @@ const dataSideBar = {
           url: "/admin/dashboard/usuarios/listado",
         },
       ],
-    },    {
+    },
+    {
       title: "Talles de empleados",
       url: "/admin/dashboard/talles-de-empleados",
       icon: Shirt,
@@ -140,11 +141,18 @@ const dataSideBar = {
           title: "Listado",
           url: "/admin/dashboard/talles-de-empleados/listado",
         },
-      ],    },
+      ],
+    },
     {
       title: "Gestión de Adelantos",
       url: "/admin/dashboard/salary-advances",
       icon: DollarSign,
+      items: [
+        {
+          title: "Listado",
+          url: "/admin/dashboard/salary-advances/listado",
+        },
+      ],
     },
   ],
 };
