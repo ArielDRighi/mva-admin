@@ -19,9 +19,12 @@ import {
   UserRound,
   LogOut,
   DollarSign,
+  Key,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import Link from "next/link";
 import { User } from "@/components/sections/DashboardComponent";
 import { deleteCookie, getCookie } from "cookies-next";
@@ -47,6 +50,7 @@ import { updateStatusService } from "@/app/actions/services";
 import { toast } from "sonner";
 import { CreateEmployeeLeaveDto, LeaveType } from "@/types/types";
 import { useRouter } from "next/navigation";
+import { changePassword } from "@/app/actions/login";
 
 enum serviceStatus {
   EN_PROGRESO = "EN_PROGRESO",
@@ -247,8 +251,14 @@ const DashboardEmployeeComponent = () => {
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [notesText, setNotesText] = useState("");
-  const [isSubmittingLeave, setIsSubmittingLeave] = useState(false);
   const [isLeaveModalOpen, setIsLeaveModalOpen] = useState(false);
+  const [isSubmittingLeave, setIsSubmittingLeave] = useState(false);
+
+  // Estados para el modal de cambio de contraseña
+  const [isChangePasswordOpen, setIsChangePasswordOpen] = useState(false);
+  const [oldPassword, setOldPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+
   const router = useRouter();
   const handleLogoutClick = () => {
     try {
@@ -270,6 +280,31 @@ const DashboardEmployeeComponent = () => {
       });
     }
   };
+
+  // Funciones para el modal de cambio de contraseña
+  const handleChangePassword = () => {
+    setIsChangePasswordOpen(true);
+  };
+  const handleSubmitPasswordChange = async () => {
+    try {
+      await changePassword(oldPassword, newPassword);
+
+      // Resetear formulario y cerrar modal
+      setOldPassword("");
+      setNewPassword("");
+      setIsChangePasswordOpen(false);
+    } catch (error) {
+      // El error ya se maneja en la función changePassword con toast.error
+      console.error("Error al cambiar contraseña:", error);
+    }
+  };
+
+  const handleCancelPasswordChange = () => {
+    setOldPassword("");
+    setNewPassword("");
+    setIsChangePasswordOpen(false);
+  };
+
   useEffect(() => {
     const userCookie = getCookie("user");
 
@@ -640,7 +675,8 @@ const DashboardEmployeeComponent = () => {
               <Badge className="bg-white/20 text-white hover:bg-white/30 ml-1">
                 {user?.estado}
               </Badge>
-            </p>            {/* Quick links section moved to header */}
+            </p>{" "}
+            {/* Quick links section moved to header */}
             <div className="mt-4 grid grid-cols-2 sm:grid-cols-4 gap-2">
               <Button
                 variant="outline"
@@ -694,9 +730,15 @@ const DashboardEmployeeComponent = () => {
                 </Link>
               </Button>
             </div>
-          </div>
+          </div>{" "}
           <div className="flex gap-2">
-            {" "}
+            <Button
+              variant="outline"
+              className="bg-white/10 hover:bg-white/20 text-white border-0"
+              onClick={handleChangePassword}
+            >
+              <Key className="h-4 w-4 mr-2" /> Cambiar contraseña
+            </Button>
             <Button
               variant="outline"
               className="bg-red-500 text-white hover:bg-red-600 border-none"
@@ -1431,7 +1473,9 @@ const DashboardEmployeeComponent = () => {
                 id="leaveType"
                 className="w-full rounded-md border border-input bg-background px-3 py-2"
                 value={selectedLeaveType}
-                onChange={(e) => setSelectedLeaveType(e.target.value as LeaveType)}
+                onChange={(e) =>
+                  setSelectedLeaveType(e.target.value as LeaveType)
+                }
               >
                 <option value="">-- Selecciona un tipo --</option>
                 {availableLeaveTypes.map((type) => (
@@ -1515,6 +1559,66 @@ const DashboardEmployeeComponent = () => {
               }
             >
               {isSubmittingLeave ? "Enviando solicitud..." : "Enviar solicitud"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      {/* Change Password Modal */}
+      <Dialog
+        open={isChangePasswordOpen}
+        onOpenChange={setIsChangePasswordOpen}
+      >
+        <DialogContent className="sm:max-w-[400px]">
+          <DialogHeader>
+            <DialogTitle className="text-xl">Cambiar Contraseña</DialogTitle>
+            <DialogDescription>
+              Actualiza tu contraseña de acceso
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-2">
+            {/* Old password field */}
+            <div className="space-y-2">
+              <Label htmlFor="oldPassword" className="text-sm font-medium">
+                Contraseña actual *
+              </Label>
+              <Input
+                id="oldPassword"
+                type="password"
+                placeholder="Ingresa tu contraseña actual"
+                value={oldPassword}
+                onChange={(e) => setOldPassword(e.target.value)}
+                required
+              />
+            </div>
+
+            {/* New password field */}
+            <div className="space-y-2">
+              <Label htmlFor="newPassword" className="text-sm font-medium">
+                Nueva contraseña *
+              </Label>
+              <Input
+                id="newPassword"
+                type="password"
+                placeholder="Ingresa una nueva contraseña"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                required
+              />
+            </div>
+          </div>
+
+          <DialogFooter className="flex flex-col sm:flex-row gap-2 mt-2">
+            {" "}
+            <Button variant="outline" onClick={handleCancelPasswordChange}>
+              Cancelar
+            </Button>
+            <Button
+              className="bg-blue-600 hover:bg-blue-700"
+              onClick={handleSubmitPasswordChange}
+              disabled={!oldPassword || !newPassword}
+            >
+              Actualizar contraseña
             </Button>
           </DialogFooter>
         </DialogContent>

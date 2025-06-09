@@ -85,3 +85,53 @@ export async function forgotPassword(email: string): Promise<{
     throw new Error(message);
   }
 }
+
+import { getCookie } from "cookies-next";
+
+export async function changePassword(
+  oldPassword: string,
+  newPassword: string
+): Promise<{
+  user: {
+    email: string;
+    nombre: string;
+    newPassword: string;
+  };
+}> {
+  try {
+    // Obtener el token automáticamente
+    const token = getCookie("token");
+
+    if (!token) {
+      throw new Error("No hay sesión activa");
+    }
+
+    const res = await fetch(
+      `${process.env.NEXT_PUBLIC_API_URL}/api/auth/change_password`,
+      {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`, // Agregar token automáticamente
+        },
+        body: JSON.stringify({ oldPassword, newPassword }),
+      }
+    );
+
+    if (!res.ok) {
+      const error = await res.json().catch(() => ({}));
+      throw new Error(error.message || "Error al cambiar la contraseña");
+    }
+
+    const data = await res.json(); // Obtener la respuesta del servidor
+
+    toast.success("Contraseña cambiada con éxito");
+
+    return data; // Retornar los datos para cumplir con la Promise
+  } catch (error) {
+    const message = getErrorMessage(error) || "Error al cambiar la contraseña";
+    toast.error("Error", { description: message });
+    console.error("Error en change password:", error);
+    throw error;
+  }
+}
