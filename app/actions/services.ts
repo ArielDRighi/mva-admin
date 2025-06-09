@@ -252,21 +252,28 @@ export const getResumeServices = createServerAction(async () => {
 }, "Error al obtener el resumen de servicios");
 
 /**
- * Obtiene las limpiezas futuras programadas
+ * Obtiene las limpiezas futuras programadas con paginación
  */
-export const getFuturesCleanings = createServerAction(async () => {
-  const headers = await createAuthHeaders();
+export const getFuturesCleanings = createServerAction(
+  async (page: number = 1, limit: number = 10) => {
+    const headers = await createAuthHeaders();
 
-  const res = await fetch(
-    `${process.env.NEXT_PUBLIC_API_URL}/api/future_cleanings`,
-    {
-      headers,
-      cache: "no-store",
-    }
-  );
+    const queryParams = new URLSearchParams();
+    queryParams.append("page", page.toString());
+    queryParams.append("limit", limit.toString());
 
-  return handleApiResponse(res, "Error al obtener limpiezas futuras");
-}, "Error al obtener limpiezas futuras");
+    const res = await fetch(
+      `${process.env.NEXT_PUBLIC_API_URL}/api/future_cleanings?${queryParams.toString()}`,
+      {
+        headers,
+        cache: "no-store",
+      }
+    );
+
+    return handleApiResponse(res, "Error al obtener limpiezas futuras");
+  },
+  "Error al obtener limpiezas futuras"
+);
 
 /**
  * Obtiene la actividad reciente global
@@ -518,3 +525,142 @@ export const getServiciosGenericos = createServerAction(
   },
   "Error al obtener servicios genéricos"
 );
+
+/**
+ * Obtiene limpiezas futuras por rango de fechas con paginación
+ */
+export const getFutureCleaningsByDateRange = createServerAction(
+  async (startDate: string, endDate: string, page: number = 1, limit: number = 10) => {
+    const headers = await createAuthHeaders();
+
+    const queryParams = new URLSearchParams();
+    queryParams.append("startDate", startDate);
+    queryParams.append("endDate", endDate);
+    queryParams.append("page", page.toString());
+    queryParams.append("limit", limit.toString());
+
+    const res = await fetch(
+      `${process.env.NEXT_PUBLIC_API_URL}/api/future_cleanings/by-date-range?${queryParams.toString()}`,
+      {
+        headers,
+        cache: "no-store",
+      }
+    );
+
+    return handleApiResponse(res, "Error al obtener limpiezas futuras por rango de fechas");
+  },
+  "Error al obtener limpiezas futuras por rango de fechas"
+);
+
+/**
+ * Obtiene limpiezas futuras próximas con filtro de días
+ */
+export const getUpcomingFutureCleanings = createServerAction(
+  async (days: number = 7, page: number = 1, limit: number = 10) => {
+    const headers = await createAuthHeaders();
+
+    const queryParams = new URLSearchParams();
+    queryParams.append("days", days.toString());
+    queryParams.append("page", page.toString());
+    queryParams.append("limit", limit.toString());
+
+    const res = await fetch(
+      `${process.env.NEXT_PUBLIC_API_URL}/api/future_cleanings/upcoming?${queryParams.toString()}`,
+      {
+        headers,
+        cache: "no-store",
+      }
+    );
+
+    return handleApiResponse(res, "Error al obtener limpiezas futuras próximas");
+  },
+  "Error al obtener limpiezas futuras próximas"
+);
+
+/**
+ * Obtiene una limpieza futura específica por su ID
+ */
+export const getFutureCleaningById = createServerAction(async (id: number) => {
+  const headers = await createAuthHeaders();
+
+  const res = await fetch(
+    `${process.env.NEXT_PUBLIC_API_URL}/api/future_cleanings/${id}`,
+    {
+      headers,
+      cache: "no-store",
+    }
+  );
+
+  return handleApiResponse(res, `Error al obtener la limpieza futura con ID ${id}`);
+}, "Error al obtener la limpieza futura");
+
+/**
+ * Crea una nueva limpieza futura manualmente
+ */
+export const createFutureCleaning = createServerAction(
+  async (data: {
+    servicioId: number;
+    fechaProgramada: string;
+    estado?: string;
+    notas?: string;
+  }) => {
+    const headers = await createAuthHeaders();
+
+    const res = await fetch(
+      `${process.env.NEXT_PUBLIC_API_URL}/api/future_cleanings`,
+      {
+        method: "POST",
+        headers,
+        body: JSON.stringify(data),
+        cache: "no-store",
+      }
+    );
+
+    return handleApiResponse(res, "Error al crear la limpieza futura");
+  },
+  "Error al crear la limpieza futura"
+);
+
+/**
+ * Modifica una limpieza futura (activar/desactivar)
+ */
+export const modifyFutureCleaning = createServerAction(
+  async (id: number, data: {
+    fechaProgramada?: string;
+    estado?: string;
+    notas?: string;
+  }) => {
+    const headers = await createAuthHeaders();
+
+    const res = await fetch(
+      `${process.env.NEXT_PUBLIC_API_URL}/api/future_cleanings/${id}`,
+      {
+        method: "PUT",
+        headers,
+        body: JSON.stringify(data),
+        cache: "no-store",
+      }
+    );
+
+    return handleApiResponse(res, "Error al modificar la limpieza futura");
+  },
+  "Error al modificar la limpieza futura"
+);
+
+/**
+ * Elimina una limpieza futura
+ */
+export const deleteFutureCleaning = createServerAction(async (id: number) => {
+  const headers = await createAuthHeaders();
+
+  const res = await fetch(
+    `${process.env.NEXT_PUBLIC_API_URL}/api/future_cleanings/${id}`,
+    {
+      method: "DELETE",
+      headers,
+      cache: "no-store",
+    }
+  );
+
+  return handleApiResponse(res, "Error al eliminar la limpieza futura");
+}, "Error al eliminar la limpieza futura");
