@@ -6,16 +6,8 @@ import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { toast } from "sonner";
 
-import {
-  deleteService,
-  getServiciosGenericos,
-} from "@/app/actions/services";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { deleteService, getServiciosGenericos } from "@/app/actions/services";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Table,
   TableBody,
@@ -141,7 +133,6 @@ export function ListadoServicioGenericoComponent() {
   );
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState<boolean>(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState<boolean>(false);
-  console.log("Servicios:", servicios);
 
   // Load data
   useEffect(() => {
@@ -150,7 +141,9 @@ export function ListadoServicioGenericoComponent() {
         setLoading(true);
         const page = Number(searchParams.get("page")) || 1;
 
-        const response = await getServiciosGenericos(page) as InstalacionesResponse;
+        const response = (await getServiciosGenericos(
+          page
+        )) as InstalacionesResponse;
 
         if (response && response.data) {
           setServicios(response.data);
@@ -347,8 +340,9 @@ export function ListadoServicioGenericoComponent() {
                           <div className="flex items-center">
                             <FileText className="h-4 w-4 mr-2 text-muted-foreground" />
                             <span>{servicio.cantidadBanos} baños</span>
-                          </div>
-                        </TableCell>                        <TableCell>
+                          </div>{" "}
+                        </TableCell>
+                        <TableCell>
                           <div className="flex space-x-2">
                             <Button
                               variant="outline"
@@ -360,12 +354,14 @@ export function ListadoServicioGenericoComponent() {
                             >
                               Ver
                             </Button>
-                            
+
                             <Button
                               variant="outline"
                               size="sm"
                               onClick={() => {
-                                router.push(`/admin/dashboard/servicios/genericos/editar/${servicio.id}`);
+                                router.push(
+                                  `/admin/dashboard/servicios/genericos/editar/${servicio.id}`
+                                );
                               }}
                               className="cursor-pointer bg-blue-100 text-blue-700 hover:bg-blue-200 hover:text-blue-800"
                             >
@@ -661,50 +657,65 @@ export function ListadoServicioGenericoComponent() {
                   try {
                     setLoading(true);
                     const response = await deleteService(selectedServicio.id);
-                    
+
                     // Verificamos el tipo de respuesta
                     if (response && typeof response === "object") {
                       // Si la respuesta tiene un mensaje específico, lo usamos
-                      const message = "message" in response ? response.message as string : "";
-                      
+                      const message =
+                        "message" in response
+                          ? (response.message as string)
+                          : "";
+
                       // Actualizamos la lista local eliminando el elemento
-                      setServicios(servicios.filter(
-                        (servicio) => servicio.id !== selectedServicio.id
-                      ));
-                      
+                      setServicios(
+                        servicios.filter(
+                          (servicio) => servicio.id !== selectedServicio.id
+                        )
+                      );
+
                       setIsDeleteDialogOpen(false);
-                      
+
                       toast.success("Servicio eliminado", {
-                        description: message || "El servicio ha sido eliminado correctamente",
+                        description:
+                          message ||
+                          "El servicio ha sido eliminado correctamente",
                       });
-                      
+
                       // Actualizamos la página actual
                       const page = Number(searchParams.get("page")) || 1;
                       handlePageChange(page);
                     } else {
                       // Si no hay respuesta específica pero la operación fue exitosa
-                      setServicios(servicios.filter(
-                        (servicio) => servicio.id !== selectedServicio.id
-                      ));
-                      
+                      setServicios(
+                        servicios.filter(
+                          (servicio) => servicio.id !== selectedServicio.id
+                        )
+                      );
+
                       setIsDeleteDialogOpen(false);
-                      
+
                       toast.success("Servicio eliminado", {
-                        description: "El servicio ha sido eliminado correctamente",
+                        description:
+                          "El servicio ha sido eliminado correctamente",
                       });
                     }
                   } catch (error) {
                     console.error("Error al eliminar el servicio:", error);
-                    
+
                     // Extraemos el mensaje de error si está disponible
-                    let errorMessage = "No se pudo eliminar el servicio. Intenta nuevamente.";
-                    
+                    let errorMessage =
+                      "No se pudo eliminar el servicio. Intenta nuevamente.";
+
                     if (error instanceof Error) {
                       errorMessage = error.message;
-                    } else if (typeof error === "object" && error !== null && "message" in error) {
+                    } else if (
+                      typeof error === "object" &&
+                      error !== null &&
+                      "message" in error
+                    ) {
                       errorMessage = (error as { message: string }).message;
                     }
-                    
+
                     toast.error("Error al eliminar", {
                       description: errorMessage,
                     });
