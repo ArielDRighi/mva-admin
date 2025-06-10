@@ -99,11 +99,6 @@ const dataSideBar = {
           title: "Listado Servicios Genericos",
           url: "/admin/dashboard/servicios/genericos/listado",
         },
-        {
-          title: "Editar Servicio Generico",
-          url: "/admin/dashboard/servicios/genericos/editar",
-          hidden: true,
-        },
       ],
     },
     {
@@ -131,7 +126,8 @@ const dataSideBar = {
           url: "/admin/dashboard/usuarios/listado",
         },
       ],
-    },    {
+    },
+    {
       title: "Talles de empleados",
       url: "/admin/dashboard/talles-de-empleados",
       icon: Shirt,
@@ -140,7 +136,8 @@ const dataSideBar = {
           title: "Listado",
           url: "/admin/dashboard/talles-de-empleados/listado",
         },
-      ],    },
+      ],
+    },
     {
       title: "Gestión de Adelantos",
       url: "/admin/dashboard/salary-advances",
