@@ -74,7 +74,6 @@ const MantenimientoSanitariosComponent = ({
   >(null);
   const [activeTab, setActiveTab] = useState("todos");
   const [isFirstLoad, setIsFirstLoad] = useState(true);
-
   const createSanitarioSchema = z.object({
     baño_id: z.number({
       required_error: "El baño es obligatorio",
@@ -90,8 +89,7 @@ const MantenimientoSanitariosComponent = ({
       }),
     }),
     descripcion: z.string().min(1, "La descripción es obligatoria"),
-
-    tecnico_responsable: z
+    empleado_id: z
       .number({
         required_error: "El técnico responsable es obligatorio",
         invalid_type_error: "Debe seleccionar un empleado válido",
@@ -112,7 +110,7 @@ const MantenimientoSanitariosComponent = ({
       fecha_mantenimiento: new Date().toISOString().split("T")[0],
       tipo_mantenimiento: "Preventivo",
       descripcion: "",
-      tecnico_responsable: 0,
+      empleado_id: 1, // Temporary default - user must select an employee
       costo: undefined,
     },
   });
@@ -178,10 +176,10 @@ const MantenimientoSanitariosComponent = ({
     );
     setValue("descripcion", mantenimientoSanitario.descripcion);
     setValue(
-      "tecnico_responsable",
-      typeof mantenimientoSanitario.tecnico_responsable === "string"
-        ? 0 // Si es string (legacy data), usar 0 como default
-        : mantenimientoSanitario.tecnico_responsable || 0
+      "empleado_id",
+      typeof mantenimientoSanitario.empleado_id === "string"
+        ? 1 // Si es string (legacy data), usar 1 como default para que pase validación
+        : mantenimientoSanitario.empleado_id || 1
     );
     setValue("costo", mantenimientoSanitario.costo);
   };
@@ -191,7 +189,7 @@ const MantenimientoSanitariosComponent = ({
       fecha_mantenimiento: new Date().toISOString().split("T")[0],
       tipo_mantenimiento: "Preventivo",
       descripcion: "",
-      tecnico_responsable: 0,
+      empleado_id: 1, // Temporary default - user must select an employee
       costo: undefined,
     });
     setSelectedMantenimientoSanitario(null);
@@ -263,14 +261,25 @@ const MantenimientoSanitariosComponent = ({
   };
   const onSubmit = async (data: z.infer<typeof createSanitarioSchema>) => {
     try {
-      setLoading(true);
+      setLoading(true); // Debug: Log the form data
+      console.log("Form data:", data);
+      console.log("empleado_id:", data.empleado_id, typeof data.empleado_id);
+
+      // Validate empleado_id before processing
+      if (!data.empleado_id || data.empleado_id <= 0) {
+        toast.error("Error de validación", {
+          description: "Debe seleccionar un empleado válido",
+          duration: 5000,
+        });
+        return;
+      }
 
       // Fetch employee name from ID
       let empleadoNombre = "";
-      if (data.tecnico_responsable && data.tecnico_responsable > 0) {
+      if (data.empleado_id && data.empleado_id > 0) {
         try {
           const empleado = (await getEmployeeById(
-            data.tecnico_responsable.toString()
+            data.empleado_id.toString()
           )) as {
             nombre: string;
             apellido: string;
@@ -285,14 +294,20 @@ const MantenimientoSanitariosComponent = ({
           });
           return;
         }
-      }
-
-      // Transform the form data to match API expectations
+      } // Transform the form data to match API expectations
       const submitData: MantenimientoSanitario = {
         ...data,
-        tecnico_responsable: empleadoNombre, // Send employee name as string
+        empleado_id: Number(data.empleado_id), // Ensure it's a number for API compatibility
         costo: data.costo || 0, // Default to 0 if undefined
       };
+
+      // Debug: Log the submit data with type information
+      console.log("Submit data:", submitData);
+      console.log(
+        "empleado_id",
+        submitData.empleado_id,
+        typeof submitData.empleado_id
+      );
 
       if (
         selectedMantenimientoSanitario &&
@@ -313,6 +328,7 @@ const MantenimientoSanitariosComponent = ({
         }
       } else {
         // Crear nuevo mantenimiento
+        console.log("Creating new maintenance with data:", submitData);
         const result = await createSanitarioEnMantenimiento(submitData);
 
         // Verificar resultado
@@ -407,7 +423,7 @@ const MantenimientoSanitariosComponent = ({
           fecha_mantenimiento: new Date().toISOString().split("T")[0],
           tipo_mantenimiento: "Preventivo",
           descripcion: "",
-          tecnico_responsable: 0,
+          empleado_id: 1, // Temporary default - user must select an employee
           costo: undefined,
         });
 
@@ -491,7 +507,7 @@ const MantenimientoSanitariosComponent = ({
             itemsPerPage={itemsPerPage}
             searchableKeys={[
               "tipo_mantenimiento",
-              "tecnico_responsable",
+              "empleado_id",
               "descripcion",
               "baño_id",
               "completado",
@@ -508,7 +524,7 @@ const MantenimientoSanitariosComponent = ({
               { title: "Fecha", key: "fecha_mantenimiento" },
               { title: "Tipo", key: "tipo_mantenimiento" },
               { title: "Descripción", key: "descripcion" },
-              { title: "Técnico", key: "tecnico_responsable" },
+              { title: "Técnico", key: "empleado_id" },
               { title: "Estado", key: "estado" },
               { title: "Acciones", key: "acciones" },
             ]}
@@ -560,9 +576,7 @@ const MantenimientoSanitariosComponent = ({
                   {mantenimientoSanitario.descripcion}
                 </TableCell>
 
-                <TableCell>
-                  {mantenimientoSanitario.tecnico_responsable}
-                </TableCell>
+                <TableCell>{mantenimientoSanitario.empleado_id}</TableCell>
 
                 <TableCell>
                   <Badge
@@ -661,7 +675,10 @@ const MantenimientoSanitariosComponent = ({
             ? "Modificar información del mantenimiento de sanitario en el sistema."
             : "Completa el formulario para registrar un nuevo mantenimiento."
         }
-        onSubmit={handleSubmit(onSubmit)}
+        onSubmit={handleSubmit((data) => {
+          console.log("Form submission attempt with data:", data);
+          onSubmit(data);
+        })}
       >
         <div className="grid grid-cols-1 gap-x-6 gap-y-4">
           <Controller
@@ -731,22 +748,26 @@ const MantenimientoSanitariosComponent = ({
                 placeholder="$0.00"
               />
             )}
-          />
+          />{" "}
           <Controller
-            name="tecnico_responsable"
+            name="empleado_id"
             control={control}
             render={({ field, fieldState }) => (
               <div className="space-y-2">
-                <label
-                  htmlFor="tecnico_responsable"
-                  className="text-sm font-medium"
-                >
+                <label htmlFor="empleado_id" className="text-sm font-medium">
                   Técnico Responsable
-                </label>
+                </label>{" "}
                 <EmpleadoSelector
-                  value={field.value || 0}
-                  onChange={(empleadoId) => field.onChange(empleadoId)}
-                  name="tecnico_responsable"
+                  value={field.value === 1 ? 0 : field.value} // Convert temporary default back to 0 for display
+                  onChange={(empleadoId) => {
+                    console.log(
+                      "EmpleadoSelector onChange called with:",
+                      empleadoId,
+                      typeof empleadoId
+                    );
+                    field.onChange(empleadoId || 1); // Ensure we always have a valid value
+                  }}
+                  name="empleado_id"
                   label=""
                   error={fieldState.error?.message}
                   disabled={false}
