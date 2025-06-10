@@ -142,6 +142,12 @@ const dataSideBar = {
       title: "Gestión de Adelantos",
       url: "/admin/dashboard/salary-advances",
       icon: DollarSign,
+      items: [
+        {
+          title: "Listado",
+          url: "/admin/dashboard/salary-advances/listado",
+        },
+      ],
     },
   ],
 };

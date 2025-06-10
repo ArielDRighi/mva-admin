@@ -32,7 +32,7 @@ export interface SalaryAdvanceListResponse {
   advances: SalaryAdvance[];
   total: number;
   page: number;
-  totalPages: number;
+  limit: number;
 }
 
 export interface SalaryAdvanceFilters {

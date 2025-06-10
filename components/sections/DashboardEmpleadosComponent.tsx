@@ -19,9 +19,12 @@ import {
   UserRound,
   LogOut,
   DollarSign,
+  Key,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import Link from "next/link";
 import { User } from "@/components/sections/DashboardComponent";
 import { deleteCookie, getCookie } from "cookies-next";
@@ -47,6 +50,7 @@ import { updateStatusService } from "@/app/actions/services";
 import { toast } from "sonner";
 import { CreateEmployeeLeaveDto, LeaveType } from "@/types/types";
 import { useRouter } from "next/navigation";
+import { changePassword } from "@/app/actions/login";
 
 // Import types and utilities
 import {
@@ -119,9 +123,41 @@ const DashboardEmployeeComponent = () => {
   } = useLeaveManagement(employeeId);
 
   const { handleLogoutClick } = useLogout();
+
+  // Add missing state for password change functionality
+  const [isChangePasswordOpen, setIsChangePasswordOpen] = useState(false);
+  const [oldPassword, setOldPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+
   const userId = user?.id || 0;
   const loading = userLoading || servicesLoading;
   const router = useRouter();
+
+  // Add missing password change handlers
+  const handleChangePassword = () => {
+    setIsChangePasswordOpen(true);
+  };
+
+  const handleCancelPasswordChange = () => {
+    setIsChangePasswordOpen(false);
+    setOldPassword("");
+    setNewPassword("");
+  };
+  const handleSubmitPasswordChange = async () => {
+    if (!oldPassword || !newPassword) {
+      toast.error("Por favor, completa todos los campos");
+      return;
+    }
+
+    try {
+      await changePassword(oldPassword, newPassword);
+      // The function already shows success toast, so we just need to close the modal
+      handleCancelPasswordChange();
+    } catch (error) {
+      console.error("Error changing password:", error);
+      // The function already shows error toast, so we don't need to show another one
+    }
+  };
 
   return (
     <div className="container px-4 sm:px-6 mx-auto py-6 space-y-6 md:space-y-8">
@@ -192,9 +228,15 @@ const DashboardEmployeeComponent = () => {
                 </Link>
               </Button>
             </div>
-          </div>
+          </div>{" "}
           <div className="flex gap-2">
-            {" "}
+            <Button
+              variant="outline"
+              className="bg-white/10 hover:bg-white/20 text-white border-0"
+              onClick={handleChangePassword}
+            >
+              <Key className="h-4 w-4 mr-2" /> Cambiar contraseña
+            </Button>
             <Button
               variant="outline"
               className="bg-red-500 text-white hover:bg-red-600 border-none"
@@ -1006,6 +1048,66 @@ const DashboardEmployeeComponent = () => {
               }
             >
               {isSubmittingLeave ? "Enviando solicitud..." : "Enviar solicitud"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      {/* Change Password Modal */}
+      <Dialog
+        open={isChangePasswordOpen}
+        onOpenChange={setIsChangePasswordOpen}
+      >
+        <DialogContent className="sm:max-w-[400px]">
+          <DialogHeader>
+            <DialogTitle className="text-xl">Cambiar Contraseña</DialogTitle>
+            <DialogDescription>
+              Actualiza tu contraseña de acceso
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-2">
+            {/* Old password field */}
+            <div className="space-y-2">
+              <Label htmlFor="oldPassword" className="text-sm font-medium">
+                Contraseña actual *
+              </Label>
+              <Input
+                id="oldPassword"
+                type="password"
+                placeholder="Ingresa tu contraseña actual"
+                value={oldPassword}
+                onChange={(e) => setOldPassword(e.target.value)}
+                required
+              />
+            </div>
+
+            {/* New password field */}
+            <div className="space-y-2">
+              <Label htmlFor="newPassword" className="text-sm font-medium">
+                Nueva contraseña *
+              </Label>
+              <Input
+                id="newPassword"
+                type="password"
+                placeholder="Ingresa una nueva contraseña"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                required
+              />
+            </div>
+          </div>
+
+          <DialogFooter className="flex flex-col sm:flex-row gap-2 mt-2">
+            {" "}
+            <Button variant="outline" onClick={handleCancelPasswordChange}>
+              Cancelar
+            </Button>
+            <Button
+              className="bg-blue-600 hover:bg-blue-700"
+              onClick={handleSubmitPasswordChange}
+              disabled={!oldPassword || !newPassword}
+            >
+              Actualizar contraseña
             </Button>
           </DialogFooter>
         </DialogContent>
