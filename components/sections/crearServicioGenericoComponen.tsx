@@ -261,9 +261,6 @@ export function CrearServicioGenericoComponent() {
             selectedClientId
           )) as CondicionesResponse | CondicionContractual[];
 
-          // Debug temporal para ver la estructura de datos
-          console.log("Condiciones contractuales recibidas:", condicionesData);
-
           let procesadas: CondicionContractual[] = [];
 
           if (Array.isArray(condicionesData)) {
@@ -520,15 +517,6 @@ export function CrearServicioGenericoComponent() {
     // Asignar vehículo al empleado A (si hay vehículos seleccionados)
     const vehiculoAsignado = vehiculosIds.length > 0 ? vehiculosIds[0] : 0;
 
-    // Actualizar consola para debugging
-    console.log("Asignaciones actualizadas:", {
-      empleadoA,
-      empleadoB,
-      vehiculoAsignado,
-      rolAAsignado: rolA,
-      rolBAsignado: rolB,
-    });
-
     // Las asignaciones serán usadas en onSubmit
   };
 
@@ -572,10 +560,6 @@ export function CrearServicioGenericoComponent() {
         isStepValid = await trigger("condicionContractualId");
         // Double-check that we have a valid condition selected
         const currentCondicionId = getValues("condicionContractualId");
-        console.log(
-          "Validating step 2, condicionContractualId:",
-          currentCondicionId
-        );
 
         if (currentCondicionId <= 0 || !currentCondicionId) {
           // If form validation didn't catch it, enforce it here
@@ -595,27 +579,15 @@ export function CrearServicioGenericoComponent() {
         break;
     }
     if (isStepValid) {
-      // Log the values before advancing to catch any issues
-      console.log(
-        "Advancing to next step. Current form values:",
-        form.getValues()
-      );
       setStep((prevStep) => prevStep + 1);
     }
   };
   // Retroceder al paso anterior
   const handlePrevStep = () => {
-    // Asegurarse de que los datos del formulario sean consistentes al moverse entre pasos
-    console.log(
-      "Going back to previous step. Current form values:",
-      form.getValues()
-    );
-
     // Si venimos del paso 3, asegurarse de que la condición contractual esté correctamente establecida
     if (step === 3) {
       if (selectedCondicionId > 0) {
         setValue("condicionContractualId", selectedCondicionId);
-        console.log("Restored condicionContractualId to", selectedCondicionId);
       }
     }
 
@@ -705,13 +677,6 @@ export function CrearServicioGenericoComponent() {
           ? data.empleadosIds[0]
           : 0;
 
-      console.log("Asignación de roles:", {
-        empleadoA,
-        empleadoB,
-        seleccionados: data.empleadosIds,
-        rolAAsignado: empleadoRolA,
-        rolBAsignado: empleadoRolB,
-      }); // Recuperar los empleados por nombre para mostrar en el log y confirmar
       const empleadoAObj = empleadoA
         ? empleadosDisponibles.find((e: Empleado) => e.id === empleadoA)
         : null;
@@ -725,9 +690,6 @@ export function CrearServicioGenericoComponent() {
       const empleadoBNombre = empleadoBObj
         ? `${empleadoBObj.nombre} ${empleadoBObj.apellido}`
         : "Ninguno";
-
-      console.log(`Rol A (conductor): ${empleadoANombre} (ID: ${empleadoA})`);
-      console.log(`Rol B (asistente): ${empleadoBNombre} (ID: ${empleadoB})`);
 
       // Preparar las asignaciones manuales según el formato exacto requerido por CreateLimpiezaDto
       const asignacionesManual: [
@@ -814,13 +776,6 @@ export function CrearServicioGenericoComponent() {
           ? error.message
           : "No se pudo crear el servicio. Por favor, intente nuevamente.";
 
-      // Log detallado para debugging
-      console.log({
-        errorType: typeof error,
-        errorObject: JSON.stringify(error, null, 2),
-        errorMessage,
-      });
-
       // Mostrar toast con el mensaje específico del error
       toast.error("Error al crear el servicio", {
         description: errorMessage,
@@ -838,16 +793,6 @@ export function CrearServicioGenericoComponent() {
       </div>
     );
   }
-  // Log the current form state when component renders
-  console.log("Component rendering with form state:", {
-    values: form.getValues(),
-    errors: form.formState.errors,
-    isDirty: form.formState.isDirty,
-    isValid: form.formState.isValid,
-    isSubmitted: form.formState.isSubmitted,
-    isSubmitting: form.formState.isSubmitting,
-    isSubmitSuccessful: form.formState.isSubmitSuccessful,
-  });
 
   return (
     <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
@@ -898,12 +843,10 @@ export function CrearServicioGenericoComponent() {
             <form
               onSubmit={handleSubmit(
                 (data) => {
-                  console.log("Form submitted successfully, data:", data);
                   onSubmit(data);
                 },
                 (errors) => {
                   console.error("Form validation failed:", errors);
-                  console.log("Current form values:", form.getValues());
                   return false;
                 }
               )}
