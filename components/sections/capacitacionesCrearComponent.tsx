@@ -19,7 +19,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { CalendarDays, UserCheck, MapPin, RefreshCcw } from "lucide-react";
 import Loader from "@/components/ui/local/Loader";
-import { CustomDatePicker } from '../ui/local/CustomDatePicker';
+import { CustomDatePicker } from "../ui/local/CustomDatePicker";
 
 type Employee = {
   id: number;
@@ -55,7 +55,7 @@ export default function CapacitacionesCrearComponent() {
     formState: { errors },
     reset,
   } = useForm<CapacitacionFormData>();
-  
+
   useEffect(() => {
     // Fetch employees when component mounts
     const fetchEmployees = async () => {
@@ -66,14 +66,18 @@ export default function CapacitacionesCrearComponent() {
           data?: Employee[];
           items?: Employee[];
         }
-        
+
         // Tipamos correctamente la respuesta para evitar 'any' implícito
-        const response = await getEmployees() as EmployeeResponse;
+        const response = (await getEmployees()) as EmployeeResponse;
 
         // Extract the data array from the response
-        if (response && 'data' in response && Array.isArray(response.data)) {
+        if (response && "data" in response && Array.isArray(response.data)) {
           setEmployees(response.data);
-        } else if (response && 'items' in response && Array.isArray(response.items)) {
+        } else if (
+          response &&
+          "items" in response &&
+          Array.isArray(response.items)
+        ) {
           setEmployees(response.items);
         } else if (Array.isArray(response)) {
           // Si la respuesta es directamente un array, usarlo
@@ -117,7 +121,6 @@ export default function CapacitacionesCrearComponent() {
     };
 
     try {
-      console.log("Capacitación Data:", capacitacionData);
       await createServiceCapacitacion(capacitacionData);
 
       toast.success("Capacitación creada exitosamente");
@@ -144,7 +147,7 @@ export default function CapacitacionesCrearComponent() {
     setSelectedEmployees((prev) => {
       if (prev.includes(employeeId)) {
         // Si el empleado ya está seleccionado, quitarlo
-        return prev.filter(id => id !== employeeId);
+        return prev.filter((id) => id !== employeeId);
       } else {
         // Si no está seleccionado, agregarlo
         return [...prev, employeeId];
