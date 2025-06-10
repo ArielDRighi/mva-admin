@@ -52,16 +52,9 @@ import { ByIDUserResponse } from "@/types/userTypes";
 
 // Schema for form validation
 const contactoEmergenciaSchema = z.object({
-  nombre: z.string().min(1, "El nombre es obligatorio"),
-  apellido: z.string().min(1, "El apellido es obligatorio"),
+  nombre: z.string().min(1, "El nombre es obligatorio"),  apellido: z.string().min(1, "El apellido es obligatorio"),
   parentesco: z.string().min(1, "El parentesco es obligatorio"),
-  telefono: z
-    .string()
-    .regex(
-      /^\d{3}-\d{4}-\d{4}$/,
-      "Formato de teléfono incorrecto, debe ser xxx-xxxx-xxxx"
-    )
-    .or(z.string().regex(/^\d{10,11}$/, "Debe tener entre 10 y 11 dígitos")),
+  telefono: z.string().min(1, "El teléfono es obligatorio"),
 });
 
 export default function ContactosDeEmergenciaComponent() {

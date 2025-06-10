@@ -31,8 +31,7 @@ export const getClients = createServerAction(
  */
 export const createClient = createServerAction(async (data: Cliente) => {
   const headers = await createAuthHeaders();
-  
-  const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/clients`, {
+    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/clients`, {
     method: "POST",
     headers,
     body: JSON.stringify({
@@ -42,6 +41,11 @@ export const createClient = createServerAction(async (data: Cliente) => {
       direccion: data.direccion,
       telefono: data.telefono,
       contacto_principal: data.contacto_principal,
+      contacto_principal_telefono: data.contacto_principal_telefono,
+      contactoObra1: data.contactoObra1,
+      contacto_obra1_telefono: data.contacto_obra1_telefono,
+      contactoObra2: data.contactoObra2,
+      contacto_obra2_telefono: data.contacto_obra2_telefono,
       estado: data.estado,
     }),
     cache: "no-store",
@@ -56,8 +60,7 @@ export const createClient = createServerAction(async (data: Cliente) => {
 export const editClient = createServerAction(
   async (id: string, data: Cliente) => {
     const headers = await createAuthHeaders();
-    
-    const res = await fetch(
+      const res = await fetch(
       `${process.env.NEXT_PUBLIC_API_URL}/api/clients/${id}`,
       {
         method: "PUT",
@@ -69,6 +72,11 @@ export const editClient = createServerAction(
           direccion: data.direccion,
           telefono: data.telefono,
           contacto_principal: data.contacto_principal,
+          contacto_principal_telefono: data.contacto_principal_telefono,
+          contactoObra1: data.contactoObra1,
+          contacto_obra1_telefono: data.contacto_obra1_telefono,
+          contactoObra2: data.contactoObra2,
+          contacto_obra2_telefono: data.contacto_obra2_telefono,
           estado: data.estado,
         }),
         cache: "no-store",

@@ -92,16 +92,9 @@ export default function ListadoEmpleadosComponent({
     apellido: z.string().min(1, "El apellido es obligatorio"),
     documento: z.string().min(1, "El documento es obligatorio"),
     fecha_nacimiento: z
-      .string()
-      .min(1, "La fecha de nacimiento es obligatoria"),
+      .string()    .min(1, "La fecha de nacimiento es obligatoria"),
     direccion: z.string().min(1, "La dirección es obligatoria"),
-    telefono: z
-      .string()
-      .regex(
-        /^\d{3}-\d{4}-\d{4}$/,
-        "Formato de teléfono incorrecto, debe ser xxx-xxxx-xxxx"
-      )
-      .or(z.string().regex(/^\d{10,11}$/, "Debe tener entre 10 y 11 dígitos")),
+    telefono: z.string().min(1, "El teléfono es obligatorio"),
     email: z
       .string()
       .regex(
