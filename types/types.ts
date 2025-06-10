@@ -240,6 +240,11 @@ export type Cliente = {
   telefono: string;
   email: string;
   contacto_principal: string;
+  contacto_principal_telefono?: string;
+  contactoObra1?: string;
+  contacto_obra1_telefono?: string;
+  contactoObra2?: string;
+  contacto_obra2_telefono?: string;
   fecha_registro?: string;
   estado: "ACTIVO" | "INACTIVO" | string;
 };
@@ -260,6 +265,11 @@ export type ClienteFormulario = Pick<
   | "telefono"
   | "email"
   | "contacto_principal"
+  | "contacto_principal_telefono"
+  | "contactoObra1"
+  | "contacto_obra1_telefono"
+  | "contactoObra2"
+  | "contacto_obra2_telefono"
   | "estado"
 >;
 
