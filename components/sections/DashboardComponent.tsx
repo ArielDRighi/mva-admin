@@ -27,7 +27,10 @@ import {
   getServicesStats,
 } from "@/app/actions/services";
 import { Servicio } from "@/types/serviceTypes";
-import { getFuturesCleanings, getUpcomingFutureCleanings } from "@/app/actions/services";
+import {
+  getFuturesCleanings,
+  getUpcomingFutureCleanings,
+} from "@/app/actions/services";
 import { getLicenciasToExpire } from "@/app/actions/LicenciasConducir";
 import { toast } from "sonner";
 
@@ -102,7 +105,12 @@ export interface ActivityRecent {
 
 // Importar LicenciaConducir y LicenciasConducirResponse desde el archivo de tipos centralizado
 import { LicenciasConducirResponse } from "@/types/licenciasConducirTypes";
-import { Cliente, MantenimientoSanitario, Sanitario, Vehiculo } from "@/types/types";
+import {
+  Cliente,
+  MantenimientoSanitario,
+  Sanitario,
+  Vehiculo,
+} from "@/types/types";
 
 // Alias para mantener compatibilidad con código existente
 export type LicenciasToExpireResponse = LicenciasConducirResponse;
@@ -122,84 +130,104 @@ const DashboardComponent = () => {
     limit: 10,
     totalPages: 0,
   });
-  const [activityRecent, setRecentActivity] = useState<ActivityRecent | null>(null);
+  const [activityRecent, setRecentActivity] = useState<ActivityRecent | null>(
+    null
+  );
   const [licenciasToExpire, setLicenciasToExpire] =
     useState<LicenciasToExpireResponse>();
 
-  const router = useRouter();  // Estado para tracking de errores de carga
-  const [loadingErrors, setLoadingErrors] = useState<Record<string, string>>({});useEffect(() => {
+  const router = useRouter(); // Estado para tracking de errores de carga
+  const [loadingErrors, setLoadingErrors] = useState<Record<string, string>>(
+    {}
+  );
+  useEffect(() => {
     const fetchData = async () => {
       // Definimos todas las promesas que vamos a ejecutar
       const promises = [
-        { name: 'totalVehicles', promise: getTotalVehicles() },
-        { name: 'totalEmployees', promise: getTotalEmployees() },
-        { name: 'totalSanitarios', promise: getTotalSanitarios() },
-        { name: 'proximosServicios', promise: getProximosServices() },
-        { name: 'serviceStats', promise: getServicesStats() },
-        { name: 'resumeService', promise: getResumeServices() },
-        { name: 'futuresCleanings', promise: getUpcomingFutureCleanings(30, 1, 10) },
-        { name: 'activity', promise: getRecentActivity() },
-        { 
-          name: 'licenciasToExpire', 
-          promise: getLicenciasToExpire(30, 1, 10) as Promise<LicenciasConducirResponse> 
-        }
+        { name: "totalVehicles", promise: getTotalVehicles() },
+        { name: "totalEmployees", promise: getTotalEmployees() },
+        { name: "totalSanitarios", promise: getTotalSanitarios() },
+        { name: "proximosServicios", promise: getProximosServices() },
+        { name: "serviceStats", promise: getServicesStats() },
+        { name: "resumeService", promise: getResumeServices() },
+        {
+          name: "futuresCleanings",
+          promise: getUpcomingFutureCleanings(30, 1, 10),
+        },
+        { name: "activity", promise: getRecentActivity() },
+        {
+          name: "licenciasToExpire",
+          promise: getLicenciasToExpire(
+            30,
+            1,
+            10
+          ) as Promise<LicenciasConducirResponse>,
+        },
       ];
 
       // Ejecutamos todas las promesas y manejamos éxitos/errores individualmente
-      const results = await Promise.allSettled(promises.map(item => item.promise));
-      
+      const results = await Promise.allSettled(
+        promises.map((item) => item.promise)
+      );
+
       // Colectamos errores para mostrar/registrar
       const errorMessages: Record<string, string> = {};
-        // Procesamos los resultados
+      // Procesamos los resultados
       results.forEach((result, index) => {
         const { name } = promises[index];
-        
-        if (result.status === 'fulfilled') {
+
+        if (result.status === "fulfilled") {
           // Si la promesa se resolvió exitosamente, actualizamos el estado
           switch (name) {
-            case 'totalVehicles':
+            case "totalVehicles":
               setTotalVehicles(result.value as totalVehicles);
               break;
-            case 'totalEmployees':
+            case "totalEmployees":
               setTotalEmployees(result.value as totalEmployees);
               break;
-            case 'totalSanitarios':
+            case "totalSanitarios":
               setTotalSanitarios(result.value as totalSanitarios);
               break;
-            case 'proximosServicios':
+            case "proximosServicios":
               setProximosServicios(result.value as Servicio[]);
               break;
-            case 'serviceStats':
+            case "serviceStats":
               setServicesStats(result.value as serviceStats | null);
               break;
-            case 'resumeService':
+            case "resumeService":
               setresumeService(result.value as resumeService);
               break;
-            case 'futuresCleanings':
+            case "futuresCleanings":
               setFuturesCleanings(result.value as CleaningsResponse);
               break;
-            case 'activity':
+            case "activity":
               setRecentActivity(result.value as ActivityRecent | null);
               break;
-            case 'licenciasToExpire':
+            case "licenciasToExpire":
               setLicenciasToExpire(result.value as LicenciasConducirResponse);
               break;
           }
         } else {
           // Si la promesa fue rechazada, registramos y mostramos el error
-          const errorMessage = typeof result.reason === 'string' 
-            ? result.reason 
-            : result.reason instanceof Error 
-              ? result.reason.message 
+          const errorMessage =
+            typeof result.reason === "string"
+              ? result.reason
+              : result.reason instanceof Error
+              ? result.reason.message
               : `Error al cargar ${name}`;
-          
+
           console.error(`Error fetching ${name}:`, result.reason);
-          
+
           // Guardar en el estado de errores para mostrar en el componente
           errorMessages[name] = errorMessage;
-          
+
           // Mostrar toast para errores críticos
-          const criticalResources = ['totalVehicles', 'totalEmployees', 'totalSanitarios', 'proximosServicios'];
+          const criticalResources = [
+            "totalVehicles",
+            "totalEmployees",
+            "totalSanitarios",
+            "proximosServicios",
+          ];
           if (criticalResources.includes(name)) {
             toast.error(`Error al cargar datos importantes`, {
               description: errorMessage,
@@ -208,7 +236,7 @@ const DashboardComponent = () => {
           }
         }
       });
-      
+
       // Actualizamos el estado de errores si hay alguno
       if (Object.keys(errorMessages).length > 0) {
         setLoadingErrors(errorMessages);
@@ -227,7 +255,10 @@ const DashboardComponent = () => {
       } catch (e) {
         console.error("Error al parsear el usuario", e);
         // Mostramos un error para que el usuario pueda tomar acción
-        setLoadingErrors(prev => ({...prev, userCookie: "Error al cargar información del usuario"}));
+        setLoadingErrors((prev) => ({
+          ...prev,
+          userCookie: "Error al cargar información del usuario",
+        }));
       }
     }
   }, []);
@@ -294,7 +325,7 @@ const DashboardComponent = () => {
           </Button>
         </div>
       </div>
-      
+
       {/* Mostrar errores de carga si los hay */}
       {Object.keys(loadingErrors).length > 0 && (
         <div className="mb-4">
@@ -391,13 +422,15 @@ const DashboardComponent = () => {
                   )}
                   %)
                 </span>
-              </div>                <Progress
-                  value={
-                    ((totalEmployees?.totalDisponibles || 0) /
-                      (totalEmployees?.total || 1)) * 100
-                  }
-                  className="h-1"
-                />
+              </div>{" "}
+              <Progress
+                value={
+                  ((totalEmployees?.totalDisponibles || 0) /
+                    (totalEmployees?.total || 1)) *
+                  100
+                }
+                className="h-1"
+              />
               <div className="flex justify-between text-xs mt-2">
                 <Badge variant="outline" className="bg-red-50">
                   Inactivos: {totalEmployees?.totalInactivos}
@@ -421,19 +454,23 @@ const DashboardComponent = () => {
               <div className="flex items-center justify-between text-xs">
                 <span>Disponibles</span>
                 <span className="font-semibold">
-                  {totalSanitarios?.totalDisponibles} (                  {Math.round(
+                  {totalSanitarios?.totalDisponibles} ({" "}
+                  {Math.round(
                     ((totalSanitarios?.totalDisponibles || 0) /
-                      (totalSanitarios?.total || 1)) * 100
+                      (totalSanitarios?.total || 1)) *
+                      100
                   )}
                   %)
                 </span>
-              </div>                <Progress
-                  value={
-                    ((totalSanitarios?.totalDisponibles || 0) /
-                      (totalSanitarios?.total || 1)) * 100
-                  }
-                  className="h-1"
-                />
+              </div>{" "}
+              <Progress
+                value={
+                  ((totalSanitarios?.totalDisponibles || 0) /
+                    (totalSanitarios?.total || 1)) *
+                  100
+                }
+                className="h-1"
+              />
               <div className="flex justify-between text-xs mt-2">
                 <Badge variant="outline" className="bg-blue-50">
                   Asignados: {totalSanitarios?.totalAsignado}
@@ -609,31 +646,35 @@ const DashboardComponent = () => {
                 futuresCleanings.items &&
                 futuresCleanings.items.length > 0 ? (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {futuresCleanings.items.slice(0, 4).map((item: Cleaning) => (
-                      <div
-                        key={item.id}
-                        className="border rounded-md p-4 relative"
-                      >
-                        <div className="flex items-center justify-between mb-2">
-                          <Badge variant="outline" className="bg-gray-50">
-                            Limpieza
-                          </Badge>
-                          <Badge className="bg-blue-100 text-blue-800">
-                            #{item.numero_de_limpieza}
-                          </Badge>
+                    {futuresCleanings.items
+                      .slice(0, 4)
+                      .map((item: Cleaning) => (
+                        <div
+                          key={item.id}
+                          className="border rounded-md p-4 relative"
+                        >
+                          <div className="flex items-center justify-between mb-2">
+                            <Badge variant="outline" className="bg-gray-50">
+                              Limpieza
+                            </Badge>
+                            <Badge className="bg-blue-100 text-blue-800">
+                              #{item.numero_de_limpieza}
+                            </Badge>
+                          </div>
+                          <h3 className="font-medium">
+                            {item.cliente?.nombre}
+                          </h3>
+                          <p className="text-sm text-gray-600">
+                            Servicio ID: {item.servicio?.id}
+                          </p>
+                          <div className="flex items-center mt-2 text-xs text-gray-500">
+                            <CalendarDays className="h-3 w-3 mr-1" />
+                            {new Date(
+                              item.fecha_de_limpieza
+                            ).toLocaleDateString()}
+                          </div>
                         </div>
-                        <h3 className="font-medium">{item.cliente?.nombre}</h3>
-                        <p className="text-sm text-gray-600">
-                          Servicio ID: {item.servicio?.id}
-                        </p>
-                        <div className="flex items-center mt-2 text-xs text-gray-500">
-                          <CalendarDays className="h-3 w-3 mr-1" />
-                          {new Date(
-                            item.fecha_de_limpieza
-                          ).toLocaleDateString()}
-                        </div>
-                      </div>
-                    ))}
+                      ))}
                   </div>
                 ) : (
                   <div className="text-center py-8 text-gray-500">
@@ -652,7 +693,9 @@ const DashboardComponent = () => {
               <CardContent>
                 <div className="space-y-4">
                   {activityRecent && (
-                    <>                      {/* Servicio completado */}
+                    <>
+                      {" "}
+                      {/* Servicio completado */}
                       {activityRecent.latestCompletedService && (
                         <div className="flex items-start pb-4 border-b">
                           <div className="w-10 h-10 rounded bg-gray-100 flex items-center justify-center">
@@ -687,91 +730,103 @@ const DashboardComponent = () => {
                           </div>
                         </div>
                       )}
-
                       {/* Servicio programado */}
-                      {activityRecent.latestScheduledService && activityRecent.timestamp && (
-                        <div className="flex items-start pb-4 border-b">
-                          <div className="w-10 h-10 rounded bg-gray-100 flex items-center justify-center">
-                            <TruckIcon className="h-5 w-5" />
-                          </div>
-                          <div className="ml-4 flex-1">
-                            <div className="flex items-center">
-                              <span className="font-medium">PROGRAMADO</span>
-                              <span className="ml-2 text-xs text-gray-500">
-                                {activityRecent.timestamp 
-                                  ? new Date(activityRecent.timestamp).toLocaleString() 
-                                  : "-"}
-                              </span>
+                      {activityRecent.latestScheduledService &&
+                        activityRecent.timestamp && (
+                          <div className="flex items-start pb-4 border-b">
+                            <div className="w-10 h-10 rounded bg-gray-100 flex items-center justify-center">
+                              <TruckIcon className="h-5 w-5" />
                             </div>
-                            <p className="text-sm">
-                              {
-                                activityRecent.latestScheduledService
-                                  .tipoServicio
-                              }{" "}
-                              para{" "}
-                              {
-                                activityRecent.latestScheduledService.cliente
-                                  ?.nombre
-                              }
-                            </p>
-                            <p className="text-xs text-gray-500 mt-1">
-                              Ubicación:{" "}
-                              {activityRecent.latestScheduledService.ubicacion}
-                            </p>
+                            <div className="ml-4 flex-1">
+                              <div className="flex items-center">
+                                <span className="font-medium">PROGRAMADO</span>
+                                <span className="ml-2 text-xs text-gray-500">
+                                  {activityRecent.timestamp
+                                    ? new Date(
+                                        activityRecent.timestamp
+                                      ).toLocaleString()
+                                    : "-"}
+                                </span>
+                              </div>
+                              <p className="text-sm">
+                                {
+                                  activityRecent.latestScheduledService
+                                    .tipoServicio
+                                }{" "}
+                                para{" "}
+                                {
+                                  activityRecent.latestScheduledService.cliente
+                                    ?.nombre
+                                }
+                              </p>
+                              <p className="text-xs text-gray-500 mt-1">
+                                Ubicación:{" "}
+                                {
+                                  activityRecent.latestScheduledService
+                                    .ubicacion
+                                }
+                              </p>
+                            </div>
                           </div>
-                        </div>
-                      )}
-
+                        )}
                       {/* Cliente nuevo */}
-                      {activityRecent.latestClient && activityRecent.timestamp && (
-                        <div className="flex items-start pb-4 border-b">
-                          <div className="w-10 h-10 rounded bg-gray-100 flex items-center justify-center">
-                            <User2Icon className="h-5 w-5" />
-                          </div>
-                          <div className="ml-4 flex-1">
-                            <div className="flex items-center">
-                              <span className="font-medium">NUEVO CLIENTE</span>
-                              <span className="ml-2 text-xs text-gray-500">
-                                {new Date(activityRecent.timestamp).toLocaleString()}
-                              </span>
+                      {activityRecent.latestClient &&
+                        activityRecent.timestamp && (
+                          <div className="flex items-start pb-4 border-b">
+                            <div className="w-10 h-10 rounded bg-gray-100 flex items-center justify-center">
+                              <User2Icon className="h-5 w-5" />
                             </div>
-                            <p className="text-sm">
-                              {activityRecent.latestClient.nombre}
-                            </p>
-                            <p className="text-xs text-gray-500 mt-1">
-                              Contacto:{" "}
-                              {activityRecent.latestClient.contacto_principal || "-"}
-                            </p>
+                            <div className="ml-4 flex-1">
+                              <div className="flex items-center">
+                                <span className="font-medium">
+                                  NUEVO CLIENTE
+                                </span>
+                                <span className="ml-2 text-xs text-gray-500">
+                                  {new Date(
+                                    activityRecent.timestamp
+                                  ).toLocaleString()}
+                                </span>
+                              </div>
+                              <p className="text-sm">
+                                {activityRecent.latestClient.nombre}
+                              </p>
+                              <p className="text-xs text-gray-500 mt-1">
+                                Contacto:{" "}
+                                {activityRecent.latestClient
+                                  .contacto_principal || "-"}
+                              </p>
+                            </div>
                           </div>
-                        </div>
-                      )}
-
+                        )}
                       {/* Baño nuevo/actualizado */}
-                      {activityRecent.latestToilet && activityRecent.timestamp && (
-                        <div className="flex items-start pb-4 border-b">
-                          <div className="w-10 h-10 rounded bg-gray-100 flex items-center justify-center">
-                            <Toilet className="h-5 w-5" />
-                          </div>
-                          <div className="ml-4 flex-1">
-                            <div className="flex items-center">
-                              <span className="font-medium">
-                                BAÑO REGISTRADO
-                              </span>
-                              <span className="ml-2 text-xs text-gray-500">
-                                {new Date(activityRecent.timestamp).toLocaleString()}
-                              </span>
+                      {activityRecent.latestToilet &&
+                        activityRecent.timestamp && (
+                          <div className="flex items-start pb-4 border-b">
+                            <div className="w-10 h-10 rounded bg-gray-100 flex items-center justify-center">
+                              <Toilet className="h-5 w-5" />
                             </div>
-                            <p className="text-sm">
-                              Baño {activityRecent.latestToilet.codigo_interno}{" "}
-                              - {activityRecent.latestToilet.modelo}
-                            </p>
-                            <p className="text-xs text-gray-500 mt-1">
-                              Estado: {activityRecent.latestToilet.estado}
-                            </p>
+                            <div className="ml-4 flex-1">
+                              <div className="flex items-center">
+                                <span className="font-medium">
+                                  BAÑO REGISTRADO
+                                </span>
+                                <span className="ml-2 text-xs text-gray-500">
+                                  {new Date(
+                                    activityRecent.timestamp
+                                  ).toLocaleString()}
+                                </span>
+                              </div>
+                              <p className="text-sm">
+                                Baño{" "}
+                                {activityRecent.latestToilet.codigo_interno} -{" "}
+                                {activityRecent.latestToilet.modelo}
+                              </p>
+                              <p className="text-xs text-gray-500 mt-1">
+                                Estado: {activityRecent.latestToilet.estado}
+                              </p>
+                            </div>
                           </div>
-                        </div>
-                      )}
-
+                        )}
                       {/* Mantenimiento */}
                       {activityRecent.latestMaintenance && (
                         <div className="flex items-start pb-4 border-b">
@@ -787,12 +842,16 @@ const DashboardComponent = () => {
                                   : "PROGRAMADO"}
                               </span>
                               <span className="ml-2 text-xs text-gray-500">
-                                {activityRecent.latestMaintenance.completado && 
-                                 activityRecent.latestMaintenance.fechaCompletado
-                                  ? new Date(activityRecent.latestMaintenance.fechaCompletado).toLocaleString()
-                                  : activityRecent.timestamp 
-                                    ? new Date(activityRecent.timestamp).toLocaleString() 
-                                    : "-"}
+                                {activityRecent.latestMaintenance.completado &&
+                                activityRecent.latestMaintenance.fechaCompletado
+                                  ? new Date(
+                                      activityRecent.latestMaintenance.fechaCompletado
+                                    ).toLocaleString()
+                                  : activityRecent.timestamp
+                                  ? new Date(
+                                      activityRecent.timestamp
+                                    ).toLocaleString()
+                                  : "-"}
                               </span>
                             </div>
                             <p className="text-sm">
@@ -804,45 +863,44 @@ const DashboardComponent = () => {
                             </p>
                             <p className="text-xs text-gray-500 mt-1">
                               Baño:{" "}
-                              {
-                                activityRecent.latestMaintenance.toilet?.codigo_interno || "-"
-                              }{" "}
+                              {activityRecent.latestMaintenance.toilet
+                                ?.codigo_interno || "-"}{" "}
                               | Técnico:{" "}
-                              {
-                                activityRecent.latestMaintenance
-                                  .tecnico_responsable || "-"
-                              }
+                              {activityRecent.latestMaintenance.empleado_id ||
+                                "-"}
                             </p>
                           </div>
                         </div>
                       )}
-
                       {/* Vehículo nuevo */}
-                      {activityRecent.latestVehicle && activityRecent.timestamp && (
-                        <div className="flex items-start pb-4 border-b last:border-0">
-                          <div className="w-10 h-10 rounded bg-gray-100 flex items-center justify-center">
-                            <TruckIcon className="h-5 w-5" />
-                          </div>
-                          <div className="ml-4 flex-1">
-                            <div className="flex items-center">
-                              <span className="font-medium">
-                                VEHÍCULO REGISTRADO
-                              </span>
-                              <span className="ml-2 text-xs text-gray-500">
-                                {new Date(activityRecent.timestamp).toLocaleString()}
-                              </span>
+                      {activityRecent.latestVehicle &&
+                        activityRecent.timestamp && (
+                          <div className="flex items-start pb-4 border-b last:border-0">
+                            <div className="w-10 h-10 rounded bg-gray-100 flex items-center justify-center">
+                              <TruckIcon className="h-5 w-5" />
                             </div>
-                            <p className="text-sm">
-                              {activityRecent.latestVehicle.marca}{" "}
-                              {activityRecent.latestVehicle.modelo} (
-                              {activityRecent.latestVehicle.placa})
-                            </p>
-                            <p className="text-xs text-gray-500 mt-1">
-                              Estado: {activityRecent.latestVehicle.estado}
-                            </p>
+                            <div className="ml-4 flex-1">
+                              <div className="flex items-center">
+                                <span className="font-medium">
+                                  VEHÍCULO REGISTRADO
+                                </span>
+                                <span className="ml-2 text-xs text-gray-500">
+                                  {new Date(
+                                    activityRecent.timestamp
+                                  ).toLocaleString()}
+                                </span>
+                              </div>
+                              <p className="text-sm">
+                                {activityRecent.latestVehicle.marca}{" "}
+                                {activityRecent.latestVehicle.modelo} (
+                                {activityRecent.latestVehicle.placa})
+                              </p>
+                              <p className="text-xs text-gray-500 mt-1">
+                                Estado: {activityRecent.latestVehicle.estado}
+                              </p>
+                            </div>
                           </div>
-                        </div>
-                      )}
+                        )}
                     </>
                   )}
 

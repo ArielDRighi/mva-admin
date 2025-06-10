@@ -193,7 +193,7 @@ export const createSanitarioEnMantenimiento = createServerAction(
           fecha_mantenimiento: data.fecha_mantenimiento,
           tipo_mantenimiento: data.tipo_mantenimiento,
           descripcion: data.descripcion,
-          tecnico_responsable: data.tecnico_responsable,
+          empleado_id: data.empleado_id,
           costo: data.costo,
         }),
         cache: "no-store",
@@ -222,7 +222,7 @@ export const editSanitarioEnMantenimiento = createServerAction(
         headers,
         body: JSON.stringify({
           descripcion: data.descripcion,
-          tecnico_responsable: data.tecnico_responsable,
+          empleado_id: data.empleado_id,
           costo: data.costo,
         }),
         cache: "no-store",
