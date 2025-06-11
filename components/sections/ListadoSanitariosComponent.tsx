@@ -31,7 +31,9 @@ import {
   RefreshCcw,
   PlusCircle,
   Info, // Agregar este icono
+  Calendar,
 } from "lucide-react";
+import { ToiletServicesDialog } from "./sanitarios/ToiletServicesDialog";
 import {
   Card,
   CardContent,
@@ -532,8 +534,7 @@ const ListadoSanitariosComponent = ({
                   >
                     <Trash2 className="h-3.5 w-3.5 mr-1" />
                     Eliminar
-                  </Button>
-                  <div className="ml-1">
+                  </Button>                  <div className="ml-1">
                     <Button
                       variant="secondary"
                       size="sm"
@@ -557,6 +558,18 @@ const ListadoSanitariosComponent = ({
                       Mantenimiento
                     </Button>
                   </div>
+                  {/* Botón para ver servicios asignados */}
+                  {sanitario.baño_id && (
+                    <ToiletServicesDialog 
+                      toiletId={sanitario.baño_id} 
+                      toiletName={`${sanitario.codigo_interno} - ${sanitario.modelo}`}
+                    >
+                      <Button variant="outline" size="sm">
+                        <Calendar className="h-3.5 w-3.5 mr-1" />
+                        Servicios
+                      </Button>
+                    </ToiletServicesDialog>
+                  )}
                 </TableCell>
               </>
             )}
