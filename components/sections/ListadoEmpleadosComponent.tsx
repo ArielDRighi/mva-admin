@@ -11,7 +11,8 @@ import {
   getEmployees,
   deleteEmployee,
   editEmployee,
-  changeEmployeeStatus,
+  // changeEmployeeStatus,
+  getProximosServiciosPorEmpleado,
 } from "@/app/actions/empleados";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
@@ -44,6 +45,13 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 export default function ListadoEmpleadosComponent({
   data,
@@ -70,10 +78,37 @@ export default function ListadoEmpleadosComponent({
   );
   const [isCreating, setIsCreating] = useState(false);
   const [activeTab, setActiveTab] = useState("todos");
-  const [isFirstLoad, setIsFirstLoad] = useState(true);
-  // Estados para el diálogo de confirmación de eliminación
+  const [isFirstLoad, setIsFirstLoad] = useState(true); // Estados para el diálogo de confirmación de eliminación
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [employeeToDelete, setEmployeeToDelete] = useState<number | null>(null);
+
+  // Estados para el modal de próximos servicios
+  const [showProximosServicios, setShowProximosServicios] = useState(false);
+  type ProximoServicio = {
+    cliente?: {
+      nombre?: string;
+      email?: string;
+      telefono?: string;
+    };
+    fechaProgramada?: string;
+    cantidadEmpleados?: number;
+    cantidadBanos?: number;
+    ubicacion?: string;
+    tipoServicio?: string;
+    cantidadVehiculos?: number;
+    estado?: string;
+    fechaInicio?: string;
+    fechaFin?: string;
+    notas?: string;
+  };
+
+  const [proximosServiciosData, setProximosServiciosData] = useState<
+    ProximoServicio[]
+  >([]);
+  const [selectedEmployeeForServicios, setSelectedEmployeeForServicios] =
+    useState<Empleado | null>(null);
+  const [loadingProximosServicios, setLoadingProximosServicios] =
+    useState(false);
 
   const createEmployeeSchema = z.object({
     nombre: z.string().min(1, "El nombre es obligatorio"),
@@ -83,13 +118,7 @@ export default function ListadoEmpleadosComponent({
       .string()
       .min(1, "La fecha de nacimiento es obligatoria"),
     direccion: z.string().min(1, "La dirección es obligatoria"),
-    telefono: z
-      .string()
-      .regex(
-        /^\d{3}-\d{4}-\d{4}$/,
-        "Formato de teléfono incorrecto, debe ser xxx-xxxx-xxxx"
-      )
-      .or(z.string().regex(/^\d{10,11}$/, "Debe tener entre 10 y 11 dígitos")),
+    telefono: z.string().min(1, "El teléfono es obligatorio"),
     email: z
       .string()
       .regex(
@@ -200,7 +229,6 @@ export default function ListadoEmpleadosComponent({
       }
     });
   };
-
   const handleCreateClick = () => {
     reset({
       nombre: "",
@@ -218,10 +246,65 @@ export default function ListadoEmpleadosComponent({
     });
     setSelectedEmployee(null);
     setIsCreating(true);
-  }; // Esta función ahora sólo muestra el diálogo de confirmación
+  };
+
+  // Esta función ahora sólo muestra el diálogo de confirmación de eliminación
   const handleDeleteClick = (id: number) => {
     setEmployeeToDelete(id);
     setShowDeleteConfirm(true);
+  };
+  // Función para mostrar próximos servicios
+  const handleProximosServiciosClick = async (empleado: Empleado) => {
+    if (!empleado.id) return;
+
+    setSelectedEmployeeForServicios(empleado);
+    setLoadingProximosServicios(true);
+    setShowProximosServicios(true);
+
+    try {
+      const servicios = await getProximosServiciosPorEmpleado(empleado.id);
+      console.log("Respuesta completa de servicios:", servicios); // Debug
+
+      // Handle different response structures
+      if (Array.isArray(servicios)) {
+        console.log("Servicios es array:", servicios); // Debug
+        setProximosServiciosData(servicios);
+      } else if (
+        servicios &&
+        typeof servicios === "object" &&
+        "data" in servicios
+      ) {
+        if (
+          typeof servicios === "object" &&
+          servicios !== null &&
+          "data" in servicios &&
+          Array.isArray((servicios as { data?: unknown }).data)
+        ) {
+          console.log(
+            "Servicios tiene propiedad data:",
+            (servicios as { data: unknown }).data
+          ); // Debug
+          setProximosServiciosData(
+            (servicios as { data: ProximoServicio[] }).data
+          );
+        } else {
+          setProximosServiciosData([]);
+        }
+      } else {
+        console.log("Estructura no reconocida, usando array vacío"); // Debug
+        setProximosServiciosData([]);
+      }
+    } catch (error) {
+      console.error("Error al cargar próximos servicios:", error);
+      toast.error("Error", {
+        description:
+          "No se pudieron cargar los próximos servicios del empleado.",
+        duration: 3000,
+      });
+      setProximosServiciosData([]);
+    } finally {
+      setLoadingProximosServicios(false);
+    }
   };
 
   // Función que realmente elimina el empleado después de la confirmación
@@ -255,30 +338,30 @@ export default function ListadoEmpleadosComponent({
       setEmployeeToDelete(null);
     }
   };
-  const handleChangeStatus = async (id: number, estado: string) => {
-    try {
-      await changeEmployeeStatus(id, estado);
-      toast.success("Estado actualizado", {
-        description: `El empleado ahora está ${estado}.`,
-      });
-      await fetchEmployees();
-    } catch (error) {
-      console.error("Error al cambiar el estado:", error);
+  // const handleChangeStatus = async (id: number, estado: string) => {
+  //   try {
+  //     await changeEmployeeStatus(id, estado);
+  //     toast.success("Estado actualizado", {
+  //       description: `El empleado ahora está ${estado}.`,
+  //     });
+  //     await fetchEmployees();
+  //   } catch (error) {
+  //     console.error("Error al cambiar el estado:", error);
 
-      // Extraer el mensaje de error para mostrar información más precisa
-      let errorMessage = "No se pudo cambiar el estado.";
+  //     // Extraer el mensaje de error para mostrar información más precisa
+  //     let errorMessage = "No se pudo cambiar el estado.";
 
-      // Si es un error con mensaje personalizado, lo usamos
-      if (error instanceof Error) {
-        errorMessage = error.message || errorMessage;
-      }
+  //     // Si es un error con mensaje personalizado, lo usamos
+  //     if (error instanceof Error) {
+  //       errorMessage = error.message || errorMessage;
+  //     }
 
-      toast.error("Error al cambiar estado", {
-        description: errorMessage,
-        duration: 5000, // Duración aumentada para mejor visibilidad
-      });
-    }
-  };
+  //     toast.error("Error al cambiar estado", {
+  //       description: errorMessage,
+  //       duration: 5000, // Duración aumentada para mejor visibilidad
+  //     });
+  //   }
+  // };
   const onSubmit = async (data: z.infer<typeof createEmployeeSchema>) => {
     try {
       // Creamos una copia segura de los datos para manipularlos
@@ -681,7 +764,7 @@ export default function ListadoEmpleadosComponent({
                   >
                     {empleado.estado}
                   </Badge>
-                </TableCell>
+                </TableCell>{" "}
                 <TableCell className="flex gap-2">
                   <Button
                     variant="outline"
@@ -703,37 +786,15 @@ export default function ListadoEmpleadosComponent({
                     <Trash2 className="h-3.5 w-3.5 mr-1" />
                     Eliminar
                   </Button>
-                  <div className="ml-1">
-                    {empleado.estado !== "ASIGNADO" && (
-                      <Button
-                        variant="default"
-                        size="sm"
-                        onClick={() =>
-                          empleado.id &&
-                          handleChangeStatus(empleado.id, "ASIGNADO")
-                        }
-                        className="cursor-pointer bg-green-100 text-green-700 hover:bg-green-200 hover:text-green-800"
-                      >
-                        <CheckCircle className="h-3.5 w-3.5 mr-1" />
-                        Asignar
-                      </Button>
-                    )}
-
-                    {empleado.estado !== "SUSPENDIDO" && (
-                      <Button
-                        variant="secondary"
-                        size="sm"
-                        onClick={() =>
-                          empleado.id &&
-                          handleChangeStatus(empleado.id, "SUSPENDIDO")
-                        }
-                        className="cursor-pointer"
-                      >
-                        <PauseCircle className="h-3.5 w-3.5 mr-1" />
-                        Suspender
-                      </Button>
-                    )}
-                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleProximosServiciosClick(empleado)}
+                    className="cursor-pointer border-blue-200 hover:bg-blue-50 hover:text-blue-900"
+                  >
+                    <Info className="h-3.5 w-3.5 mr-1" />
+                    Próximos Servicios
+                  </Button>
                 </TableCell>
               </>
             )}
@@ -968,10 +1029,145 @@ export default function ListadoEmpleadosComponent({
           <p>
             Esta acción eliminará permanentemente este empleado. Esta operación
             no se puede deshacer.
-          </p>
+          </p>{" "}
           <p>¿Estás seguro de que deseas continuar?</p>
         </div>
       </FormDialog>
+
+      {/* Modal de Próximos Servicios */}
+      <Dialog
+        open={showProximosServicios}
+        onOpenChange={setShowProximosServicios}
+      >
+        <DialogContent className="sm:max-w-[800px]">
+          <DialogHeader>
+            <DialogTitle>
+              Próximos Servicios - {selectedEmployeeForServicios?.nombre}{" "}
+              {selectedEmployeeForServicios?.apellido}
+            </DialogTitle>
+            <DialogDescription>
+              Lista de servicios próximos asignados al empleado
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="mt-4">
+            {loadingProximosServicios ? (
+              <div className="flex justify-center items-center py-8">
+                <Loader />
+              </div>
+            ) : proximosServiciosData.length > 0 ? (
+              <div className="space-y-3">
+                {proximosServiciosData.map((servicio, index) => (
+                  <div key={index} className="border rounded-lg p-4 bg-gray-50">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <h3 className="font-semibold text-lg">
+                          {servicio.cliente?.nombre ||
+                            "Cliente no especificado"}
+                        </h3>
+                        <p className="text-sm text-gray-600">
+                          <strong>Fecha Programada:</strong>{" "}
+                          {servicio.fechaProgramada
+                            ? new Date(
+                                servicio.fechaProgramada
+                              ).toLocaleDateString("es-AR")
+                            : "No especificada"}
+                        </p>
+                        <p className="text-sm text-gray-600">
+                          <strong>Cantidad de Empleados:</strong>{" "}
+                          {servicio.cantidadEmpleados || "No especificada"}
+                        </p>
+                        <p className="text-sm text-gray-600">
+                          <strong>Cantidad de Baños:</strong>{" "}
+                          {servicio.cantidadBanos || "No especificada"}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-gray-600">
+                          <strong>Ubicación:</strong>{" "}
+                          {servicio.ubicacion || "No especificada"}
+                        </p>
+                        <p className="text-sm text-gray-600">
+                          <strong>Tipo de Servicio:</strong>{" "}
+                          {servicio.tipoServicio || "No especificado"}
+                        </p>
+                        <p className="text-sm text-gray-600">
+                          <strong>Cantidad de Vehículos:</strong>{" "}
+                          {servicio.cantidadVehiculos || "No especificada"}
+                        </p>
+                        <div className="mt-2">
+                          <Badge
+                            variant={
+                              servicio.estado === "PROGRAMADO"
+                                ? "default"
+                                : "outline"
+                            }
+                            className={
+                              servicio.estado === "PROGRAMADO"
+                                ? "bg-blue-100 text-blue-800"
+                                : servicio.estado === "ASIGNADO"
+                                ? "bg-green-100 text-green-800"
+                                : ""
+                            }
+                          >
+                            {servicio.estado || "Sin estado"}
+                          </Badge>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="mt-3 pt-3 border-t border-gray-200">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <p className="text-sm text-gray-600">
+                            <strong>Fecha Inicio:</strong>{" "}
+                            {servicio.fechaInicio
+                              ? new Date(
+                                  servicio.fechaInicio
+                                ).toLocaleDateString("es-AR")
+                              : "No especificada"}
+                          </p>
+                          <p className="text-sm text-gray-600">
+                            <strong>Fecha Fin:</strong>{" "}
+                            {servicio.fechaFin
+                              ? new Date(servicio.fechaFin).toLocaleDateString(
+                                  "es-AR"
+                                )
+                              : "No especificada"}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-sm text-gray-600">
+                            <strong>Cliente Email:</strong>{" "}
+                            {servicio.cliente?.email || "No especificado"}
+                          </p>
+                          <p className="text-sm text-gray-600">
+                            <strong>Cliente Teléfono:</strong>{" "}
+                            {servicio.cliente?.telefono || "No especificado"}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                    {servicio.notas && (
+                      <div className="mt-3 pt-3 border-t border-gray-200">
+                        <p className="text-sm text-gray-600">
+                          <strong>Notas:</strong> {servicio.notas}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-8">
+                <Info className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                <p className="text-gray-500">
+                  No hay próximos servicios asignados a este empleado
+                </p>
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 }

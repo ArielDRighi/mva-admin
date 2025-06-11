@@ -86,7 +86,6 @@ const MantenimientoVehiculosComponent = ({
     number | null
   >(null);
   console.log("mantenimientos", mantenimientos);
-
   const mantenimientoSchema = z.object({
     vehiculoId: z.number({
       required_error: "El vehículo es obligatorio",
@@ -108,7 +107,10 @@ const MantenimientoVehiculosComponent = ({
         invalid_type_error: "El costo debe ser un número",
       })
       .nonnegative("El costo no puede ser negativo"),
-    proximoMantenimiento: z.string().optional(),
+    proximoMantenimiento: z
+      .string()
+      .optional()
+      .transform((val) => (val === "" || val === undefined ? undefined : val)),
   });
 
   const form = useForm<z.infer<typeof mantenimientoSchema>>({
@@ -216,7 +218,6 @@ const MantenimientoVehiculosComponent = ({
     },
     [vehiculosInfo]
   );
-
   const handleEditClick = (mantenimiento: VehicleMaintenance) => {
     setSelectedMantenimiento(mantenimiento);
     setIsCreating(false);
@@ -232,11 +233,15 @@ const MantenimientoVehiculosComponent = ({
     );
     setValue("descripcion", mantenimiento.descripcion || "");
     setValue("costo", mantenimiento.costo);
+    
+    // Manejar proximoMantenimiento de forma segura
     if (mantenimiento.proximoMantenimiento) {
       setValue(
         "proximoMantenimiento",
         new Date(mantenimiento.proximoMantenimiento).toISOString().split("T")[0]
       );
+    } else {
+      setValue("proximoMantenimiento", "");
     }
   };
   const handleCreateClick = () => {
@@ -331,19 +336,23 @@ const MantenimientoVehiculosComponent = ({
       setConfirmCompleteDialogOpen(false);
       setMantenimientoToComplete(null);
     }
-  };
-  const onSubmit = async (data: z.infer<typeof mantenimientoSchema>) => {
+  };  const onSubmit = async (data: z.infer<typeof mantenimientoSchema>) => {
     try {
+      // Filtrar campos undefined para evitar enviar valores no válidos
+      const cleanedData = Object.fromEntries(
+        Object.entries(data).filter(([_, value]) => value !== undefined && value !== "")
+      );
+
       if (selectedMantenimiento) {
         await editMantenimientoVehiculo(
           selectedMantenimiento.id,
-          data as UpdateVehicleMaintenance
+          cleanedData as UpdateVehicleMaintenance
         );
         toast.success("Mantenimiento actualizado", {
           description: "Los cambios se han guardado correctamente.",
         });
       } else {
-        await createMantenimientoVehiculo(data as CreateVehicleMaintenance);
+        await createMantenimientoVehiculo(cleanedData as CreateVehicleMaintenance);
         toast.success("Mantenimiento creado", {
           description: "El mantenimiento se ha programado correctamente.",
         });

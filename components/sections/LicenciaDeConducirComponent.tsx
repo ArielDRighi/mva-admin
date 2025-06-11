@@ -80,7 +80,6 @@ const LicenciaDeConducirComponent = () => {
     fecha_expedicion: false,
     fecha_vencimiento: false,
   });
-
   // Estados de datos
   const [user, setUser] = useState<User | null>(null);
   const [employeeId, setEmployeeId] = useState(0);
@@ -97,8 +96,7 @@ const LicenciaDeConducirComponent = () => {
         console.error("Error al parsear la cookie de usuario:", error);
         toast.error("Error de autenticación", {
           description: "No se pudo cargar la información del usuario"
-        });
-      }
+        });      }
     }
   }, []);
 
@@ -130,9 +128,7 @@ const LicenciaDeConducirComponent = () => {
       } finally {
         setLoading(false);
       }
-    };
-
-    if (user?.id) fetchEmployee();
+    };    if (user?.id) fetchEmployee();
   }, [user?.id]);
 
   // Cargar licencia de conducir
@@ -171,13 +167,11 @@ const LicenciaDeConducirComponent = () => {
           // Es normal que no haya licencia registrada
           console.log("No hay licencia registrada para el empleado");
           setOriginalLicencia(null);
-        } else {
-          console.error("Respuesta no válida:", response);
+        } else {          console.error("Respuesta no válida:", response);
           toast.error("Error", {
             description: "Formato de datos no válido"
           });
-        }
-      } catch (error) {
+        }      } catch (error) {
         console.error("Error al cargar licencia de conducir:", error);
         toast.error("Error", {
           description: error instanceof Error 
@@ -187,9 +181,7 @@ const LicenciaDeConducirComponent = () => {
       } finally {
         setLoading(false);
       }
-    };
-
-    if (employeeId) fetchData();
+    };    if (employeeId) fetchData();
   }, [employeeId]);
 
   // Manejadores de eventos
@@ -244,8 +236,7 @@ const LicenciaDeConducirComponent = () => {
         if (response && typeof response === "object") {
           // Intentar extraer mensaje personalizado si existe
           let successMessage = "Licencia de conducir creada con éxito";
-          
-          if ("message" in response && typeof response.message === "string") {
+            if ("message" in response && typeof response.message === "string") {
             successMessage = response.message;
           }
           
@@ -265,8 +256,7 @@ const LicenciaDeConducirComponent = () => {
         if (response && typeof response === "object") {
           // Intentar extraer mensaje personalizado si existe
           let successMessage = "Licencia de conducir actualizada con éxito";
-          
-          if ("message" in response && typeof response.message === "string") {
+            if ("message" in response && typeof response.message === "string") {
             successMessage = response.message;
           }
           
@@ -329,8 +319,7 @@ const LicenciaDeConducirComponent = () => {
           errorMessage = error.message;
         } else if ("error" in error && typeof error.error === "string") {
           errorMessage = error.error;
-        }
-      }
+        }      }
       
       toast.error("Error", {
         description: errorMessage
@@ -490,8 +479,7 @@ const LicenciaDeConducirComponent = () => {
               </div>
 
               {editMode ? (
-                <div className="bg-white rounded-lg border p-6 shadow-sm">
-                  <h3 className="text-lg font-medium mb-4">
+                <div className="bg-white rounded-lg border p-6 shadow-sm">                  <h3 className="text-lg font-medium mb-4">
                     Registro de Licencia
                   </h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -644,8 +632,7 @@ const LicenciaDeConducirComponent = () => {
                         )}
                       </div>
 
-                      <div className="space-y-6">
-                        <div className="space-y-2">
+                      <div className="space-y-6">                        <div className="space-y-2">
                           <Label htmlFor="fecha_expedicion">Fecha de expedición</Label>
                           <CustomDatePicker
                             date={licencia.fecha_expedicion}
@@ -658,9 +645,7 @@ const LicenciaDeConducirComponent = () => {
                               Fecha de expedición inválida
                             </p>
                           )}
-                        </div>
-
-                        <div className="space-y-2">
+                        </div>                        <div className="space-y-2">
                           <Label htmlFor="fecha_vencimiento">Fecha de vencimiento</Label>
                           <CustomDatePicker
                             date={licencia.fecha_vencimiento}
