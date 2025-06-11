@@ -297,6 +297,27 @@ export const getTotalSanitarios = createServerAction(async () => {
       cache: "no-store",
     }
   );
-
   return handleApiResponse(res, "Error al obtener el total de sanitarios");
 }, "Error al obtener el total de sanitarios");
+
+/**
+ * Obtiene los servicios asignados a un baño químico específico
+ * @param toiletId ID del baño químico
+ * @returns Lista de servicios asignados con datos del cliente
+ */
+export const getToiletServices = createServerAction(
+  async (toiletId: number) => {
+    const headers = await createAuthHeaders();
+
+    const res = await fetch(
+      `${process.env.NEXT_PUBLIC_API_URL}/api/chemical_toilets/${toiletId}/services`,
+      {
+        headers,
+        cache: "no-store",
+      }
+    );
+
+    return handleApiResponse(res, "Error al obtener los servicios del baño");
+  },
+  "Error al obtener los servicios del baño"
+);
