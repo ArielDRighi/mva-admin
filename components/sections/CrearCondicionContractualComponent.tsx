@@ -322,17 +322,11 @@ export default function CrearCondicionContractualComponent() {
       // Aquí garantizamos que los datos son del tipo correcto antes de enviar
       const conditionData = {
         clientId: data.clientId,
-        tipo_de_contrato: data.tipo_de_contrato,
         fecha_inicio: data.fecha_inicio,
         // Aseguramos que fecha_fin siempre sea string (requerido por CreateContractualCondition)
         fecha_fin: data.fecha_fin || data.fecha_inicio, // Fallback a fecha_inicio si no hay fecha_fin
-        tipo_servicio: data.tipo_servicio || "INSTALACION", // Valor por defecto
-        cantidad_banos: data.cantidad_banos || 0,
         condiciones_especificas: data.condiciones_especificas || "",
         tarifa: data.tarifa,
-        tarifa_alquiler: data.tarifa_alquiler || 0,
-        tarifa_instalacion: data.tarifa_instalacion || 0,
-        tarifa_limpieza: data.tarifa_limpieza || 0,
         periodicidad: data.periodicidad,
         estado: data.estado,
       };
@@ -345,7 +339,7 @@ export default function CrearCondicionContractualComponent() {
       });
 
       setTimeout(() => {
-        router.push("/admin/dashboard/condiciones-contractuales");
+        router.push("/admin/dashboard/condiciones-contractuales/listado");
       }, 2000);
     } catch (error) {
       console.error("Error al crear la condición contractual:", error);
