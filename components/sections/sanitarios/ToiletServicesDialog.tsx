@@ -1,6 +1,6 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect } from "react";
 import {
   Dialog,
   DialogContent,
@@ -8,9 +8,9 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import {
   Table,
   TableBody,
@@ -18,10 +18,10 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from '@/components/ui/table';
-import { Calendar, User, Phone, MapPin, Mail, Loader2 } from 'lucide-react';
-import { getToiletServices } from '@/app/actions/sanitarios';
-import { toast } from 'sonner';
+} from "@/components/ui/table";
+import { Calendar, User, Phone, MapPin, Mail, Loader2 } from "lucide-react";
+import { getToiletServices } from "@/app/actions/sanitarios";
+import { toast } from "sonner";
 
 interface ToiletServicesDialogProps {
   toiletId: string;
@@ -30,20 +30,26 @@ interface ToiletServicesDialogProps {
 }
 
 interface ServiceData {
-  servicioId: number;
-  servicioNombre: string;
-  servicioDescripcion: string;
-  fechaInicio: string;
-  fechaFin: string;
-  estadoServicio: string;
-  clienteId: number;
-  clienteNombre: string;
-  clienteEmail: string;
-  clienteTelefono: string;
-  clienteDireccion: string;
+  clientedireccion: string;
+  clienteemail: string;
+  clienteid: number;
+  clientenombre: string;
+  clientetelefono: string;
+  estadoservicio: string;
+  fechafin: string;
+  fechainicio: string;
+  fechaprogramada: string;
+  notasservicio: string;
+  servicioid: number;
+  tiposervicio: string;
+  ubicacionservicio: string;
 }
 
-export function ToiletServicesDialog({ toiletId, toiletName, children }: ToiletServicesDialogProps) {
+export function ToiletServicesDialog({
+  toiletId,
+  toiletName,
+  children,
+}: ToiletServicesDialogProps) {
   const [open, setOpen] = useState(false);
   const [services, setServices] = useState<ServiceData[]>([]);
   const [loading, setLoading] = useState(false);
@@ -52,10 +58,11 @@ export function ToiletServicesDialog({ toiletId, toiletName, children }: ToiletS
     try {
       setLoading(true);
       const data = await getToiletServices(Number(toiletId));
+      console.log("Fetched services:", data);
       setServices(Array.isArray(data) ? data : []);
     } catch (error) {
-      console.error('Error fetching services:', error);
-      toast.error('Error al cargar los servicios');
+      console.error("Error fetching services:", error);
+      toast.error("Error al cargar los servicios");
     } finally {
       setLoading(false);
     }
@@ -69,28 +76,27 @@ export function ToiletServicesDialog({ toiletId, toiletName, children }: ToiletS
 
   const getStatusBadge = (status: string) => {
     const statusMap: Record<string, { variant: string; label: string }> = {
-      'ACTIVO': { variant: 'default', label: 'Activo' },
-      'COMPLETADO': { variant: 'secondary', label: 'Completado' },
-      'CANCELADO': { variant: 'destructive', label: 'Cancelado' },
-      'PENDIENTE': { variant: 'outline', label: 'Pendiente' },
+      ACTIVO: { variant: "default", label: "Activo" },
+      COMPLETADO: { variant: "secondary", label: "Completado" },
+      CANCELADO: { variant: "destructive", label: "Cancelado" },
+      PENDIENTE: { variant: "outline", label: "Pendiente" },
+      PROGRAMADO: { variant: "default", label: "Programado" },
     };
 
-    const statusInfo = statusMap[status] || { variant: 'outline', label: status };
-    
+    const statusInfo = statusMap[status] || {
+      variant: "outline",
+      label: status,
+    };
+
     return (
-      <Badge variant={statusInfo.variant as any}>
-        {statusInfo.label}
-      </Badge>
+      <Badge variant={statusInfo.variant as any}>{statusInfo.label}</Badge>
     );
   };
-
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        {children}
-      </DialogTrigger>
-      <DialogContent className="max-w-5xl max-h-[85vh] overflow-y-auto">
-        <DialogHeader>
+      <DialogTrigger asChild>{children}</DialogTrigger>
+      <DialogContent className="w-[1200px] max-w-[95vw] h-[600px] max-h-[85vh] overflow-hidden flex flex-col p-6">
+        <DialogHeader className="flex-shrink-0">
           <DialogTitle className="flex items-center gap-2">
             <Calendar className="h-5 w-5" />
             Servicios Asignados - {toiletName}
@@ -112,27 +118,33 @@ export function ToiletServicesDialog({ toiletId, toiletName, children }: ToiletS
             </p>
           </div>
         ) : (
-          <div className="space-y-4">
+          <div className="flex-1 overflow-auto">
             <div className="rounded-md border">
               <Table>
+                {" "}
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Servicio</TableHead>
-                    <TableHead>Cliente</TableHead>
-                    <TableHead>Contacto</TableHead>
-                    <TableHead>Fechas</TableHead>
-                    <TableHead>Estado</TableHead>
+                    <TableHead className="w-[180px]">Servicio</TableHead>
+                    <TableHead className="w-[200px]">Cliente</TableHead>
+                    <TableHead className="w-[220px]">Contacto</TableHead>
+                    <TableHead className="w-[240px]">Fechas</TableHead>
+                    <TableHead className="w-[120px]">Estado</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {services.map((service) => (
-                    <TableRow key={service.servicioId}>
+                    <TableRow key={service.servicioid}>
                       <TableCell>
                         <div>
-                          <p className="font-medium">{service.servicioNombre}</p>
-                          {service.servicioDescripcion && (
+                          <p className="font-medium">{service.tiposervicio}</p>
+                          {service.ubicacionservicio && (
                             <p className="text-sm text-muted-foreground">
-                              {service.servicioDescripcion}
+                              {service.ubicacionservicio}
+                            </p>
+                          )}
+                          {service.notasservicio && (
+                            <p className="text-xs text-muted-foreground mt-1">
+                              {service.notasservicio}
                             </p>
                           )}
                         </div>
@@ -141,28 +153,30 @@ export function ToiletServicesDialog({ toiletId, toiletName, children }: ToiletS
                         <div className="space-y-1">
                           <div className="flex items-center gap-2">
                             <User className="h-4 w-4 text-muted-foreground" />
-                            <span className="font-medium">{service.clienteNombre}</span>
+                            <span className="font-medium">
+                              {service.clientenombre}
+                            </span>
                           </div>
-                          {service.clienteDireccion && (
+                          {service.clientedireccion && (
                             <div className="flex items-center gap-2 text-sm text-muted-foreground">
                               <MapPin className="h-3 w-3" />
-                              <span>{service.clienteDireccion}</span>
+                              <span>{service.clientedireccion}</span>
                             </div>
                           )}
                         </div>
                       </TableCell>
                       <TableCell>
                         <div className="space-y-1">
-                          {service.clienteEmail && (
+                          {service.clienteemail && (
                             <div className="flex items-center gap-2 text-sm">
                               <Mail className="h-3 w-3 text-muted-foreground" />
-                              <span>{service.clienteEmail}</span>
+                              <span>{service.clienteemail}</span>
                             </div>
                           )}
-                          {service.clienteTelefono && (
+                          {service.clientetelefono && (
                             <div className="flex items-center gap-2 text-sm">
                               <Phone className="h-3 w-3 text-muted-foreground" />
-                              <span>{service.clienteTelefono}</span>
+                              <span>{service.clientetelefono}</span>
                             </div>
                           )}
                         </div>
@@ -170,17 +184,27 @@ export function ToiletServicesDialog({ toiletId, toiletName, children }: ToiletS
                       <TableCell>
                         <div className="text-sm">
                           <p>
-                            <span className="font-medium">Inicio:</span>{' '}
-                            {new Date(service.fechaInicio).toLocaleDateString('es-ES')}
+                            <span className="font-medium">Programada:</span>{" "}
+                            {new Date(
+                              service.fechaprogramada
+                            ).toLocaleDateString("es-ES")}
                           </p>
                           <p>
-                            <span className="font-medium">Fin:</span>{' '}
-                            {new Date(service.fechaFin).toLocaleDateString('es-ES')}
+                            <span className="font-medium">Inicio:</span>{" "}
+                            {new Date(service.fechainicio).toLocaleDateString(
+                              "es-ES"
+                            )}
+                          </p>
+                          <p>
+                            <span className="font-medium">Fin:</span>{" "}
+                            {new Date(service.fechafin).toLocaleDateString(
+                              "es-ES"
+                            )}
                           </p>
                         </div>
                       </TableCell>
                       <TableCell>
-                        {getStatusBadge(service.estadoServicio)}
+                        {getStatusBadge(service.estadoservicio)}
                       </TableCell>
                     </TableRow>
                   ))}

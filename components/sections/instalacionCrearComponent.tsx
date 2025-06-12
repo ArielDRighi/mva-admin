@@ -674,7 +674,6 @@ export default function CrearInstalacionComponent() {
     setEmpleadoRolA(empleadoId);
     setValue("empleadoAId", empleadoId);
   };
-
   // Función para asignar rol B a un empleado
   const handleAsignarRolB = (empleadoId: number) => {
     // Si este empleado ya tiene rol A, intercambiar roles
@@ -684,6 +683,35 @@ export default function CrearInstalacionComponent() {
     }
     setEmpleadoRolB(empleadoId);
     setValue("empleadoBId", empleadoId);
+  };
+
+  // Función para validar si se puede crear el servicio
+  const isCreateServiceEnabled = () => {
+    const empleadosIds = watch("empleadosIds") || [];
+    const vehiculosIds = watch("vehiculosIds") || [];
+    const banosIds = watch("banosIds") || [];
+
+    // Validar mínimo 1 empleado
+    if (empleadosIds.length === 0) {
+      return false;
+    }
+
+    // Validar mínimo 1 vehículo
+    if (vehiculosIds.length === 0) {
+      return false;
+    }
+
+    // Validar mínimo 1 baño
+    if (banosIds.length === 0) {
+      return false;
+    }
+
+    // Validar que al menos un empleado tenga rol A o B asignado
+    if (empleadoRolA === null && empleadoRolB === null) {
+      return false;
+    }
+
+    return true;
   };
 
   return (
@@ -1403,30 +1431,93 @@ export default function CrearInstalacionComponent() {
               >
                 Siguiente <ChevronRight className="ml-2 h-4 w-4" />
               </Button>
-            )}
-
+            )}{" "}
             {step === 4 && (
-              <Button
-                onClick={() => {
-                  const formValues = getValues();
+              <div className="flex flex-col gap-2">
+                {/* Indicadores de validación */}
+                {!isCreateServiceEnabled() && (
+                  <div className="bg-amber-50 border border-amber-200 rounded-md p-3 text-sm">
+                    <p className="font-medium text-amber-800 mb-2">
+                      Para habilitar la creación del servicio necesitas:
+                    </p>
+                    <ul className="text-amber-700 space-y-1">
+                      {(watch("empleadosIds") || []).length === 0 && (
+                        <li className="flex items-center gap-1">
+                          <span className="text-red-500">✗</span> Seleccionar al
+                          menos 1 empleado
+                        </li>
+                      )}
+                      {(watch("vehiculosIds") || []).length === 0 && (
+                        <li className="flex items-center gap-1">
+                          <span className="text-red-500">✗</span> Seleccionar al
+                          menos 1 vehículo
+                        </li>
+                      )}
+                      {(watch("banosIds") || []).length === 0 && (
+                        <li className="flex items-center gap-1">
+                          <span className="text-red-500">✗</span> Seleccionar al
+                          menos 1 baño
+                        </li>
+                      )}
+                      {(watch("empleadosIds") || []).length > 0 &&
+                        empleadoRolA === null &&
+                        empleadoRolB === null && (
+                          <li className="flex items-center gap-1">
+                            <span className="text-red-500">✗</span> Asignar rol
+                            A o B a al menos un empleado
+                          </li>
+                        )}
+                    </ul>
+                  </div>
+                )}
 
-                  if (
-                    !formValues.condicionContractualId ||
-                    formValues.condicionContractualId === 0
-                  ) {
-                    if (selectedCondicionContractualId > 0) {
-                      setValue(
-                        "condicionContractualId",
-                        selectedCondicionContractualId,
-                        {
-                          shouldValidate: true,
-                          shouldDirty: true,
-                          shouldTouch: true,
-                        }
-                      );
-                    } else {
+                <Button
+                  onClick={() => {
+                    const formValues = getValues();
+
+                    if (
+                      !formValues.condicionContractualId ||
+                      formValues.condicionContractualId === 0
+                    ) {
+                      if (selectedCondicionContractualId > 0) {
+                        setValue(
+                          "condicionContractualId",
+                          selectedCondicionContractualId,
+                          {
+                            shouldValidate: true,
+                            shouldDirty: true,
+                            shouldTouch: true,
+                          }
+                        );
+                      } else {
+                        console.error(
+                          "⛔ Error: No valid condicionContractualId found"
+                        );
+                        toast.error("Error de validación", {
+                          description:
+                            "Debes seleccionar una condición contractual válida. Por favor, vuelve al paso 2 y selecciona una condición.",
+                        });
+                        return;
+                      }
+                    }
+
+                    // Validar recursos antes de continuar
+                    if (!isCreateServiceEnabled()) {
+                      toast.error("Error de validación", {
+                        description:
+                          "Por favor, completa todos los requisitos para crear el servicio",
+                      });
+                      return;
+                    }
+
+                    const updatedValues = getValues();
+
+                    if (
+                      !updatedValues.condicionContractualId ||
+                      updatedValues.condicionContractualId === 0
+                    ) {
                       console.error(
-                        "⛔ Error: No valid condicionContractualId found"
+                        "⛔ Error: Debes seleccionar una condición contractual válida"
                       );
                       toast.error("Error de validación", {
                         description:
@@ -1434,84 +1525,72 @@ export default function CrearInstalacionComponent() {
                       });
                       return;
                     }
-                  }
-
-                  const updatedValues = getValues();
-
-                  if (
-                    !updatedValues.condicionContractualId ||
-                    updatedValues.condicionContractualId === 0
-                  ) {
-                    console.error(
-                      "⛔ Error: Debes seleccionar una condición contractual válida"
-                    );
-                    toast.error("Error de validación", {
-                      description:
-                        "Debes seleccionar una condición contractual válida. Por favor, vuelve al paso 2 y selecciona una condición.",
-                    });
-                    return;
-                  }
-                  trigger().then((isValid) => {
-                    if (!isValid) {
-                      console.error("⛔ Form validation failed");
-                      return;
-                    }
-
-                    // Validar asignación de roles
-                    const empleadosIds = getValues().empleadosIds || [];
-                    const vehiculosIds = getValues().vehiculosIds || [];
-
-                    // Si hay vehículos pero no hay empleado A asignado, asignar automáticamente
-                    if (
-                      vehiculosIds.length > 0 &&
-                      !empleadoRolA &&
-                      empleadosIds.length > 0
-                    ) {
-                      setEmpleadoRolA(empleadosIds[0]);
-                      setValue("empleadoAId", empleadosIds[0]);
-
-                      // Si hay más empleados y no hay empleado B, asignar automáticamente
-                      if (empleadosIds.length > 1 && !empleadoRolB) {
-                        setEmpleadoRolB(empleadosIds[1]);
-                        setValue("empleadoBId", empleadosIds[1]);
+                    trigger().then((isValid) => {
+                      if (!isValid) {
+                        console.error("⛔ Form validation failed");
+                        return;
                       }
 
-                      toast.info("Roles asignados automáticamente", {
-                        description:
-                          "Se han asignado roles automáticamente a los empleados seleccionados.",
-                      });
-                    }
+                      // Validar asignación de roles
+                      const empleadosIds = getValues().empleadosIds || [];
+                      const vehiculosIds = getValues().vehiculosIds || [];
 
-                    const banosIds = getValues().banosIds || [];
-                    if (
-                      cantidadBanosRequired > 0 &&
-                      banosIds.length < cantidadBanosRequired
-                    ) {
-                      console.error(
-                        `⛔ Error: Debes seleccionar ${cantidadBanosRequired} baños`
-                      );
-                      toast.error("Error de validación", {
-                        description: `Debes seleccionar ${cantidadBanosRequired} baños`,
-                      });
-                      return;
-                    }
+                      // Si hay vehículos pero no hay empleado A asignado, asignar automáticamente
+                      if (
+                        vehiculosIds.length > 0 &&
+                        !empleadoRolA &&
+                        empleadosIds.length > 0
+                      ) {
+                        setEmpleadoRolA(empleadosIds[0]);
+                        setValue("empleadoAId", empleadosIds[0]);
 
-                    handleSubmit(onSubmit)();
-                  });
-                }}
-                disabled={isSubmitting}
-                className="bg-indigo-600 hover:bg-indigo-700"
-              >
-                {isSubmitting ? (
-                  <>
-                    <Loader className="mr-2 h-4 w-4" /> Guardando...
-                  </>
-                ) : (
-                  <>
-                    <Save className="mr-2 h-4 w-4" /> Crear Servicio
-                  </>
-                )}
-              </Button>
+                        // Si hay más empleados y no hay empleado B, asignar automáticamente
+                        if (empleadosIds.length > 1 && !empleadoRolB) {
+                          setEmpleadoRolB(empleadosIds[1]);
+                          setValue("empleadoBId", empleadosIds[1]);
+                        }
+
+                        toast.info("Roles asignados automáticamente", {
+                          description:
+                            "Se han asignado roles automáticamente a los empleados seleccionados.",
+                        });
+                      }
+
+                      const banosIds = getValues().banosIds || [];
+                      if (
+                        cantidadBanosRequired > 0 &&
+                        banosIds.length < cantidadBanosRequired
+                      ) {
+                        console.error(
+                          `⛔ Error: Debes seleccionar ${cantidadBanosRequired} baños`
+                        );
+                        toast.error("Error de validación", {
+                          description: `Debes seleccionar ${cantidadBanosRequired} baños`,
+                        });
+                        return;
+                      }
+
+                      handleSubmit(onSubmit)();
+                    });
+                  }}
+                  disabled={isSubmitting || !isCreateServiceEnabled()}
+                  className={`${
+                    isCreateServiceEnabled()
+                      ? "bg-indigo-600 hover:bg-indigo-700"
+                      : "bg-gray-300 cursor-not-allowed"
+                  }`}
+                >
+                  {isSubmitting ? (
+                    <>
+                      <Loader className="mr-2 h-4 w-4" /> Guardando...
+                    </>
+                  ) : (
+                    <>
+                      <Save className="mr-2 h-4 w-4" /> Crear Servicio
+                    </>
+                  )}
+                </Button>
+              </div>
             )}
           </div>
         </div>
