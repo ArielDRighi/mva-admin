@@ -15,7 +15,6 @@ export type ContractualCondition = {
     cuit: string;
   };
   clientId?: number;
-  tipo_de_contrato: "Temporal" | "Permanente";
   tipo_servicio?: "INSTALACION" | "LIMPIEZA" | "MANTENIMIENTO" | string; // Agregando tipo de servicio
   fecha_inicio: string;
   fecha_fin: string;
@@ -36,7 +35,6 @@ export type CreateContractualCondition = {
 };
 
 export type UpdateContractualCondition = {
-  tipo_de_contrato?: "Temporal" | "Permanente";
   fecha_inicio?: string;
   fecha_fin?: string;
   condiciones_especificas?: string;
@@ -117,10 +115,18 @@ export const getContractualConditionsByClient = createServerAction(
  */
 export const createContractualCondition = createServerAction(
   async (data: CreateContractualCondition) => {
+    console.log("=== INICIO createContractualCondition ===");
+    console.log("Data recibida en createContractualCondition:", data);
+    console.log("NEXT_PUBLIC_API_URL:", process.env.NEXT_PUBLIC_API_URL);
+    
     const headers = await createAuthHeaders();
+    console.log("Headers creados:", headers);
+    
+    const url = `${process.env.NEXT_PUBLIC_API_URL}/api/contractual_conditions/create`;
+    console.log("URL completa a la que se hará fetch:", url);
 
     const res = await fetch(
-      `${process.env.NEXT_PUBLIC_API_URL}/api/contractual_conditions/create`,
+      url,
       {
         method: "POST",
         headers,

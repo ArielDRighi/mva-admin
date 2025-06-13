@@ -106,9 +106,6 @@ const detallesSchema = z.object({
 
 // Combina todos los esquemas para la validación final
 const baseCondicionesSchema = z.object({
-  tipo_de_contrato: z.enum(["Temporal", "Permanente", "Por Evento"], {
-    required_error: "El tipo de contrato es obligatorio",
-  }),
   fecha_inicio: z.string().min(1, "La fecha de inicio es obligatoria"),
   fecha_fin: z.string().optional(),
   tipo_servicio: z
@@ -124,23 +121,7 @@ const baseCondicionesSchema = z.object({
 
 const formSchema = clienteSchema
   .merge(baseCondicionesSchema)
-  .merge(detallesSchema)
-  .refine(
-    (data) => {
-      // Si es Temporal y fecha_fin está vacía, retornar false para indicar error
-      if (
-        data.tipo_de_contrato === "Temporal" &&
-        (!data.fecha_fin || data.fecha_fin.trim() === "")
-      ) {
-        return false;
-      }
-      return true;
-    },
-    {
-      message: "La fecha de fin es obligatoria para contratos temporales",
-      path: ["fecha_fin"],
-    }
-  );
+  .merge(detallesSchema);
 
 type FormDataSchema = z.infer<typeof formSchema>;
 
@@ -231,10 +212,8 @@ export default function CrearCondicionContractualComponent() {
 
   // Inicializar el formulario
   const form = useForm<FormDataSchema>({
-    resolver: zodResolver(formSchema),
-    defaultValues: {
+    resolver: zodResolver(formSchema),    defaultValues: {
       clientId: 0,
-      tipo_de_contrato: "Temporal",
       fecha_inicio: new Date().toISOString().split("T")[0],
       fecha_fin: new Date(new Date().setMonth(new Date().getMonth() + 3))
         .toISOString()
@@ -242,47 +221,21 @@ export default function CrearCondicionContractualComponent() {
       condiciones_especificas: "",
       tarifa: 2500,
       tarifa_alquiler: 0,
-      tarifa_instalacion: 0,
-      tarifa_limpieza: 0,
+      tarifa_instalacion: 0,      tarifa_limpieza: 0,
       periodicidad: "Mensual",
       estado: "Activo",
       tipo_servicio: "INSTALACION",
       cantidad_banos: 1,
     },
   });
+  
   const {
     control,
     handleSubmit,
     watch,
     trigger,
-    formState: {
-      /* errors */
-    }, // No se está utilizando errors
+    formState: { /* errors */ }
   } = form;
-
-  // Crear un efecto para ajustar fecha_fin cuando cambia el tipo de contrato
-  useEffect(() => {
-    const subscription = watch((value, { name }) => {
-      if (name === "tipo_de_contrato") {
-        if (value.tipo_de_contrato === "Permanente") {
-          // Para contratos permanentes, establecemos una fecha muy lejana (5 años)
-          const fechaLejana = new Date();
-          fechaLejana.setFullYear(fechaLejana.getFullYear() + 5);
-          form.setValue("fecha_fin", fechaLejana.toISOString().split("T")[0]);
-        } else {
-          // Para temporales, solo 3 meses por defecto
-          const fechaTresMeses = new Date();
-          fechaTresMeses.setMonth(fechaTresMeses.getMonth() + 3);
-          form.setValue(
-            "fecha_fin",
-            fechaTresMeses.toISOString().split("T")[0]
-          );
-        }
-      }
-    });
-
-    return () => subscription.unsubscribe();
-  }, [watch, form]);
 
   // Maneja el avance al siguiente paso
   const handleNext = async () => {
@@ -293,16 +246,10 @@ export default function CrearCondicionContractualComponent() {
         isValid = await trigger(["clientId"]);
         break;
       case 2:
-        // Si es un contrato Permanente, no validamos fecha_fin
-        if (watch("tipo_de_contrato") === "Permanente") {
-          isValid = await trigger(["tipo_de_contrato", "fecha_inicio"]);
-        } else {
-          isValid = await trigger([
-            "tipo_de_contrato",
-            "fecha_inicio",
-            "fecha_fin",
-          ]);
-        }
+        isValid = await trigger([
+          "fecha_inicio",
+          "fecha_fin",
+        ]);
         break;
     }
 
@@ -315,11 +262,9 @@ export default function CrearCondicionContractualComponent() {
   const handleBack = () => {
     setStep(step - 1);
   };
-
   const onSubmit = async (data: FormDataSchema) => {
     setIsSubmitting(true);
-    try {
-      // Aquí garantizamos que los datos son del tipo correcto antes de enviar
+    try {      // Aquí garantizamos que los datos son del tipo correcto antes de enviar
       const conditionData = {
         clientId: data.clientId,
         fecha_inicio: data.fecha_inicio,
@@ -329,10 +274,70 @@ export default function CrearCondicionContractualComponent() {
         tarifa: data.tarifa,
         periodicidad: data.periodicidad,
         estado: data.estado,
+        // Campos opcionales según el tipo de servicio
+        ...(data.tipo_servicio && { tipo_servicio: data.tipo_servicio }),
+        ...(data.cantidad_banos && { cantidad_banos: data.cantidad_banos }),
+        ...(data.tarifa_alquiler && { tarifa_alquiler: data.tarifa_alquiler }),
+        ...(data.tarifa_instalacion && { tarifa_instalacion: data.tarifa_instalacion }),
+        ...(data.tarifa_limpieza && { tarifa_limpieza: data.tarifa_limpieza })
+      };// Debug: Veamos exactamente qué datos se están enviando
+      console.log("Datos del formulario original:", data);
+      console.log("Datos que se enviarán al backend:", conditionData);
+      console.log("NEXT_PUBLIC_API_URL:", process.env.NEXT_PUBLIC_API_URL);
+      console.log("URL completa que se usará:", `${process.env.NEXT_PUBLIC_API_URL}/api/contractual_conditions/create`);      // Enviamos los datos directamente al backend sin usar Server Action
+      console.log("Haciendo fetch directo al backend...");
+      console.log("Body que se enviará:", JSON.stringify(conditionData, null, 2));
+      
+      // Obtener el token de las cookies
+      const token = document.cookie
+        .split('; ')
+        .find(row => row.startsWith('token='))
+        ?.split('=')[1];
+      
+      if (!token) {
+        throw new Error('No se encontró token de autenticación');
+      }
+      
+      console.log("Token encontrado:", token ? "Sí" : "No");
+      
+      const fetchUrl = `${process.env.NEXT_PUBLIC_API_URL}/api/contractual_conditions/create`;
+      console.log("URL de fetch:", fetchUrl);
+      
+      const fetchOptions = {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify(conditionData),
       };
+      
+      console.log("Opciones de fetch:", {
+        ...fetchOptions,
+        headers: {
+          ...fetchOptions.headers,
+          'Authorization': 'Bearer [HIDDEN]'
+        }
+      });
+      
+      const response = await fetch(fetchUrl, fetchOptions);if (!response.ok) {
+        console.error("Response status:", response.status);
+        console.error("Response headers:", Object.fromEntries(response.headers.entries()));
+        
+        const errorText = await response.text();
+        console.error("Response body (raw):", errorText);
+        
+        try {
+          const errorData = JSON.parse(errorText);
+          console.error("Response body (parsed):", errorData);
+          throw new Error(JSON.stringify(errorData) || `HTTP error! status: ${response.status}`);
+        } catch (parseError) {
+          console.error("Could not parse error response as JSON:", parseError);
+          throw new Error(errorText || `HTTP error! status: ${response.status}`);
+        }
+      }
 
-      // Enviamos los datos ya procesados y tipados correctamente
-      await createContractualCondition(conditionData);
+      console.log("Fetch directo completado exitosamente");
 
       toast.success("¡Contrato creado correctamente!", {
         description: "La condición contractual ha sido registrada con éxito.",
@@ -488,31 +493,9 @@ export default function CrearCondicionContractualComponent() {
               )}
             />
           </div>
-        )}
-
-        {/* Paso 2: Tipo y período del contrato */}
+        )}        {/* Paso 2: Tipo y período del contrato */}
         {step === 2 && (
           <div className="space-y-6">
-            <Controller
-              name="tipo_de_contrato"
-              control={control}
-              render={({ field, fieldState }) => (
-                <FormField
-                  label="Tipo de Contrato"
-                  name="tipo_de_contrato"
-                  fieldType="select"
-                  value={field.value}
-                  onChange={(value: string) => field.onChange(value)}
-                  options={[
-                    { label: "Temporal", value: "Temporal" },
-                    { label: "Permanente", value: "Permanente" },
-                    { label: "Por Evento", value: "Por Evento" },
-                  ]}
-                  error={fieldState.error?.message}
-                />
-              )}
-            />
-
             <Controller
               name="tipo_servicio"
               control={control}
@@ -561,34 +544,23 @@ export default function CrearCondicionContractualComponent() {
                     onChange={field.onChange}
                     error={fieldState.error?.message}
                     type="date"
-                  />
-                )}
+                  />                )}
               />
 
-              {watch("tipo_de_contrato") === "Temporal" && (
-                <Controller
-                  name="fecha_fin"
-                  control={control}
-                  render={({ field, fieldState }) => (
-                    <FormField
-                      label="Fecha de Fin"
-                      name="fecha_fin"
-                      value={field.value?.toString()}
-                      onChange={field.onChange}
+              <Controller
+                name="fecha_fin"
+                control={control}
+                render={({ field, fieldState }) => (
+                  <FormField
+                    label="Fecha de Fin"
+                    name="fecha_fin"
+                      value={field.value?.toString()}                      onChange={field.onChange}
                       error={fieldState.error?.message}
                       type="date"
                     />
                   )}
                 />
-              )}
             </div>
-
-            {watch("tipo_de_contrato") === "Permanente" && (
-              <div className="mt-2 p-3 bg-blue-50 border border-blue-200 rounded-md text-blue-700 text-sm">
-                Los contratos permanentes no requieren una fecha de finalización
-                específica.
-              </div>
-            )}
           </div>
         )}
 

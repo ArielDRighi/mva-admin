@@ -55,7 +55,6 @@ type CondicionContractual = {
   fecha_inicio: string;
   periodicidad: string;
   tarifa: string;
-  tipo_de_contrato: string;
   // Campos adicionales
   clientId?: number;
   tarifa_alquiler?: number;
@@ -107,22 +106,18 @@ export default function ListadoCondicionesContractualesComponent({
       .min(1, "Las condiciones específicas son obligatorias"),
     estado: z.string().min(1, "El estado es obligatorio"),
     fecha_inicio: z.string().min(1, "La fecha de inicio es obligatoria"),
-    fecha_fin: z.string().min(1, "La fecha de fin es obligatoria"),
-    periodicidad: z.string().min(1, "La periodicidad es obligatoria"),
+    fecha_fin: z.string().min(1, "La fecha de fin es obligatoria"),    periodicidad: z.string().min(1, "La periodicidad es obligatoria"),
     tarifa: z.string().min(1, "La tarifa es obligatoria"),
-    tipo_de_contrato: z.string().min(1, "El tipo de contrato es obligatorio"),
   });
 
   const form = useForm<z.infer<typeof condicionContractualSchema>>({
-    resolver: zodResolver(condicionContractualSchema),
-    defaultValues: {
+    resolver: zodResolver(condicionContractualSchema),    defaultValues: {
       condiciones_especificas: "",
       estado: "Activo",
       fecha_inicio: "",
       fecha_fin: "",
       periodicidad: "Mensual",
       tarifa: "",
-      tipo_de_contrato: "Temporal",
     },
   });
 
@@ -151,13 +146,11 @@ export default function ListadoCondicionesContractualesComponent({
   // Función para manejar edición
   const handleEditClick = (condicion: CondicionContractual) => {
     setSelectedCondicion(condicion);
-    setValue("condiciones_especificas", condicion.condiciones_especificas);
-    setValue("estado", condicion.estado);
+    setValue("condiciones_especificas", condicion.condiciones_especificas);    setValue("estado", condicion.estado);
     setValue("fecha_inicio", condicion.fecha_inicio);
     setValue("fecha_fin", condicion.fecha_fin);
     setValue("periodicidad", condicion.periodicidad);
     setValue("tarifa", condicion.tarifa);
-    setValue("tipo_de_contrato", condicion.tipo_de_contrato);
     setIsCreating(false);
   };
 
@@ -458,15 +451,10 @@ export default function ListadoCondicionesContractualesComponent({
                   </div>
                 </TableCell>
 
-                <TableCell className="min-w-[220px]">
-                  <div
+                <TableCell className="min-w-[220px]">                  <div
                     className="space-y-1 cursor-pointer hover:bg-slate-50 p-2 rounded-md transition-colors"
                     onClick={() => handleViewDetails(condicion)}
                   >
-                    <div className="flex items-center text-sm">
-                      <Tag className="h-3.5 w-3.5 mr-2 text-muted-foreground" />
-                      <span>{condicion.tipo_de_contrato}</span>
-                    </div>
                     <div className="flex items-center text-sm">
                       <Calendar className="h-3.5 w-3.5 mr-2 text-muted-foreground" />
                       <span>
@@ -603,29 +591,8 @@ export default function ListadoCondicionesContractualesComponent({
                 label="Fecha de Fin"
                 name="fecha_fin"
                 value={field.value}
-                onChange={field.onChange}
-                error={fieldState.error?.message}
+                onChange={field.onChange}                error={fieldState.error?.message}
                 type="date"
-              />
-            )}
-          />
-
-          <Controller
-            name="tipo_de_contrato"
-            control={control}
-            render={({ field, fieldState }) => (
-              <FormField
-                label="Tipo de Contrato"
-                name="tipo_de_contrato"
-                fieldType="select"
-                value={field.value}
-                onChange={(value: string) => field.onChange(value)}
-                options={[
-                  { label: "Temporal", value: "Temporal" },
-                  { label: "Permanente", value: "Permanente" },
-                  { label: "Por Evento", value: "Por Evento" },
-                ]}
-                error={fieldState.error?.message}
               />
             )}
           />
@@ -729,20 +696,9 @@ export default function ListadoCondicionesContractualesComponent({
               {/* Sección: Información General */}
               <div className="border rounded-lg p-4">
                 <h4 className="font-medium text-md mb-3 flex items-center">
-                  <FileText className="h-4 w-4 mr-2 text-indigo-600" />
-                  Información General
+                  <FileText className="h-4 w-4 mr-2 text-indigo-600" />                  Información General
                 </h4>
                 <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <h5 className="text-xs uppercase font-medium text-muted-foreground">
-                      Tipo de Contrato
-                    </h5>
-                    <p className="text-sm font-medium mt-1 flex items-center">
-                      <Tag className="h-4 w-4 mr-2 text-muted-foreground" />
-                      {selectedCondicion.tipo_de_contrato}
-                    </p>
-                  </div>
-
                   {selectedCondicion.tipo_servicio && (
                     <div>
                       <h5 className="text-xs uppercase font-medium text-muted-foreground">
