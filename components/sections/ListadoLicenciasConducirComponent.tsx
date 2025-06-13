@@ -405,16 +405,12 @@ export default function ListadoLicenciasConducirComponent({
         empleado: licencia.empleado,
       };
     });
-  }, [filteredLicencias]);
-  // Define las claves buscables para optimizar la búsqueda
+  }, [filteredLicencias]);  // Define las claves buscables para optimizar la búsqueda
   const searchableKeys = useMemo<SearchableKey[]>(
     () => [
-      "categoria", // Tipo de licencia
-      "numero_licencia", // Número de licencia
       "nombre_empleado", // Nombre del empleado
       "apellido_empleado", // Apellido del empleado
-      "documento_empleado", // Documento del empleado
-      "estado_vencimiento", // Estado de vencimiento (vencida, por vencer, etc.)
+      "documento_empleado", // Documento del empleado (DNI)
     ],
     []
   );
@@ -466,7 +462,7 @@ export default function ListadoLicenciasConducirComponent({
               data={enhancedLicencias}
               itemsPerPage={itemsPerPage}
               searchableKeys={searchableKeys}
-              searchPlaceholder="Buscar por tipo de licencia, nombre, apellido, documento o estado (vencida, vigente, por vencer)..."
+              searchPlaceholder="Buscar por nombre, apellido o DNI..."
               remotePagination
               totalItems={total}
               currentPage={page}

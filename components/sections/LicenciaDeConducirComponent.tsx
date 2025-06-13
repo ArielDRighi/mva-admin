@@ -17,7 +17,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { toast } from "sonner";
 import { format, isAfter, isValid, differenceInDays } from "date-fns";
 import { User } from "./DashboardComponent";
 import { getCookie } from "cookies-next";
@@ -39,6 +38,7 @@ import {
 import Loader from "../ui/local/Loader";
 import { LicenciaConducir } from "@/types/licenciasConducirTypes";
 import { CustomDatePicker } from "../ui/local/CustomDatePicker";
+import { toast } from "sonner";
 
 // Categorías de licencia de conducir
 const CATEGORIAS_LICENCIA = [
@@ -93,7 +93,8 @@ const LicenciaDeConducirComponent = () => {
       try {
         setUser(JSON.parse(userCookie as string));
       } catch (error) {
-        console.error("Error al parsear la cookie de usuario:", error);        toast.error("Error de autenticación", {
+        console.error("Error al parsear la cookie de usuario:", error);
+        toast.error("Error de autenticación", {
           description: "No se pudo cargar la información del usuario"
         });      }
     }
@@ -112,11 +113,13 @@ const LicenciaDeConducirComponent = () => {
         if (fetchedUser && typeof fetchedUser.empleadoId === "number") {
           setEmployeeId(fetchedUser.empleadoId);
         } else {
-          console.error("No se encontró el ID del empleado o no es válido:", fetchedUser);          toast.error("Error", {
+          console.error("No se encontró el ID del empleado o no es válido:", fetchedUser);
+          toast.error("Error", {
             description: "No se pudo obtener la información del empleado"
           });
         }
-      } catch (error) {        console.error("Error al obtener datos del empleado:", error);
+      } catch (error) {
+        console.error("Error al obtener datos del empleado:", error);
         toast.error("Error", {
           description: error instanceof Error 
             ? error.message 

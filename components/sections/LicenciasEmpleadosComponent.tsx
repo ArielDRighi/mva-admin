@@ -584,13 +584,12 @@ export default function LicenciasEmpleadosComponent({
             itemsPerPage={itemsPerPage}
             searchableKeys={[
               "tipoLicencia",
-              "notas",
               "employee.nombre",
               "employee.apellido",
               "empleado.nombre",
               "empleado.apellido",
             ]}
-            searchPlaceholder="Buscar por empleado, tipo de licencia o notas..."
+            searchPlaceholder="Buscar por empleado o tipo..."
             remotePagination
             totalItems={total}
             currentPage={page}
