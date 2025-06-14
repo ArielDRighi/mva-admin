@@ -513,7 +513,7 @@ const ListadoSanitariosComponent = ({
                   >
                     {sanitario.estado.replace("_", " ")}
                   </Badge>
-                </TableCell>{" "}
+                </TableCell>
                 <TableCell className="flex gap-2">
                   <Button
                     variant="outline"
@@ -534,7 +534,8 @@ const ListadoSanitariosComponent = ({
                   >
                     <Trash2 className="h-3.5 w-3.5 mr-1" />
                     Eliminar
-                  </Button>                  <div className="ml-1">
+                  </Button>{" "}
+                  <div className="ml-1">
                     <Button
                       variant="secondary"
                       size="sm"
@@ -560,8 +561,8 @@ const ListadoSanitariosComponent = ({
                   </div>
                   {/* Botón para ver servicios asignados */}
                   {sanitario.baño_id && (
-                    <ToiletServicesDialog 
-                      toiletId={sanitario.baño_id} 
+                    <ToiletServicesDialog
+                      toiletId={sanitario.baño_id}
                       toiletName={`${sanitario.codigo_interno} - ${sanitario.modelo}`}
                     >
                       <Button variant="outline" size="sm">
