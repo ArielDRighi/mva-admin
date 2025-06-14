@@ -122,7 +122,6 @@ export default function CapacitacionesCrearComponent() {
 
     try {
       await createServiceCapacitacion(capacitacionData);
-
       toast.success("Capacitación creada exitosamente");
       reset();
       setStartDate(null);
@@ -130,7 +129,7 @@ export default function CapacitacionesCrearComponent() {
       setSelectedEmployees([]);
 
       // Add redirection to the listing page
-      router.push("/admin/dashboard/servicios/capacitaciones/listado");
+      router.push("/admin/dashboard/servicios/listado");
     } catch (error) {
       console.error("Error creating capacitación:", error);
       toast.error(

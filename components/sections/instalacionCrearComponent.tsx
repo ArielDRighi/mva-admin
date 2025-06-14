@@ -611,7 +611,7 @@ export default function CrearInstalacionComponent() {
 
       // Redireccionar después de un breve delay
       setTimeout(() => {
-        router.push("/admin/dashboard/servicios/instalacion/listado");
+        router.push("/admin/dashboard/servicios/listado");
       }, 2000);
     } catch (error) {
       console.error("Error al crear el servicio:", error);

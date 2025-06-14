@@ -765,7 +765,7 @@ export function CrearServicioGenericoComponent() {
 
       // Redireccionar a la página de listado de servicios después de un breve retraso
       setTimeout(() => {
-        router.push("/admin/servicios/genericos/listado");
+        router.push("/admin/dashboard/servicios/listado");
       }, 1000);
     } catch (error) {
       console.error("Error al crear el servicio:", error);

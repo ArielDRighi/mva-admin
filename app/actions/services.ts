@@ -10,16 +10,29 @@ import {
 /**
  * Obtiene una lista paginada de servicios con posibilidad de filtrado
  */
-export const getServices = createServerAction(async () => {
-  const headers = await createAuthHeaders();
+export const getServices = createServerAction(
+  async (page: number = 1, limit: number = 10, search: string = "") => {
+    const headers = await createAuthHeaders();
 
-  const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/services`, {
-    headers,
-    cache: "no-store",
-  });
+    const queryParams = new URLSearchParams();
+    // Solo agregar el parámetro search si existe
+    if (search) queryParams.append("search", search);
 
-  return handleApiResponse(res, "Error al obtener los servicios");
-}, "Error al obtener los servicios");
+    console.log("api/services?" + queryParams.toString());
+    const res = await fetch(
+      `${process.env.NEXT_PUBLIC_API_URL}/api/services${
+        queryParams.toString() ? `?${queryParams.toString()}` : ""
+      }`,
+      {
+        headers,
+        cache: "no-store",
+      }
+    );
+
+    return handleApiResponse(res, "Error al obtener los servicios");
+  },
+  "Error al obtener los servicios"
+);
 
 /**
  * Obtiene un servicio específico por su ID
@@ -263,7 +276,9 @@ export const getFuturesCleanings = createServerAction(
     queryParams.append("limit", limit.toString());
 
     const res = await fetch(
-      `${process.env.NEXT_PUBLIC_API_URL}/api/future_cleanings?${queryParams.toString()}`,
+      `${
+        process.env.NEXT_PUBLIC_API_URL
+      }/api/future_cleanings?${queryParams.toString()}`,
       {
         headers,
         cache: "no-store",
@@ -530,7 +545,12 @@ export const getServiciosGenericos = createServerAction(
  * Obtiene limpiezas futuras por rango de fechas con paginación
  */
 export const getFutureCleaningsByDateRange = createServerAction(
-  async (startDate: string, endDate: string, page: number = 1, limit: number = 10) => {
+  async (
+    startDate: string,
+    endDate: string,
+    page: number = 1,
+    limit: number = 10
+  ) => {
     const headers = await createAuthHeaders();
 
     const queryParams = new URLSearchParams();
@@ -540,14 +560,19 @@ export const getFutureCleaningsByDateRange = createServerAction(
     queryParams.append("limit", limit.toString());
 
     const res = await fetch(
-      `${process.env.NEXT_PUBLIC_API_URL}/api/future_cleanings/by-date-range?${queryParams.toString()}`,
+      `${
+        process.env.NEXT_PUBLIC_API_URL
+      }/api/future_cleanings/by-date-range?${queryParams.toString()}`,
       {
         headers,
         cache: "no-store",
       }
     );
 
-    return handleApiResponse(res, "Error al obtener limpiezas futuras por rango de fechas");
+    return handleApiResponse(
+      res,
+      "Error al obtener limpiezas futuras por rango de fechas"
+    );
   },
   "Error al obtener limpiezas futuras por rango de fechas"
 );
@@ -565,14 +590,19 @@ export const getUpcomingFutureCleanings = createServerAction(
     queryParams.append("limit", limit.toString());
 
     const res = await fetch(
-      `${process.env.NEXT_PUBLIC_API_URL}/api/future_cleanings/upcoming?${queryParams.toString()}`,
+      `${
+        process.env.NEXT_PUBLIC_API_URL
+      }/api/future_cleanings/upcoming?${queryParams.toString()}`,
       {
         headers,
         cache: "no-store",
       }
     );
 
-    return handleApiResponse(res, "Error al obtener limpiezas futuras próximas");
+    return handleApiResponse(
+      res,
+      "Error al obtener limpiezas futuras próximas"
+    );
   },
   "Error al obtener limpiezas futuras próximas"
 );
@@ -591,7 +621,10 @@ export const getFutureCleaningById = createServerAction(async (id: number) => {
     }
   );
 
-  return handleApiResponse(res, `Error al obtener la limpieza futura con ID ${id}`);
+  return handleApiResponse(
+    res,
+    `Error al obtener la limpieza futura con ID ${id}`
+  );
 }, "Error al obtener la limpieza futura");
 
 /**
@@ -625,11 +658,14 @@ export const createFutureCleaning = createServerAction(
  * Modifica una limpieza futura (activar/desactivar)
  */
 export const modifyFutureCleaning = createServerAction(
-  async (id: number, data: {
-    fechaProgramada?: string;
-    estado?: string;
-    notas?: string;
-  }) => {
+  async (
+    id: number,
+    data: {
+      fechaProgramada?: string;
+      estado?: string;
+      notas?: string;
+    }
+  ) => {
     const headers = await createAuthHeaders();
 
     const res = await fetch(

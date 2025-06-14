@@ -79,25 +79,18 @@ const dataSideBar = {
           title: "Crear Capacitacion",
           url: "/admin/dashboard/servicios/capacitaciones/crear",
         },
-        {
-          title: "Listado capacitaciones",
-          url: "/admin/dashboard/servicios/capacitaciones/listado",
-        },
+
         {
           title: "Crear Instalacion",
           url: "/admin/dashboard/servicios/instalacion/crear",
-        },
-        {
-          title: "Listado Instalaciones",
-          url: "/admin/dashboard/servicios/instalacion/listado",
         },
         {
           title: "Crear Servicio Generico",
           url: "/admin/dashboard/servicios/genericos/crear",
         },
         {
-          title: "Listado Servicios Genericos",
-          url: "/admin/dashboard/servicios/genericos/listado",
+          title: "Listado Servicios",
+          url: "/admin/dashboard/servicios/listado",
         },
       ],
     },
