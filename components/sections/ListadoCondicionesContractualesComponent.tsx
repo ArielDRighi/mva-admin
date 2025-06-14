@@ -45,6 +45,7 @@ import {
   User,
 } from "lucide-react";
 import { deleteContractualCondition } from "@/app/actions/contractualConditions";
+import { useCurrentUser } from "@/hooks/useCurrentUser";
 
 // Definir el tipo para la condición contractual
 type CondicionContractual = {
@@ -55,7 +56,6 @@ type CondicionContractual = {
   fecha_inicio: string;
   periodicidad: string;
   tarifa: string;
-  tipo_de_contrato: string;
   // Campos adicionales
   clientId?: number;
   tarifa_alquiler?: number;
@@ -83,6 +83,7 @@ export default function ListadoCondicionesContractualesComponent({
 }) {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { isAdmin, isSupervisor } = useCurrentUser();
 
   // Asegurarnos de que data siempre sea un array
   const safeData = useMemo(() => (Array.isArray(data) ? data : []), [data]);
@@ -99,7 +100,6 @@ export default function ListadoCondicionesContractualesComponent({
   const [isFirstLoad, setIsFirstLoad] = useState(true);
   const [activeTab, setActiveTab] = useState("todos");
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
-
   // Esquema de validación para las condiciones contractuales
   const condicionContractualSchema = z.object({
     condiciones_especificas: z
@@ -110,9 +110,7 @@ export default function ListadoCondicionesContractualesComponent({
     fecha_fin: z.string().min(1, "La fecha de fin es obligatoria"),
     periodicidad: z.string().min(1, "La periodicidad es obligatoria"),
     tarifa: z.string().min(1, "La tarifa es obligatoria"),
-    tipo_de_contrato: z.string().min(1, "El tipo de contrato es obligatorio"),
   });
-
   const form = useForm<z.infer<typeof condicionContractualSchema>>({
     resolver: zodResolver(condicionContractualSchema),
     defaultValues: {
@@ -122,7 +120,6 @@ export default function ListadoCondicionesContractualesComponent({
       fecha_fin: "",
       periodicidad: "Mensual",
       tarifa: "",
-      tipo_de_contrato: "Temporal",
     },
   });
 
@@ -147,7 +144,6 @@ export default function ListadoCondicionesContractualesComponent({
     params.set("page", "1");
     router.push(`?${params.toString()}`);
   };
-
   // Función para manejar edición
   const handleEditClick = (condicion: CondicionContractual) => {
     setSelectedCondicion(condicion);
@@ -157,10 +153,8 @@ export default function ListadoCondicionesContractualesComponent({
     setValue("fecha_fin", condicion.fecha_fin);
     setValue("periodicidad", condicion.periodicidad);
     setValue("tarifa", condicion.tarifa);
-    setValue("tipo_de_contrato", condicion.tipo_de_contrato);
     setIsCreating(false);
   };
-
   // Función para manejar creación
   // const handleCreateClick = () => {
   //   reset({
@@ -170,7 +164,6 @@ export default function ListadoCondicionesContractualesComponent({
   //     fecha_fin: "",
   //     periodicidad: "Mensual",
   //     tarifa: "",
-  //     tipo_de_contrato: "Temporal",
   //   });
   //   setSelectedCondicion(null);
   //   setIsCreating(true);
@@ -358,17 +351,18 @@ export default function ListadoCondicionesContractualesComponent({
             </CardTitle>
             <CardDescription className="text-muted-foreground mt-1">
               Administra las condiciones contractuales de la empresa
-            </CardDescription>
-          </div>
-          <Button
-            onClick={() =>
-              router.push("/admin/dashboard/condiciones-contractuales/crear")
-            }
-            className="cursor-pointer bg-indigo-600 hover:bg-indigo-700"
-          >
-            <Plus className="mr-2 h-4 w-4" />
-            Nueva Condición Contractual
-          </Button>
+            </CardDescription>          </div>
+          {isAdmin && (
+            <Button
+              onClick={() =>
+                router.push("/admin/dashboard/condiciones-contractuales/crear")
+              }
+              className="cursor-pointer bg-indigo-600 hover:bg-indigo-700"
+            >
+              <Plus className="mr-2 h-4 w-4" />
+              Nueva Condición Contractual
+            </Button>
+          )}
         </div>
 
         <div className="mt-4">
@@ -405,10 +399,8 @@ export default function ListadoCondicionesContractualesComponent({
           <ListadoTabla
             title=""
             data={filteredCondiciones}
-            itemsPerPage={itemsPerPage}
-            searchableKeys={[
+            itemsPerPage={itemsPerPage}            searchableKeys={[
               "condiciones_especificas",
-              "tipo_de_contrato",
               "periodicidad",
               "cliente.nombre",
             ]}
@@ -456,17 +448,11 @@ export default function ListadoCondicionesContractualesComponent({
                       {condicion.condiciones_especificas}
                     </div>
                   </div>
-                </TableCell>
-
-                <TableCell className="min-w-[220px]">
+                </TableCell>                <TableCell className="min-w-[220px]">
                   <div
                     className="space-y-1 cursor-pointer hover:bg-slate-50 p-2 rounded-md transition-colors"
                     onClick={() => handleViewDetails(condicion)}
                   >
-                    <div className="flex items-center text-sm">
-                      <Tag className="h-3.5 w-3.5 mr-2 text-muted-foreground" />
-                      <span>{condicion.tipo_de_contrato}</span>
-                    </div>
                     <div className="flex items-center text-sm">
                       <Calendar className="h-3.5 w-3.5 mr-2 text-muted-foreground" />
                       <span>
@@ -480,16 +466,17 @@ export default function ListadoCondicionesContractualesComponent({
                 <TableCell className="min-w-[200px]">
                   <div
                     className="space-y-1 cursor-pointer hover:bg-slate-50 p-2 rounded-md transition-colors"
-                    onClick={() => handleViewDetails(condicion)}
-                  >
+                    onClick={() => handleViewDetails(condicion)}                  >
                     <div className="flex items-center text-sm">
                       <Clock className="h-3.5 w-3.5 mr-2 text-muted-foreground" />
                       <span>{condicion.periodicidad}</span>
                     </div>
-                    <div className="flex items-center text-sm">
-                      <DollarSign className="h-3.5 w-3.5 mr-2 text-muted-foreground" />
-                      <span>${condicion.tarifa}</span>
-                    </div>
+                    {isAdmin && (
+                      <div className="flex items-center text-sm">
+                        <DollarSign className="h-3.5 w-3.5 mr-2 text-muted-foreground" />
+                        <span>${condicion.tarifa}</span>
+                      </div>
+                    )}
                   </div>
                 </TableCell>
 
@@ -608,29 +595,7 @@ export default function ListadoCondicionesContractualesComponent({
                 type="date"
               />
             )}
-          />
-
-          <Controller
-            name="tipo_de_contrato"
-            control={control}
-            render={({ field, fieldState }) => (
-              <FormField
-                label="Tipo de Contrato"
-                name="tipo_de_contrato"
-                fieldType="select"
-                value={field.value}
-                onChange={(value: string) => field.onChange(value)}
-                options={[
-                  { label: "Temporal", value: "Temporal" },
-                  { label: "Permanente", value: "Permanente" },
-                  { label: "Por Evento", value: "Por Evento" },
-                ]}
-                error={fieldState.error?.message}
-              />
-            )}
-          />
-
-          <Controller
+          />          <Controller
             name="periodicidad"
             control={control}
             render={({ field, fieldState }) => (
@@ -731,18 +696,7 @@ export default function ListadoCondicionesContractualesComponent({
                 <h4 className="font-medium text-md mb-3 flex items-center">
                   <FileText className="h-4 w-4 mr-2 text-indigo-600" />
                   Información General
-                </h4>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <h5 className="text-xs uppercase font-medium text-muted-foreground">
-                      Tipo de Contrato
-                    </h5>
-                    <p className="text-sm font-medium mt-1 flex items-center">
-                      <Tag className="h-4 w-4 mr-2 text-muted-foreground" />
-                      {selectedCondicion.tipo_de_contrato}
-                    </p>
-                  </div>
-
+                </h4>                <div className="grid grid-cols-2 gap-4">
                   {selectedCondicion.tipo_servicio && (
                     <div>
                       <h5 className="text-xs uppercase font-medium text-muted-foreground">
@@ -794,60 +748,61 @@ export default function ListadoCondicionesContractualesComponent({
                       </p>
                     </div>
                   )}
-                </div>
-              </div>
+                </div>              </div>
 
-              {/* Sección: Información Financiera */}
-              <div className="border rounded-lg p-4">
-                <h4 className="font-medium text-md mb-3 flex items-center">
-                  <DollarSign className="h-4 w-4 mr-2 text-indigo-600" />
-                  Información Financiera
-                </h4>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <h5 className="text-xs uppercase font-medium text-muted-foreground">
-                      Tarifa Total
-                    </h5>
-                    <p className="text-sm font-medium mt-1 flex items-center">
-                      <DollarSign className="h-4 w-4 mr-2 text-muted-foreground" />
-                      ${selectedCondicion.tarifa}
-                    </p>
+              {/* Sección: Información Financiera - Solo para administradores */}
+              {isAdmin && (
+                <div className="border rounded-lg p-4">
+                  <h4 className="font-medium text-md mb-3 flex items-center">
+                    <DollarSign className="h-4 w-4 mr-2 text-indigo-600" />
+                    Información Financiera
+                  </h4>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <h5 className="text-xs uppercase font-medium text-muted-foreground">
+                        Tarifa Total
+                      </h5>
+                      <p className="text-sm font-medium mt-1 flex items-center">
+                        <DollarSign className="h-4 w-4 mr-2 text-muted-foreground" />
+                        ${selectedCondicion.tarifa}
+                      </p>
+                    </div>
+
+                    {selectedCondicion.tarifa_alquiler !== undefined && (
+                      <div>
+                        <h5 className="text-xs uppercase font-medium text-muted-foreground">
+                          Tarifa de Alquiler
+                        </h5>
+                        <p className="text-sm font-medium mt-1 flex items-center">
+                          ${selectedCondicion.tarifa_alquiler}
+                        </p>
+                      </div>
+                    )}
+
+                    {selectedCondicion.tarifa_instalacion !== undefined && (
+                      <div>
+                        <h5 className="text-xs uppercase font-medium text-muted-foreground">
+                          Tarifa de Instalación
+                        </h5>
+                        <p className="text-sm font-medium mt-1 flex items-center">
+                          ${selectedCondicion.tarifa_instalacion}
+                        </p>
+                      </div>
+                    )}
+
+                    {selectedCondicion.tarifa_limpieza !== undefined && (
+                      <div>
+                        <h5 className="text-xs uppercase font-medium text-muted-foreground">
+                          Tarifa de Limpieza
+                        </h5>
+                        <p className="text-sm font-medium mt-1 flex items-center">
+                          ${selectedCondicion.tarifa_limpieza}
+                        </p>
+                      </div>
+                    )}
                   </div>
-
-                  {selectedCondicion.tarifa_alquiler !== undefined && (
-                    <div>
-                      <h5 className="text-xs uppercase font-medium text-muted-foreground">
-                        Tarifa de Alquiler
-                      </h5>
-                      <p className="text-sm font-medium mt-1 flex items-center">
-                        ${selectedCondicion.tarifa_alquiler}
-                      </p>
-                    </div>
-                  )}
-
-                  {selectedCondicion.tarifa_instalacion !== undefined && (
-                    <div>
-                      <h5 className="text-xs uppercase font-medium text-muted-foreground">
-                        Tarifa de Instalación
-                      </h5>
-                      <p className="text-sm font-medium mt-1 flex items-center">
-                        ${selectedCondicion.tarifa_instalacion}
-                      </p>
-                    </div>
-                  )}
-
-                  {selectedCondicion.tarifa_limpieza !== undefined && (
-                    <div>
-                      <h5 className="text-xs uppercase font-medium text-muted-foreground">
-                        Tarifa de Limpieza
-                      </h5>
-                      <p className="text-sm font-medium mt-1 flex items-center">
-                        ${selectedCondicion.tarifa_limpieza}
-                      </p>
-                    </div>
-                  )}
                 </div>
-              </div>
+              )}
 
               {/* Sección: Datos del Cliente */}
               {selectedCondicion.cliente && (

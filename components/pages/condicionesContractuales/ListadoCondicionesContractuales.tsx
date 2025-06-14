@@ -10,7 +10,6 @@ interface CondicionContractual {
   fecha_inicio: string;
   periodicidad: string;
   tarifa: string;
-  tipo_de_contrato: string;
   clientId?: number;
   cliente?: {
     nombre?: string;

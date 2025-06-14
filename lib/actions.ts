@@ -186,21 +186,31 @@ export async function handleApiResponse<T>(
     contentLength === "0" ||
     (contentType?.includes("application/json") && contentLength === "0")
   ) {
-    return {} as T;
-  }
-
-  // Para respuestas con contenido, intentar analizarlas como JSON
+    return {} as T;  }
+  // Para respuestas con contenido, intentar leer como texto primero
   try {
-    return (await response.json()) as T;
-  } catch (error) {
-    console.error("Error parsing JSON response:", error);
-    // Si falla la conversión a JSON, intentar con texto
     const text = await response.text();
-    if (text.trim()) {
-      throw new Error(`Invalid JSON response: ${text.substring(0, 100)}...`);
-    } else {
-      // Si tampoco hay texto, retornar un objeto vacío
+    
+    // Si no hay contenido, retornar objeto vacío
+    if (!text.trim()) {
       return {} as T;
     }
+    
+    // Intentar parsear como JSON solo si el content-type indica JSON
+    if (contentType?.includes("application/json")) {
+      try {
+        return JSON.parse(text) as T;
+      } catch (parseError) {
+        console.error("Error parsing JSON response:", parseError);
+        console.error("Response text:", text.substring(0, 200));
+        throw new Error(`Invalid JSON response: Error parsing response`);
+      }
+    } else {
+      // Si no es JSON, tratar como texto plano y envolver en un objeto
+      return { message: text.replace(/"/g, '') } as T;
+    }
+  } catch (error) {
+    console.error("Error reading response:", error);
+    throw new Error("Failed to read response");
   }
 }

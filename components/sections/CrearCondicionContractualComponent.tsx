@@ -42,9 +42,6 @@ const clienteSchema = z.object({
 /* Este esquema se ha comentado por no estar en uso actualmente
 const condicionesSchema = z
   .object({
-    tipo_de_contrato: z.enum(["Temporal", "Permanente", "Por Evento"], {
-      required_error: "El tipo de contrato es obligatorio",
-    }),
     fecha_inicio: z.string().min(1, "La fecha de inicio es obligatoria"),
     fecha_fin: z.string().optional(),
     tipo_servicio: z
@@ -56,19 +53,6 @@ const condicionesSchema = z
       .number()
       .min(0, "La cantidad de baños no puede ser negativa")
       .optional(),
-  })
-  .superRefine((obj, ctx) => {
-    // Si es Temporal y fecha_fin está vacía, añadir un error
-    if (
-      obj.tipo_de_contrato === "Temporal" &&
-      (!obj.fecha_fin || obj.fecha_fin.trim() === "")
-    ) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: "La fecha de fin es obligatoria para contratos temporales",
-        path: ["fecha_fin"],
-      });
-    }
   });
 */
 
@@ -106,9 +90,6 @@ const detallesSchema = z.object({
 
 // Combina todos los esquemas para la validación final
 const baseCondicionesSchema = z.object({
-  tipo_de_contrato: z.enum(["Temporal", "Permanente", "Por Evento"], {
-    required_error: "El tipo de contrato es obligatorio",
-  }),
   fecha_inicio: z.string().min(1, "La fecha de inicio es obligatoria"),
   fecha_fin: z.string().optional(),
   tipo_servicio: z
@@ -124,23 +105,7 @@ const baseCondicionesSchema = z.object({
 
 const formSchema = clienteSchema
   .merge(baseCondicionesSchema)
-  .merge(detallesSchema)
-  .refine(
-    (data) => {
-      // Si es Temporal y fecha_fin está vacía, retornar false para indicar error
-      if (
-        data.tipo_de_contrato === "Temporal" &&
-        (!data.fecha_fin || data.fecha_fin.trim() === "")
-      ) {
-        return false;
-      }
-      return true;
-    },
-    {
-      message: "La fecha de fin es obligatoria para contratos temporales",
-      path: ["fecha_fin"],
-    }
-  );
+  .merge(detallesSchema);
 
 type FormDataSchema = z.infer<typeof formSchema>;
 
@@ -228,13 +193,11 @@ export default function CrearCondicionContractualComponent() {
       setFilteredClientes(filtered);
     }
   }, [searchTerm, clientes]);
-
   // Inicializar el formulario
   const form = useForm<FormDataSchema>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       clientId: 0,
-      tipo_de_contrato: "Temporal",
       fecha_inicio: new Date().toISOString().split("T")[0],
       fecha_fin: new Date(new Date().setMonth(new Date().getMonth() + 3))
         .toISOString()
@@ -253,36 +216,11 @@ export default function CrearCondicionContractualComponent() {
   const {
     control,
     handleSubmit,
-    watch,
-    trigger,
+    watch,    trigger,
     formState: {
       /* errors */
     }, // No se está utilizando errors
   } = form;
-
-  // Crear un efecto para ajustar fecha_fin cuando cambia el tipo de contrato
-  useEffect(() => {
-    const subscription = watch((value, { name }) => {
-      if (name === "tipo_de_contrato") {
-        if (value.tipo_de_contrato === "Permanente") {
-          // Para contratos permanentes, establecemos una fecha muy lejana (5 años)
-          const fechaLejana = new Date();
-          fechaLejana.setFullYear(fechaLejana.getFullYear() + 5);
-          form.setValue("fecha_fin", fechaLejana.toISOString().split("T")[0]);
-        } else {
-          // Para temporales, solo 3 meses por defecto
-          const fechaTresMeses = new Date();
-          fechaTresMeses.setMonth(fechaTresMeses.getMonth() + 3);
-          form.setValue(
-            "fecha_fin",
-            fechaTresMeses.toISOString().split("T")[0]
-          );
-        }
-      }
-    });
-
-    return () => subscription.unsubscribe();
-  }, [watch, form]);
 
   // Maneja el avance al siguiente paso
   const handleNext = async () => {
@@ -293,16 +231,10 @@ export default function CrearCondicionContractualComponent() {
         isValid = await trigger(["clientId"]);
         break;
       case 2:
-        // Si es un contrato Permanente, no validamos fecha_fin
-        if (watch("tipo_de_contrato") === "Permanente") {
-          isValid = await trigger(["tipo_de_contrato", "fecha_inicio"]);
-        } else {
-          isValid = await trigger([
-            "tipo_de_contrato",
+        isValid = await trigger([
             "fecha_inicio",
             "fecha_fin",
           ]);
-        }
         break;
     }
 
@@ -315,14 +247,12 @@ export default function CrearCondicionContractualComponent() {
   const handleBack = () => {
     setStep(step - 1);
   };
-
   const onSubmit = async (data: FormDataSchema) => {
     setIsSubmitting(true);
     try {
       // Aquí garantizamos que los datos son del tipo correcto antes de enviar
       const conditionData = {
         clientId: data.clientId,
-        tipo_de_contrato: data.tipo_de_contrato,
         fecha_inicio: data.fecha_inicio,
         // Aseguramos que fecha_fin siempre sea string (requerido por CreateContractualCondition)
         fecha_fin: data.fecha_fin || data.fecha_inicio, // Fallback a fecha_inicio si no hay fecha_fin
@@ -342,10 +272,8 @@ export default function CrearCondicionContractualComponent() {
 
       toast.success("¡Contrato creado correctamente!", {
         description: "La condición contractual ha sido registrada con éxito.",
-      });
-
-      setTimeout(() => {
-        router.push("/admin/dashboard/condiciones-contractuales");
+      });      setTimeout(() => {
+        router.push("/admin/dashboard/condiciones-contractuales/listado");
       }, 2000);
     } catch (error) {
       console.error("Error al crear la condición contractual:", error);
@@ -494,31 +422,9 @@ export default function CrearCondicionContractualComponent() {
               )}
             />
           </div>
-        )}
-
-        {/* Paso 2: Tipo y período del contrato */}
+        )}        {/* Paso 2: Tipo y período del contrato */}
         {step === 2 && (
           <div className="space-y-6">
-            <Controller
-              name="tipo_de_contrato"
-              control={control}
-              render={({ field, fieldState }) => (
-                <FormField
-                  label="Tipo de Contrato"
-                  name="tipo_de_contrato"
-                  fieldType="select"
-                  value={field.value}
-                  onChange={(value: string) => field.onChange(value)}
-                  options={[
-                    { label: "Temporal", value: "Temporal" },
-                    { label: "Permanente", value: "Permanente" },
-                    { label: "Por Evento", value: "Por Evento" },
-                  ]}
-                  error={fieldState.error?.message}
-                />
-              )}
-            />
-
             <Controller
               name="tipo_servicio"
               control={control}
@@ -568,33 +474,22 @@ export default function CrearCondicionContractualComponent() {
                     error={fieldState.error?.message}
                     type="date"
                   />
+                )}              />
+
+              <Controller
+                name="fecha_fin"
+                control={control}
+                render={({ field, fieldState }) => (
+                  <FormField
+                    label="Fecha de Fin"
+                    name="fecha_fin"
+                    value={field.value?.toString()}                    onChange={field.onChange}
+                    error={fieldState.error?.message}
+                    type="date"
+                  />
                 )}
               />
-
-              {watch("tipo_de_contrato") === "Temporal" && (
-                <Controller
-                  name="fecha_fin"
-                  control={control}
-                  render={({ field, fieldState }) => (
-                    <FormField
-                      label="Fecha de Fin"
-                      name="fecha_fin"
-                      value={field.value?.toString()}
-                      onChange={field.onChange}
-                      error={fieldState.error?.message}
-                      type="date"
-                    />
-                  )}
-                />
-              )}
             </div>
-
-            {watch("tipo_de_contrato") === "Permanente" && (
-              <div className="mt-2 p-3 bg-blue-50 border border-blue-200 rounded-md text-blue-700 text-sm">
-                Los contratos permanentes no requieren una fecha de finalización
-                específica.
-              </div>
-            )}
           </div>
         )}
 

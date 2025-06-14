@@ -17,6 +17,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
+import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { getTotalVehicles } from "@/app/actions/vehiculos";
 import { getTotalEmployees } from "@/app/actions/empleados";
 import { getTotalSanitarios } from "@/app/actions/sanitarios";
@@ -36,7 +37,7 @@ import { toast } from "sonner";
 
 export type User = {
   id: number;
-  nombre: string;
+  name: string;
   email: string;
   empleadoId: number | null;
   estado: string;
@@ -116,7 +117,7 @@ import {
 export type LicenciasToExpireResponse = LicenciasConducirResponse;
 
 const DashboardComponent = () => {
-  const [user, setUser] = useState<User | null>(null);
+  const { user, isAdmin, isSupervisor, isOperario } = useCurrentUser();
   const [totalVehicles, setTotalVehicles] = useState<totalVehicles>();
   const [totalEmployees, setTotalEmployees] = useState<totalEmployees>();
   const [totalSanitarios, setTotalSanitarios] = useState<totalSanitarios>();
@@ -139,11 +140,10 @@ const DashboardComponent = () => {
   const router = useRouter(); // Estado para tracking de errores de carga
   const [loadingErrors, setLoadingErrors] = useState<Record<string, string>>(
     {}
-  );
-  useEffect(() => {
+  );  useEffect(() => {
     const fetchData = async () => {
-      // Definimos todas las promesas que vamos a ejecutar
-      const promises = [
+      // Definimos las promesas básicas que todos pueden ver
+      const basePromises = [
         { name: "totalVehicles", promise: getTotalVehicles() },
         { name: "totalEmployees", promise: getTotalEmployees() },
         { name: "totalSanitarios", promise: getTotalSanitarios() },
@@ -155,6 +155,10 @@ const DashboardComponent = () => {
           promise: getUpcomingFutureCleanings(30, 1, 10),
         },
         { name: "activity", promise: getRecentActivity() },
+      ];
+
+      // Agregamos promesas adicionales solo para administradores
+      const adminOnlyPromises = [
         {
           name: "licenciasToExpire",
           promise: getLicenciasToExpire(
@@ -164,6 +168,9 @@ const DashboardComponent = () => {
           ) as Promise<LicenciasConducirResponse>,
         },
       ];
+
+      // Combinamos las promesas según el rol
+      const promises = isAdmin ? [...basePromises, ...adminOnlyPromises] : basePromises;
 
       // Ejecutamos todas las promesas y manejamos éxitos/errores individualmente
       const results = await Promise.allSettled(
@@ -214,54 +221,48 @@ const DashboardComponent = () => {
               ? result.reason
               : result.reason instanceof Error
               ? result.reason.message
-              : `Error al cargar ${name}`;
-
-          console.error(`Error fetching ${name}:`, result.reason);
+              : `Error al cargar ${name}`;          console.error(`Error fetching ${name}:`, result.reason);
 
           // Guardar en el estado de errores para mostrar en el componente
           errorMessages[name] = errorMessage;
 
-          // Mostrar toast para errores críticos
+          // Solo mostrar toast para errores críticos y que NO sean de permisos
           const criticalResources = [
             "totalVehicles",
-            "totalEmployees",
+            "totalEmployees", 
             "totalSanitarios",
             "proximosServicios",
           ];
-          if (criticalResources.includes(name)) {
+          
+          // No mostrar toast si es error de permisos
+          const isPermissionError = errorMessage.includes("permisos") || 
+                                   errorMessage.includes("No tiene") ||
+                                   errorMessage.includes("Unauthorized");
+          
+          if (criticalResources.includes(name) && !isPermissionError) {
             toast.error(`Error al cargar datos importantes`, {
               description: errorMessage,
               duration: 5000,
             });
           }
-        }
-      });
+        }      });
 
-      // Actualizamos el estado de errores si hay alguno
-      if (Object.keys(errorMessages).length > 0) {
-        setLoadingErrors(errorMessages);
+      // Solo mostrar errores que NO sean de permisos
+      const nonPermissionErrors = Object.fromEntries(
+        Object.entries(errorMessages).filter(([_, message]) => 
+          !message.includes("permisos") && 
+          !message.includes("No tiene") && 
+          !message.includes("Unauthorized")
+        )
+      );
+
+      // Actualizamos el estado de errores solo con errores relevantes
+      if (Object.keys(nonPermissionErrors).length > 0) {
+        setLoadingErrors(nonPermissionErrors);
       }
     };
 
-    fetchData();
-  }, []);
-  useEffect(() => {
-    const userCookie = getCookie("user");
-
-    if (userCookie) {
-      try {
-        const parsedUser = JSON.parse(userCookie as string) as User;
-        setUser(parsedUser);
-      } catch (e) {
-        console.error("Error al parsear el usuario", e);
-        // Mostramos un error para que el usuario pueda tomar acción
-        setLoadingErrors((prev) => ({
-          ...prev,
-          userCookie: "Error al cargar información del usuario",
-        }));
-      }
-    }
-  }, []);
+    fetchData();  }, [isAdmin, isSupervisor]);
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -308,9 +309,8 @@ const DashboardComponent = () => {
   return (
     <div className="container mx-auto p-4">
       <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-8">
-        <div>
-          <h1 className="text-3xl font-bold">
-            Bienvenido, {user?.nombre || "Administrador"}
+        <div>          <h1 className="text-3xl font-bold">
+            Bienvenido, {user?.name || "Administrador"}
           </h1>
           <p className="text-gray-500 mt-1">
             Panel de control MVA - {new Date().toLocaleDateString()}
@@ -915,10 +915,9 @@ const DashboardComponent = () => {
             </Card>
           </TabsContent>
         </Tabs>
-      </div>
-
-      {/* Alerts and notifications */}
-      {licenciasToExpire &&
+      </div>      {/* Alerts and notifications - Solo para administradores */}
+      {isAdmin &&
+        licenciasToExpire &&
         licenciasToExpire.data &&
         licenciasToExpire.data.length > 0 && (
           <div className="mb-8">

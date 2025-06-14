@@ -39,6 +39,7 @@ import { CustomDatePicker } from "@/components/ui/local/CustomDatePicker";
 import { getEmployees } from "@/app/actions/empleados";
 import { getVehicles } from "@/app/actions/vehiculos";
 import { getSanitarios } from "@/app/actions/sanitarios";
+import { useCurrentUser } from "@/hooks/useCurrentUser";
 
 // Combined schema
 const formSchema = z.object({
@@ -84,7 +85,6 @@ type FormData = z.infer<typeof formSchema>;
 type CondicionContractual = {
   condicionContractualId: number;
   clientId: number;
-  tipo_de_contrato: string;
   tipo_servicio?: string; // Agregando tipo de servicio
   fecha_inicio: string;
   fecha_fin: string;
@@ -97,6 +97,7 @@ type CondicionContractual = {
 
 export default function CrearInstalacionComponent() {
   const router = useRouter();
+  const { isAdmin } = useCurrentUser();
   const [step, setStep] = useState<number>(1);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [selectedCondicionContractualId, setSelectedCondicionContractualId] =
@@ -876,13 +877,11 @@ export default function CrearInstalacionComponent() {
                             }}
                           >
                             {" "}
-                            <div className="flex justify-between">
-                              <Badge
+                            <div className="flex justify-between">                              <Badge
                                 variant="outline"
                                 className="bg-indigo-50 text-indigo-700 mb-1"
                               >
-                                {condicion.tipo_servicio ||
-                                  condicion.tipo_de_contrato}
+                                {condicion.tipo_servicio}
                               </Badge>
                               <Badge
                                 variant={
@@ -905,20 +904,12 @@ export default function CrearInstalacionComponent() {
                                   Tipo de Servicio:
                                 </span>{" "}
                                 <span className="text-slate-800">
-                                  {condicion.tipo_servicio ||
-                                    condicion.tipo_de_contrato}
-                                </span>
-                              </div>
-                              <div className="mb-1">
-                                <span className="font-medium">
-                                  Tipo de Contrato:
-                                </span>{" "}
-                                <span className="text-slate-800">
-                                  {condicion.tipo_de_contrato}
-                                </span>
-                              </div>
+                                  {condicion.tipo_servicio}
+                                </span>                              </div>
                               <div className="flex justify-between mb-1">
-                                <span>Tarifa: ${condicion.tarifa}</span>
+                                {isAdmin && (
+                                  <span>Tarifa: ${condicion.tarifa}</span>
+                                )}
                                 <span>
                                   Periodicidad: {condicion.periodicidad}
                                 </span>

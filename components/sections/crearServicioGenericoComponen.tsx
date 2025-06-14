@@ -37,6 +37,7 @@ import { SimpleDatePicker } from "@/components/ui/simple-date-picker";
 import { getEmployees } from "@/app/actions/empleados";
 import { getVehicles } from "@/app/actions/vehiculos";
 import { getSanitariosByClient } from "@/app/actions/sanitarios";
+import { useCurrentUser } from "@/hooks/useCurrentUser";
 
 // Schema for the form
 const formSchema = z.object({
@@ -66,10 +67,8 @@ const formSchema = z.object({
 
 type FormData = z.infer<typeof formSchema>;
 
-type CondicionContractual = {
-  condicionContractualId: number;
+type CondicionContractual = {  condicionContractualId: number;
   clientId: number;
-  tipo_de_contrato: string;
   tipo_servicio?: string; // Agregando tipo de servicio
   fecha_inicio: string;
   fecha_fin: string;
@@ -91,6 +90,7 @@ interface VehiculosResponse {
 
 export function CrearServicioGenericoComponent() {
   const router = useRouter();
+  const { isAdmin } = useCurrentUser();
   const [step, setStep] = useState<number>(1);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
 
@@ -1022,14 +1022,9 @@ export function CrearServicioGenericoComponent() {
                             setSelectedCondicionId(
                               condicion.condicionContractualId
                             );
-                          }}
-                        >
+                          }}                        >
                           <div className="font-medium">
-                            {condicion.tipo_servicio ||
-                              condicion.tipo_de_contrato}
-                          </div>
-                          <div className="text-sm text-gray-500">
-                            Tipo de Contrato: {condicion.tipo_de_contrato}
+                            {condicion.tipo_servicio}
                           </div>
                           <div className="text-sm text-gray-500">
                             Período:{" "}
@@ -1037,12 +1032,13 @@ export function CrearServicioGenericoComponent() {
                               condicion.fecha_inicio
                             ).toLocaleDateString()}{" "}
                             -{" "}
-                            {new Date(condicion.fecha_fin).toLocaleDateString()}
-                          </div>
-                          <div className="text-sm text-gray-500">
-                            Tarifa: ${condicion.tarifa} (
-                            {condicion.periodicidad})
-                          </div>
+                            {new Date(condicion.fecha_fin).toLocaleDateString()}                          </div>
+                          {isAdmin && (
+                            <div className="text-sm text-gray-500">
+                              Tarifa: ${condicion.tarifa} (
+                              {condicion.periodicidad})
+                            </div>
+                          )}
                           {condicion.condiciones_especificas && (
                             <div className="text-sm text-gray-500 mt-2">
                               <span className="font-medium">
