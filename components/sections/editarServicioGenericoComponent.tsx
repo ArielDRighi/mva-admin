@@ -19,9 +19,12 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { FormField } from "@/components/ui/local/FormField";
-import { ServiceType, UpdateServiceDto, Service, ResourceAssignment } from "@/types/serviceTypes";
-
-
+import {
+  ServiceType,
+  UpdateServiceDto,
+  Service,
+  ResourceAssignment,
+} from "@/types/serviceTypes";
 
 interface Empleado {
   id: number;
@@ -75,11 +78,12 @@ const formSchema = z.object({
 type FormData = z.infer<typeof formSchema>;
 
 export function EditarServicioGenericoComponent({ id }: { id: string }) {
-  const router = useRouter();  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const router = useRouter();
+  const [isLoading, setIsLoading] = useState<boolean>(true);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [servicio, setServicio] = useState<Service | null>(null);
   const [condicionId, setCondicionId] = useState<number>(0);
-  
+
   const [empleadosDisponibles, setEmpleadosDisponibles] = useState<Empleado[]>(
     []
   );
@@ -106,27 +110,29 @@ export function EditarServicioGenericoComponent({ id }: { id: string }) {
       tipoServicio: ServiceType.LIMPIEZA,
       asignacionAutomatica: false,
     },
-  });  const {
+  });
+  const {
     control,
     handleSubmit,
     setValue,
     formState: { errors },
   } = form;
 
- // Cargar los datos del servicio
+  // Cargar los datos del servicio
   useEffect(() => {
     const fetchServicio = async () => {
       try {
         setIsLoading(true);
-        const servicioData = await getServiceById(parseInt(id)) as Service;
-        
+        const servicioData = (await getServiceById(parseInt(id))) as Service;
+
         if (!servicioData) {
           toast.error("Error al cargar el servicio", {
             description: "No se encontró el servicio solicitado",
           });
-          router.push("/admin/services");
+          router.push("/admin/dashboard/servicios/listado");
           return;
-        }        setServicio(servicioData);
+        }
+        setServicio(servicioData);
         setCondicionId(servicioData.condicionContractualId || 0);
 
         // Establecer valores en el formulario
@@ -136,16 +142,18 @@ export function EditarServicioGenericoComponent({ id }: { id: string }) {
         setValue("ubicacion", servicioData.ubicacion);
         setValue("cantidadVehiculos", servicioData.cantidadVehiculos);
         setValue("notas", servicioData.notas || "");
-        
+
         // Extraer los empleados, vehículos y baños asignados
-        const empleadosIds = servicioData.asignaciones
-          ?.filter((asig: ResourceAssignment) => asig.empleadoId)
-          .map((asig: ResourceAssignment) => asig.empleadoId) || [];
-        
-        const vehiculosIds = servicioData.asignaciones
-          ?.filter((asig: ResourceAssignment) => asig.vehiculoId)
-          .map((asig: ResourceAssignment) => asig.vehiculoId) || [];
-        
+        const empleadosIds =
+          servicioData.asignaciones
+            ?.filter((asig: ResourceAssignment) => asig.empleadoId)
+            .map((asig: ResourceAssignment) => asig.empleadoId) || [];
+
+        const vehiculosIds =
+          servicioData.asignaciones
+            ?.filter((asig: ResourceAssignment) => asig.vehiculoId)
+            .map((asig: ResourceAssignment) => asig.vehiculoId) || [];
+
         // Identificar roles A y B si existen
         if (servicioData.asignaciones && servicioData.asignaciones.length > 0) {
           // El rol A suele ser el que tiene vehículo asignado
@@ -155,34 +163,43 @@ export function EditarServicioGenericoComponent({ id }: { id: string }) {
           if (empleadoConVehiculo) {
             setEmpleadoRolA(empleadoConVehiculo.empleadoId);
           }
-          
+
           // El rol B sería otro empleado sin vehículo
           const otrosEmpleados = servicioData.asignaciones.filter(
-            (asig: ResourceAssignment) => asig.empleadoId && (!asig.vehiculoId || (empleadoConVehiculo && asig.empleadoId !== empleadoConVehiculo.empleadoId))
+            (asig: ResourceAssignment) =>
+              asig.empleadoId &&
+              (!asig.vehiculoId ||
+                (empleadoConVehiculo &&
+                  asig.empleadoId !== empleadoConVehiculo.empleadoId))
           );
           if (otrosEmpleados.length > 0) {
             setEmpleadoRolB(otrosEmpleados[0].empleadoId);
           }
         }
-        
+
         // Establecer selecciones
         setSelectedEmpleados(empleadosIds);
         setSelectedVehiculos(vehiculosIds);
         setValue("empleadosIds", empleadosIds);
         setValue("vehiculosIds", vehiculosIds);
-        
-        if (servicioData.banosInstalados && Array.isArray(servicioData.banosInstalados)) {
+
+        if (
+          servicioData.banosInstalados &&
+          Array.isArray(servicioData.banosInstalados)
+        ) {
           setSelectedBanos(servicioData.banosInstalados);
           setValue("banosInstalados", servicioData.banosInstalados);
         }
 
         // Cargar recursos disponibles
         await loadResources(servicioData.clienteId);
-
       } catch (error) {
         console.error("Error al cargar el servicio:", error);
         toast.error("Error al cargar el servicio", {
-          description: error instanceof Error ? error.message : "Ocurrió un error al cargar los datos del servicio",
+          description:
+            error instanceof Error
+              ? error.message
+              : "Ocurrió un error al cargar los datos del servicio",
         });
       } finally {
         setIsLoading(false);
@@ -200,16 +217,22 @@ export function EditarServicioGenericoComponent({ id }: { id: string }) {
 
       // Cargar empleados disponibles
       const empleadosResponse = await getEmployees();
-      
+
       // Procesar respuesta de empleados
       let empleadosDisp: Empleado[] = [];
       if (empleadosResponse) {
         if (Array.isArray(empleadosResponse)) {
           empleadosDisp = empleadosResponse;
         } else if (typeof empleadosResponse === "object") {
-          if ("data" in empleadosResponse && Array.isArray(empleadosResponse.data)) {
+          if (
+            "data" in empleadosResponse &&
+            Array.isArray(empleadosResponse.data)
+          ) {
             empleadosDisp = empleadosResponse.data;
-          } else if ("items" in empleadosResponse && Array.isArray(empleadosResponse.items)) {
+          } else if (
+            "items" in empleadosResponse &&
+            Array.isArray(empleadosResponse.items)
+          ) {
             empleadosDisp = empleadosResponse.items;
           }
         }
@@ -218,53 +241,64 @@ export function EditarServicioGenericoComponent({ id }: { id: string }) {
 
       // Cargar vehículos disponibles
       const vehiculosResponse = await getVehicles();
-      
+
       // Procesar respuesta de vehículos
       let vehiculosDisp: Vehiculo[] = [];
       if (vehiculosResponse) {
         if (Array.isArray(vehiculosResponse)) {
           vehiculosDisp = vehiculosResponse;
         } else if (typeof vehiculosResponse === "object") {
-          if ("data" in vehiculosResponse && Array.isArray(vehiculosResponse.data)) {
+          if (
+            "data" in vehiculosResponse &&
+            Array.isArray(vehiculosResponse.data)
+          ) {
             vehiculosDisp = vehiculosResponse.data;
-          } else if ("items" in vehiculosResponse && Array.isArray(vehiculosResponse.items)) {
+          } else if (
+            "items" in vehiculosResponse &&
+            Array.isArray(vehiculosResponse.items)
+          ) {
             vehiculosDisp = vehiculosResponse.items;
           }
         }
       }
-      setVehiculosDisponibles(vehiculosDisp);      // Cargar baños instalados para el cliente
+      setVehiculosDisponibles(vehiculosDisp); // Cargar baños instalados para el cliente
       const banosClienteResponse = await getSanitariosByClient(clienteId);
-      
+
       // Definir la interfaz para la respuesta
       interface SanitariosResponse {
         data?: Sanitario[];
         items?: Sanitario[];
         [key: string]: unknown;
       }
-      
+
       // Procesar respuesta de baños
       let banosDisp: Sanitario[] = [];
       if (banosClienteResponse) {
         // Si es un array, usarlo directamente
         if (Array.isArray(banosClienteResponse)) {
           banosDisp = banosClienteResponse as unknown as Sanitario[];
-        } 
+        }
         // Si es un objeto, buscar la propiedad data o items
         else if (typeof banosClienteResponse === "object") {
           const typedResponse = banosClienteResponse as SanitariosResponse;
           if (typedResponse.data && Array.isArray(typedResponse.data)) {
             banosDisp = typedResponse.data;
-          } else if (typedResponse.items && Array.isArray(typedResponse.items)) {
+          } else if (
+            typedResponse.items &&
+            Array.isArray(typedResponse.items)
+          ) {
             banosDisp = typedResponse.items;
           }
         }
       }
       setBanosInstalados(banosDisp);
-
     } catch (error) {
       console.error("Error al cargar recursos:", error);
       toast.error("Error al cargar recursos", {
-        description: error instanceof Error ? error.message : "No se pudieron cargar los recursos necesarios",
+        description:
+          error instanceof Error
+            ? error.message
+            : "No se pudieron cargar los recursos necesarios",
       });
     } finally {
       setIsLoading(false);
@@ -278,7 +312,10 @@ export function EditarServicioGenericoComponent({ id }: { id: string }) {
       : [...selectedEmpleados, empleadoId];
 
     // Si estamos deseleccionando un empleado, también quitarlo de los roles
-    if (selectedEmpleados.includes(empleadoId) && !updatedSelection.includes(empleadoId)) {
+    if (
+      selectedEmpleados.includes(empleadoId) &&
+      !updatedSelection.includes(empleadoId)
+    ) {
       if (empleadoRolA === empleadoId) {
         setEmpleadoRolA(null);
       }
@@ -289,7 +326,7 @@ export function EditarServicioGenericoComponent({ id }: { id: string }) {
 
     setSelectedEmpleados(updatedSelection);
     setValue("empleadosIds", updatedSelection);
-    
+
     // Actualizar los valores del formulario para asignaciones específicas
     updateAsignacionesManual(updatedSelection, selectedVehiculos);
   };
@@ -302,7 +339,7 @@ export function EditarServicioGenericoComponent({ id }: { id: string }) {
 
     setSelectedVehiculos(updatedSelection);
     setValue("vehiculosIds", updatedSelection);
-    
+
     // Actualizar asignaciones
     updateAsignacionesManual(selectedEmpleados, updatedSelection);
   };
@@ -319,25 +356,27 @@ export function EditarServicioGenericoComponent({ id }: { id: string }) {
 
   // Actualizar las asignaciones manuales en el formulario
   const updateAsignacionesManual = (
-    empleadosIds: number[], 
-    vehiculosIds: number[], 
-    rolA: number | null = empleadoRolA, 
+    empleadosIds: number[],
+    vehiculosIds: number[],
+    rolA: number | null = empleadoRolA,
     rolB: number | null = empleadoRolB
   ) => {
     // Determinar empleado A y B para asignaciones
-    const empleadoA = rolA !== null ? rolA : (empleadosIds.length > 0 ? empleadosIds[0] : 0);
-    const empleadoB = rolB !== null ? rolB : (empleadosIds.length > 1 ? empleadosIds[1] : 0);
-    
+    const empleadoA =
+      rolA !== null ? rolA : empleadosIds.length > 0 ? empleadosIds[0] : 0;
+    const empleadoB =
+      rolB !== null ? rolB : empleadosIds.length > 1 ? empleadosIds[1] : 0;
+
     // Asignar vehículo al empleado A (si hay vehículos seleccionados)
     const vehiculoAsignado = vehiculosIds.length > 0 ? vehiculosIds[0] : 0;
-    
+
     // Actualizar consola para debugging
     console.log("Asignaciones actualizadas:", {
       empleadoA,
       empleadoB,
       vehiculoAsignado,
       rolAAsignado: rolA,
-      rolBAsignado: rolB
+      rolBAsignado: rolB,
     });
   };
 
@@ -348,9 +387,14 @@ export function EditarServicioGenericoComponent({ id }: { id: string }) {
       setEmpleadoRolB(empleadoRolA);
     }
     setEmpleadoRolA(empleadoId);
-    
+
     // Actualizar asignaciones
-    updateAsignacionesManual(selectedEmpleados, selectedVehiculos, empleadoId, empleadoRolB);
+    updateAsignacionesManual(
+      selectedEmpleados,
+      selectedVehiculos,
+      empleadoId,
+      empleadoRolB
+    );
   };
 
   // Función para asignar rol B a un empleado
@@ -360,9 +404,14 @@ export function EditarServicioGenericoComponent({ id }: { id: string }) {
       setEmpleadoRolA(empleadoRolB);
     }
     setEmpleadoRolB(empleadoId);
-    
+
     // Actualizar asignaciones
-    updateAsignacionesManual(selectedEmpleados, selectedVehiculos, empleadoRolA, empleadoId);
+    updateAsignacionesManual(
+      selectedEmpleados,
+      selectedVehiculos,
+      empleadoRolA,
+      empleadoId
+    );
   };
 
   // Enviar formulario para actualizar el servicio
@@ -371,65 +420,95 @@ export function EditarServicioGenericoComponent({ id }: { id: string }) {
       setIsSubmitting(true);
 
       // Validar que haya al menos un empleado seleccionado para el rol A si hay vehículos seleccionados
-      if (data.vehiculosIds && data.vehiculosIds.length > 0 && empleadoRolA === null && (!data.empleadosIds || data.empleadosIds.length === 0)) {
+      if (
+        data.vehiculosIds &&
+        data.vehiculosIds.length > 0 &&
+        empleadoRolA === null &&
+        (!data.empleadosIds || data.empleadosIds.length === 0)
+      ) {
         toast.error("Error en la asignación de roles", {
-          description: "Debe seleccionar al menos un empleado para el rol de conductor (Rol A) cuando hay vehículos asignados.",
+          description:
+            "Debe seleccionar al menos un empleado para el rol de conductor (Rol A) cuando hay vehículos asignados.",
         });
         setIsSubmitting(false);
         return;
       }
-      
+
       // Si hay vehículos y empleados pero no se asignó el rol A, asignar automáticamente
       let empleadoA = empleadoRolA;
       let empleadoB = empleadoRolB;
-      
-      if (data.vehiculosIds && data.vehiculosIds.length > 0 && empleadoRolA === null && data.empleadosIds && data.empleadosIds.length > 0) {
+
+      if (
+        data.vehiculosIds &&
+        data.vehiculosIds.length > 0 &&
+        empleadoRolA === null &&
+        data.empleadosIds &&
+        data.empleadosIds.length > 0
+      ) {
         empleadoA = data.empleadosIds[0];
         setEmpleadoRolA(empleadoA);
-        
+
         // Si hay más de un empleado y no hay rol B asignado
         if (data.empleadosIds.length > 1 && empleadoRolB === null) {
           empleadoB = data.empleadosIds[1];
           setEmpleadoRolB(empleadoB);
         }
-        
+
         // Notificar al usuario
         toast.info("Roles asignados automáticamente", {
-          description: "Se han asignado roles automáticamente a los empleados seleccionados.",
+          description:
+            "Se han asignado roles automáticamente a los empleados seleccionados.",
         });
       }
 
       // Determinar quiénes son los empleados para los roles A y B
       const empleadosIds = data.empleadosIds || [];
-      
-      empleadoA = empleadoA !== null 
-        ? empleadoA 
-        : (empleadosIds.length > 0 ? empleadosIds[0] : 0);
-      
-      empleadoB = empleadoB !== null
-        ? empleadoB
-        : (empleadosIds.length > 1 
-            ? (empleadosIds[0] !== empleadoA ? empleadosIds[0] : empleadosIds[1])
-            : (empleadosIds.length === 1 && empleadosIds[0] !== empleadoA ? empleadosIds[0] : 0));
-      
-      console.log("Asignación de roles:", { 
-        empleadoA, 
-        empleadoB, 
-        seleccionados: empleadosIds
+
+      empleadoA =
+        empleadoA !== null
+          ? empleadoA
+          : empleadosIds.length > 0
+          ? empleadosIds[0]
+          : 0;
+
+      empleadoB =
+        empleadoB !== null
+          ? empleadoB
+          : empleadosIds.length > 1
+          ? empleadosIds[0] !== empleadoA
+            ? empleadosIds[0]
+            : empleadosIds[1]
+          : empleadosIds.length === 1 && empleadosIds[0] !== empleadoA
+          ? empleadosIds[0]
+          : 0;
+
+      console.log("Asignación de roles:", {
+        empleadoA,
+        empleadoB,
+        seleccionados: empleadosIds,
       });
-      
+
       // Recuperar los empleados por nombre para mostrar en el log y confirmar
-      const empleadoAObj = empleadoA ? empleadosDisponibles.find((e) => e.id === empleadoA) : null;
-      const empleadoBObj = empleadoB ? empleadosDisponibles.find((e) => e.id === empleadoB) : null;
-      
-      const empleadoANombre = empleadoAObj ? `${empleadoAObj.nombre} ${empleadoAObj.apellido}` : 'Ninguno';
-      const empleadoBNombre = empleadoBObj ? `${empleadoBObj.nombre} ${empleadoBObj.apellido}` : 'Ninguno';
+      const empleadoAObj = empleadoA
+        ? empleadosDisponibles.find((e) => e.id === empleadoA)
+        : null;
+      const empleadoBObj = empleadoB
+        ? empleadosDisponibles.find((e) => e.id === empleadoB)
+        : null;
+
+      const empleadoANombre = empleadoAObj
+        ? `${empleadoAObj.nombre} ${empleadoAObj.apellido}`
+        : "Ninguno";
+      const empleadoBNombre = empleadoBObj
+        ? `${empleadoBObj.nombre} ${empleadoBObj.apellido}`
+        : "Ninguno";
 
       console.log(`Rol A (conductor): ${empleadoANombre} (ID: ${empleadoA})`);
       console.log(`Rol B (asistente): ${empleadoBNombre} (ID: ${empleadoB})`);
 
       // Preparar asignaciones manuales
-      const vehiculosIds = data.vehiculosIds || [];      const asignacionesManual = [
+      const vehiculosIds = data.vehiculosIds || [];
+      const asignacionesManual = [
         {
           // Rol A: Conductor principal con vehículo
           empleadoId: empleadoA,
@@ -440,7 +519,7 @@ export function EditarServicioGenericoComponent({ id }: { id: string }) {
           empleadoId: empleadoB,
         },
       ];
-      
+
       // Preparar datos para actualización
       const updateData: UpdateServiceDto = {
         fechaProgramada: data.fechaProgramada?.toISOString(),
@@ -452,33 +531,32 @@ export function EditarServicioGenericoComponent({ id }: { id: string }) {
         asignacionAutomatica: false,
         condicionContractualId: condicionId || undefined,
       };
-      
+
       // Actualizar el servicio
       await updateService(parseInt(id), updateData);
 
       // Mostrar mensaje de éxito
       toast.success("Servicio actualizado con éxito", {
         description: "Los cambios se han guardado correctamente.",
-      });
-
-      // Redireccionar a la página de listado
+      }); // Redireccionar a la página de listado
       setTimeout(() => {
-        router.push("/admin/services");
+        router.push("/admin/dashboard/servicios/listado");
       }, 2000);
-
     } catch (error) {
       console.error("Error al actualizar el servicio:", error);
 
       toast.error("Error al actualizar el servicio", {
-        description: error instanceof Error 
-          ? error.message 
-          : "No se pudo actualizar el servicio. Por favor, intente nuevamente.",
+        description:
+          error instanceof Error
+            ? error.message
+            : "No se pudo actualizar el servicio. Por favor, intente nuevamente.",
         duration: 5000,
       });
     } finally {
       setIsSubmitting(false);
     }
-  };  if (isLoading) {
+  };
+  if (isLoading) {
     return (
       <div className="flex flex-1 flex-col gap-4 p-4 pt-0 items-center justify-center">
         <Loader className="h-8 w-8 animate-spin" />
@@ -486,14 +564,14 @@ export function EditarServicioGenericoComponent({ id }: { id: string }) {
       </div>
     );
   }
-  
+
   // Verificar si tenemos datos del servicio
   if (!servicio) {
     return (
       <div className="flex flex-1 flex-col gap-4 p-4 pt-0 items-center justify-center">
         <p className="text-red-500">No se pudo cargar el servicio</p>
-        <Button 
-          onClick={() => router.push("/admin/services")}
+        <Button
+          onClick={() => router.push("/admin/dashboard/servicios/listado")}
         >
           Volver al listado
         </Button>
@@ -509,11 +587,11 @@ export function EditarServicioGenericoComponent({ id }: { id: string }) {
             <h1 className="text-2xl font-bold">Editar Servicio de Limpieza</h1>
             <p className="text-gray-600">
               Modifique los datos del servicio según sea necesario
-            </p>
+            </p>{" "}
           </div>
-          <Button 
-            variant="outline" 
-            onClick={() => router.push("/admin/services")}
+          <Button
+            variant="outline"
+            onClick={() => router.push("/admin/dashboard/servicios/listado")}
             className="flex items-center gap-2"
           >
             <ChevronLeft className="h-4 w-4" />
@@ -538,14 +616,26 @@ export function EditarServicioGenericoComponent({ id }: { id: string }) {
               <div className="space-y-8">
                 {/* Información del cliente */}
                 <div className="bg-gray-50 p-4 rounded-md border border-gray-100 mb-6">
-                  <h2 className="text-md font-medium mb-2">Información del Cliente</h2>
-                  <p><span className="font-medium">Cliente:</span> {servicio?.cliente?.nombre || "No especificado"}</p>
-                  <p><span className="font-medium">Condición Contractual ID:</span> {servicio?.condicionContractualId || "No especificada"}</p>
+                  <h2 className="text-md font-medium mb-2">
+                    Información del Cliente
+                  </h2>
+                  <p>
+                    <span className="font-medium">Cliente:</span>{" "}
+                    {servicio?.cliente?.nombre || "No especificado"}
+                  </p>
+                  <p>
+                    <span className="font-medium">
+                      Condición Contractual ID:
+                    </span>{" "}
+                    {servicio?.condicionContractualId || "No especificada"}
+                  </p>
                 </div>
 
                 {/* Detalles del Servicio */}
                 <div className="space-y-4">
-                  <h2 className="text-lg font-semibold mb-4">Detalles del Servicio</h2>
+                  <h2 className="text-lg font-semibold mb-4">
+                    Detalles del Servicio
+                  </h2>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     {/* Fecha Programada */}
@@ -560,14 +650,16 @@ export function EditarServicioGenericoComponent({ id }: { id: string }) {
                             type="date"
                             value={
                               field.value
-                                ? format(
-                                    new Date(field.value),
-                                    "yyyy-MM-dd",
-                                    { locale: es }
-                                  )
+                                ? format(new Date(field.value), "yyyy-MM-dd", {
+                                    locale: es,
+                                  })
                                 : ""
                             }
-                            onChange={(value: string) => field.onChange(value ? new Date(value) : undefined)}
+                            onChange={(value: string) =>
+                              field.onChange(
+                                value ? new Date(value) : undefined
+                              )
+                            }
                             error={fieldState.error?.message}
                             className="w-full"
                           />
@@ -586,7 +678,9 @@ export function EditarServicioGenericoComponent({ id }: { id: string }) {
                             name="cantidadVehiculos"
                             type="number"
                             value={field.value?.toString() || "1"}
-                            onChange={(value: string) => field.onChange(parseInt(value, 10))}
+                            onChange={(value: string) =>
+                              field.onChange(parseInt(value, 10))
+                            }
                             error={fieldState.error?.message}
                             min={1}
                             className="w-full"
@@ -634,8 +728,10 @@ export function EditarServicioGenericoComponent({ id }: { id: string }) {
 
                 {/* Asignación de Recursos */}
                 <div>
-                  <h2 className="text-lg font-semibold mb-4">Asignación de Recursos</h2>
-                  
+                  <h2 className="text-lg font-semibold mb-4">
+                    Asignación de Recursos
+                  </h2>
+
                   {/* Empleados */}
                   <div className="mb-6">
                     <h3 className="text-md font-medium mb-2">Empleados</h3>
@@ -653,7 +749,9 @@ export function EditarServicioGenericoComponent({ id }: { id: string }) {
                           <div className="flex items-center justify-between">
                             <div>
                               <p className="font-medium">{`${empleado.nombre} ${empleado.apellido}`}</p>
-                              <p className="text-sm text-gray-500">{empleado.documento}</p>
+                              <p className="text-sm text-gray-500">
+                                {empleado.documento}
+                              </p>
                             </div>
                             {selectedEmpleados.includes(empleado.id) && (
                               <div className="flex gap-1">
@@ -686,14 +784,22 @@ export function EditarServicioGenericoComponent({ id }: { id: string }) {
                               </div>
                             )}
                           </div>
-                          <Badge className={`mt-2 ${empleado.estado === "DISPONIBLE" ? "bg-green-100 text-green-800" : "bg-yellow-100 text-yellow-800"}`}>
+                          <Badge
+                            className={`mt-2 ${
+                              empleado.estado === "DISPONIBLE"
+                                ? "bg-green-100 text-green-800"
+                                : "bg-yellow-100 text-yellow-800"
+                            }`}
+                          >
                             {empleado.estado}
                           </Badge>
                         </div>
                       ))}
                     </div>
                     {errors.empleadosIds && (
-                      <p className="text-red-500 text-sm mt-2">{errors.empleadosIds.message}</p>
+                      <p className="text-red-500 text-sm mt-2">
+                        {errors.empleadosIds.message}
+                      </p>
                     )}
                   </div>
 
@@ -715,21 +821,31 @@ export function EditarServicioGenericoComponent({ id }: { id: string }) {
                           <p className="text-sm text-gray-500">
                             Patente: {vehiculo.patente}
                           </p>
-                          <Badge className={`mt-2 ${vehiculo.estado === "DISPONIBLE" ? "bg-green-100 text-green-800" : "bg-yellow-100 text-yellow-800"}`}>
+                          <Badge
+                            className={`mt-2 ${
+                              vehiculo.estado === "DISPONIBLE"
+                                ? "bg-green-100 text-green-800"
+                                : "bg-yellow-100 text-yellow-800"
+                            }`}
+                          >
                             {vehiculo.estado}
                           </Badge>
                         </div>
                       ))}
                     </div>
                     {errors.vehiculosIds && (
-                      <p className="text-red-500 text-sm mt-2">{errors.vehiculosIds.message}</p>
+                      <p className="text-red-500 text-sm mt-2">
+                        {errors.vehiculosIds.message}
+                      </p>
                     )}
                   </div>
 
                   {/* Baños Instalados */}
                   {banosInstalados.length > 0 && (
                     <div className="mb-6">
-                      <h3 className="text-md font-medium mb-2">Baños Instalados</h3>
+                      <h3 className="text-md font-medium mb-2">
+                        Baños Instalados
+                      </h3>
                       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 mt-2">
                         {banosInstalados.map((bano) => (
                           <div
@@ -745,7 +861,13 @@ export function EditarServicioGenericoComponent({ id }: { id: string }) {
                             <p className="text-sm text-gray-500">
                               Serie: {bano.numero_serie}
                             </p>
-                            <Badge className={`mt-2 ${bano.estado === "DISPONIBLE" ? "bg-green-100 text-green-800" : "bg-yellow-100 text-yellow-800"}`}>
+                            <Badge
+                              className={`mt-2 ${
+                                bano.estado === "DISPONIBLE"
+                                  ? "bg-green-100 text-green-800"
+                                  : "bg-yellow-100 text-yellow-800"
+                              }`}
+                            >
                               {bano.estado}
                             </Badge>
                           </div>
@@ -757,11 +879,14 @@ export function EditarServicioGenericoComponent({ id }: { id: string }) {
 
                 {/* Botones de acción */}
                 <div className="flex justify-end space-x-3 mt-6">
+                  {" "}
                   <Button
                     variant="outline"
                     type="button"
                     disabled={isSubmitting}
-                    onClick={() => router.push("/admin/services")}
+                    onClick={() =>
+                      router.push("/admin/dashboard/servicios/listado")
+                    }
                   >
                     Cancelar
                   </Button>

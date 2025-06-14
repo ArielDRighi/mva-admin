@@ -315,13 +315,13 @@ const DashboardComponent = () => {
           <p className="text-gray-500 mt-1">
             Panel de control MVA - {new Date().toLocaleDateString()}
           </p>
-        </div>
+        </div>{" "}
         <div className="mt-4 md:mt-0 flex space-x-2">
           <Button
-            onClick={() => router.push("/admin/dashboard/servicios/crear")}
+            onClick={() => router.push("/admin/dashboard/servicios/listado")}
             className="bg-primary hover:bg-primary/90"
           >
-            Nuevo Servicio
+            Ver Servicios
           </Button>
         </div>
       </div>
@@ -489,13 +489,14 @@ const DashboardComponent = () => {
         <div className="col-span-2">
           <Card className="h-full">
             <CardHeader>
+              {" "}
               <div className="flex items-center justify-between">
                 <CardTitle>Servicios proximos</CardTitle>
                 <Button
                   variant="ghost"
                   size="sm"
                   onClick={() =>
-                    router.push("/admin/dashboard/servicios/activos")
+                    router.push("/admin/dashboard/servicios/listado")
                   }
                 >
                   Ver todos
