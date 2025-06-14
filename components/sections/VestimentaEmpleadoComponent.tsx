@@ -75,32 +75,45 @@ export default function VestimentaEmpleadoComponent() {
       try {
         if (userId === 0) return;
         setLoading(true);
-        
+
         const response = await getUserById(userId);
-        
-        if (response && typeof response === "object" && "empleadoId" in response) {
+
+        if (
+          response &&
+          typeof response === "object" &&
+          "empleadoId" in response
+        ) {
           // Asegurarse de que empleadoId sea un número
-          const empId = typeof response.empleadoId === 'number' ? response.empleadoId : 0;
+          const empId =
+            typeof response.empleadoId === "number" ? response.empleadoId : 0;
           setEmployeeId(empId);
         } else {
-          console.error("La respuesta no contiene un ID de empleado válido", response);
+          console.error(
+            "La respuesta no contiene un ID de empleado válido",
+            response
+          );
           toast.error("Error al obtener datos", {
-            description: "No se pudo identificar al empleado asociado a este usuario"
+            description:
+              "No se pudo identificar al empleado asociado a este usuario",
           });
         }
       } catch (error) {
         console.error("Error al obtener datos del empleado:", error);
-        
+
         let errorMessage = "No se pudo obtener la información del empleado";
-        
+
         if (error instanceof Error) {
           errorMessage = error.message;
-        } else if (typeof error === "object" && error !== null && "message" in error) {
+        } else if (
+          typeof error === "object" &&
+          error !== null &&
+          "message" in error
+        ) {
           errorMessage = (error as { message: string }).message;
         }
-        
+
         toast.error("Error de datos", {
-          description: errorMessage
+          description: errorMessage,
         });
       } finally {
         setLoading(false);
@@ -109,76 +122,92 @@ export default function VestimentaEmpleadoComponent() {
 
     fetchEmployee();
   }, [userId]);
-
   useEffect(() => {
     const fetchData = async () => {
       try {
         if (employeeId === 0) return;
         setLoading(true);
-        
+
         const response = await getMyClothing(employeeId);
 
         // Verificar y validar la respuesta
         if (response && typeof response === "object") {
           // Comprobar si es un objeto de error
           if ("error" in response || "statusCode" in response) {
-            console.error("Error en la respuesta de vestimenta:", response);
+            console.log(
+              "No se encontraron talles para este empleado:",
+              response
+            );
             setClothing(null);
-            toast.error("Error al obtener datos", {
-              description: "message" in response 
-                ? response.message as string 
-                : "No se pudo obtener la información de vestimenta"
-            });
+            // No mostrar error toast aquí ya que es normal no tener talles inicialmente
           } else {
             // Validar que la respuesta tenga el formato esperado de VestimentaUsuario
             const isValidClothing = [
-              'calzado_talle',
-              'pantalon_talle',
-              'camisa_talle'
-            ].some(key => key in response);
-            
+              "calzado_talle",
+              "pantalon_talle",
+              "camisa_talle",
+            ].some((key) => key in response);
+
             if (isValidClothing) {
               setClothing(response as VestimentaUsuario);
-              
+
               // Solo inicializar tallesEditados con datos válidos y si aún no están definidos
               if (!tallesEditados) {
                 setTallesEditados(response as VestimentaUsuario);
               }
             } else {
-              console.error("Formato de respuesta no válido para vestimenta:", response);
+              console.error(
+                "Formato de respuesta no válido para vestimenta:",
+                response
+              );
               setClothing(null);
             }
           }
         } else {
-          console.error("Respuesta no válida:", response);
+          console.log(
+            "Respuesta vacía o nula, empleado sin talles registrados"
+          );
           setClothing(null);
         }
       } catch (error) {
-        console.error("Error al obtener datos de vestimenta:", error);
-        
-        let errorMessage = "No se pudo obtener la información de vestimenta";
-        
-        if (error instanceof Error) {
-          errorMessage = error.message;
-        } else if (typeof error === "object" && error !== null && "message" in error) {
-          errorMessage = (error as { message: string }).message;
+        console.log(
+          "Error al obtener datos de vestimenta (normal si no hay talles):",
+          error
+        );
+
+        // Solo mostrar error si es algo inesperado, no si simplemente no hay talles
+        if (
+          error instanceof Error &&
+          !error.message.includes("Talles no encontrados")
+        ) {
+          let errorMessage = "No se pudo obtener la información de vestimenta";
+
+          if (error instanceof Error) {
+            errorMessage = error.message;
+          } else if (
+            typeof error === "object" &&
+            error !== null &&
+            "message" in error
+          ) {
+            errorMessage = (error as { message: string }).message;
+          }
+
+          toast.error("Error al cargar datos", {
+            description: errorMessage,
+          });
         }
-        
-        toast.error("Error al cargar datos", {
-          description: errorMessage
-        });
-        
+
         setClothing(null);
       } finally {
         setLoading(false);
         setDataFetched(true);
       }
     };
-    
+
     if (employeeId !== 0) {
       fetchData();
     }
-  }, [employeeId, tallesEditados]); // Agregando tallesEditados como dependencia
+  }, [employeeId]); // Removido tallesEditados de las dependencias para evitar loops
 
   // Manejador para cambios en talles
   const handleTalleChange = (key: keyof VestimentaUsuario, value: string) => {
@@ -191,76 +220,119 @@ export default function VestimentaEmpleadoComponent() {
         : null
     );
   };
-
   const handleSaveTalles = async () => {
     try {
       setLoading(true);
       if (!tallesEditados || employeeId === 0) {
         toast.error("Error al guardar", {
-          description: "No hay datos para guardar o no se pudo identificar al empleado"
+          description:
+            "No hay datos para guardar o no se pudo identificar al empleado",
+        });
+        return;
+      } // Validar que todos los campos tengan valores
+      const camposVacios = Object.entries(tallesEditados).filter(
+        ([key, value]) =>
+          key.includes("_talle") && (!value || value.trim() === "")
+      );
+
+      if (camposVacios.length > 0) {
+        const camposNombres = camposVacios
+          .map(([key]) => getNombrePrenda(key))
+          .join(", ");
+        toast.error("Campos incompletos", {
+          description: `Por favor completa todos los campos. Faltan: ${camposNombres}`,
         });
         return;
       }
 
       // Extraer solo las propiedades de talles
       const tallesParaEnviar = {
-        calzado_talle: tallesEditados.calzado_talle,
-        pantalon_talle: tallesEditados.pantalon_talle,
-        camisa_talle: tallesEditados.camisa_talle,
-        campera_bigNort_talle: tallesEditados.campera_bigNort_talle,
-        pielBigNort_talle: tallesEditados.pielBigNort_talle,
-        medias_talle: tallesEditados.medias_talle,
+        calzado_talle: tallesEditados.calzado_talle.trim(),
+        pantalon_talle: tallesEditados.pantalon_talle.trim(),
+        camisa_talle: tallesEditados.camisa_talle.trim(),
+        campera_bigNort_talle: tallesEditados.campera_bigNort_talle.trim(),
+        pielBigNort_talle: tallesEditados.pielBigNort_talle.trim(),
+        medias_talle: tallesEditados.medias_talle.trim(),
         pantalon_termico_bigNort_talle:
-          tallesEditados.pantalon_termico_bigNort_talle,
-        campera_polar_bigNort_talle: tallesEditados.campera_polar_bigNort_talle,
-        mameluco_talle: tallesEditados.mameluco_talle,
+          tallesEditados.pantalon_termico_bigNort_talle.trim(),
+        campera_polar_bigNort_talle:
+          tallesEditados.campera_polar_bigNort_talle.trim(),
+        mameluco_talle: tallesEditados.mameluco_talle.trim(),
       };
 
-      // Llamar a la API para actualizar los talles
-      const response = await updateMyClothing(employeeId, tallesParaEnviar);
+      let success = false;
 
-      // Verificar si la actualización fue exitosa o si necesitamos crear un nuevo registro
-      if (response && typeof response === "object" && ("error" in response || "statusCode" in response)) {
-        // Si falló la actualización, intentar crear un nuevo registro
-        console.log("Intentando crear nuevo registro de talles");
-        
-        const createResponse = await createMyClothing(employeeId, tallesParaEnviar);
+      // Primero intentar actualizar si ya existe un registro
+      if (clothing) {
+        const updateResponse = await updateMyClothing(
+          employeeId,
+          tallesParaEnviar
+        );
 
-        if (createResponse && typeof createResponse === "object" && ("error" in createResponse || "statusCode" in createResponse)) {
-          // Si también falló la creación, mostrar error
-          console.error("Error al crear nuevo registro:", createResponse);
-          throw new Error("No se pudieron guardar los talles");
+        if (
+          updateResponse &&
+          typeof updateResponse === "object" &&
+          ("error" in updateResponse || "statusCode" in updateResponse)
+        ) {
+          console.log("Error al actualizar, intentando crear nuevo registro");
         } else {
-          // Si la creación fue exitosa
-          setClothing(tallesEditados);
-          setIsEditingTalles(false);
-          
-          toast.success("Talles creados correctamente", {
-            description: "Se ha creado un nuevo registro con tus talles"
+          // Actualización exitosa
+          success = true;
+          toast.success("Talles actualizados correctamente", {
+            description: "Se han guardado los cambios en tus talles",
           });
         }
-      } else {
-        // Si la actualización fue exitosa
+      }
+
+      // Si no existe registro o falló la actualización, intentar crear
+      if (!success) {
+        const createResponse = await createMyClothing(
+          employeeId,
+          tallesParaEnviar
+        );
+
+        if (
+          createResponse &&
+          typeof createResponse === "object" &&
+          ("error" in createResponse || "statusCode" in createResponse)
+        ) {
+          console.error("Error al crear nuevo registro:", createResponse);
+          const errorMsg =
+            "message" in createResponse
+              ? (createResponse.message as string)
+              : "Error desconocido";
+          throw new Error(errorMsg || "No se pudieron guardar los talles");
+        } else {
+          // Creación exitosa
+          success = true;
+          toast.success("Talles creados correctamente", {
+            description: "Se ha creado un nuevo registro con tus talles",
+          });
+        }
+      }
+
+      if (success) {
         setClothing(tallesEditados);
         setIsEditingTalles(false);
-        
-        toast.success("Talles actualizados correctamente", {
-          description: "Se han guardado los cambios en tus talles"
-        });
       }
     } catch (error) {
       console.error("Error al guardar los talles:", error);
-      
-      let errorMessage = "No se pudieron guardar los talles. Intenta nuevamente.";
-      
+
+      let errorMessage =
+        "No se pudieron guardar los talles. Intenta nuevamente.";
+
       if (error instanceof Error) {
         errorMessage = error.message;
-      } else if (typeof error === "object" && error !== null && "message" in error) {
+      } else if (
+        typeof error === "object" &&
+        error !== null &&
+        "message" in error
+      ) {
         errorMessage = (error as { message: string }).message;
       }
-      
+
       toast.error("Error al guardar", {
-        description: errorMessage
+        description: errorMessage,
       });
     } finally {
       setLoading(false);
@@ -288,42 +360,49 @@ export default function VestimentaEmpleadoComponent() {
     };
     return mapping[key] || key;
   };
-
   // Función para manejar la creación de talles
   const handleCreateTalles = async () => {
     try {
       setLoading(true);
       if (employeeId === 0) {
         toast.error("Error", {
-          description: "No se pudo identificar al empleado asociado a este usuario"
+          description:
+            "No se pudo identificar al empleado asociado a este usuario",
         });
         return;
       }
 
-      // Crear registro inicial de talles vacío
+      // Crear registro inicial de talles con valores predeterminados
       const initialTalles = {
-        calzado_talle: "",
-        pantalon_talle: "",
-        camisa_talle: "",
-        campera_bigNort_talle: "",
-        pielBigNort_talle: "",
-        medias_talle: "",
-        pantalon_termico_bigNort_talle: "",
-        campera_polar_bigNort_talle: "",
-        mameluco_talle: "",
+        calzado_talle: "M",
+        pantalon_talle: "M",
+        camisa_talle: "M",
+        campera_bigNort_talle: "M",
+        pielBigNort_talle: "M",
+        medias_talle: "M",
+        pantalon_termico_bigNort_talle: "M",
+        campera_polar_bigNort_talle: "M",
+        mameluco_talle: "M",
       };
 
       const response = await createMyClothing(employeeId, initialTalles);
-      
+
       // Verificar la respuesta
-      if (response && typeof response === "object" && ("error" in response || "statusCode" in response)) {
+      if (
+        response &&
+        typeof response === "object" &&
+        ("error" in response || "statusCode" in response)
+      ) {
         // Si la creación falló, mostrar error
         console.error("Error al crear registro de talles:", response);
-        
-        const errorMsg = "message" in response ? response.message as string : "Error desconocido";
-        
+
+        const errorMsg =
+          "message" in response
+            ? (response.message as string)
+            : "Error desconocido";
+
         toast.error("Error al crear registro", {
-          description: errorMsg || "No se pudo crear el registro de talles"
+          description: errorMsg || "No se pudo crear el registro de talles",
         });
         return;
       }
@@ -334,21 +413,26 @@ export default function VestimentaEmpleadoComponent() {
       setIsEditingTalles(true);
 
       toast.success("Registro creado", {
-        description: "Registro de talles creado. Ahora puedes completar tus talles."
+        description:
+          "Registro de talles creado con tallas iniciales 'M'. Puedes editarlas ahora.",
       });
     } catch (error) {
       console.error("Error al crear registro de talles:", error);
-      
+
       let errorMessage = "No se pudo crear el registro de talles";
-      
+
       if (error instanceof Error) {
         errorMessage = error.message;
-      } else if (typeof error === "object" && error !== null && "message" in error) {
+      } else if (
+        typeof error === "object" &&
+        error !== null &&
+        "message" in error
+      ) {
         errorMessage = (error as { message: string }).message;
       }
-      
+
       toast.error("Error", {
-        description: errorMessage
+        description: errorMessage,
       });
     } finally {
       setLoading(false);
@@ -444,9 +528,13 @@ export default function VestimentaEmpleadoComponent() {
                     <p className="text-lg font-medium mb-2">
                       No tienes talles registrados
                     </p>
-                    <p className="text-sm">
+                    <p className="text-sm mb-4">
                       Para solicitar vestimenta laboral, primero debes registrar
-                      tus talles
+                      tus talles. Haz clic en el botón de abajo para comenzar.
+                    </p>
+                    <p className="text-xs text-amber-600 bg-amber-50 p-2 rounded">
+                      💡 Se crearán talles iniciales talla "M" que podrás editar
+                      inmediatamente
                     </p>
                   </div>
                   <Button
@@ -475,7 +563,7 @@ export default function VestimentaEmpleadoComponent() {
                       >
                         <div className="font-medium text-gray-700 mb-2">
                           {getNombrePrenda(key)}
-                        </div>
+                        </div>{" "}
                         {isEditingTalles ? (
                           <Input
                             value={value}
@@ -486,7 +574,8 @@ export default function VestimentaEmpleadoComponent() {
                               )
                             }
                             className="mt-1"
-                            placeholder="Ingrese el talle"
+                            placeholder="Ej: S, M, L, XL, 40, 42, etc."
+                            required
                           />
                         ) : (
                           <div className="flex items-center">

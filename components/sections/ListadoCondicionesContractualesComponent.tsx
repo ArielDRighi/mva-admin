@@ -351,7 +351,8 @@ export default function ListadoCondicionesContractualesComponent({
             </CardTitle>
             <CardDescription className="text-muted-foreground mt-1">
               Administra las condiciones contractuales de la empresa
-            </CardDescription>          </div>
+            </CardDescription>{" "}
+          </div>
           {isAdmin && (
             <Button
               onClick={() =>
@@ -399,7 +400,8 @@ export default function ListadoCondicionesContractualesComponent({
           <ListadoTabla
             title=""
             data={filteredCondiciones}
-            itemsPerPage={itemsPerPage}            searchableKeys={[
+            itemsPerPage={itemsPerPage}
+            searchableKeys={[
               "condiciones_especificas",
               "periodicidad",
               "cliente.nombre",
@@ -435,7 +437,6 @@ export default function ListadoCondicionesContractualesComponent({
                     )}
                   </div>
                 </TableCell>
-
                 <TableCell className="min-w-[250px]">
                   <div
                     className="space-y-1 cursor-pointer hover:bg-slate-50 p-2 rounded-md transition-colors"
@@ -448,7 +449,8 @@ export default function ListadoCondicionesContractualesComponent({
                       {condicion.condiciones_especificas}
                     </div>
                   </div>
-                </TableCell>                <TableCell className="min-w-[220px]">
+                </TableCell>
+                <TableCell className="min-w-[220px]">
                   <div
                     className="space-y-1 cursor-pointer hover:bg-slate-50 p-2 rounded-md transition-colors"
                     onClick={() => handleViewDetails(condicion)}
@@ -462,11 +464,11 @@ export default function ListadoCondicionesContractualesComponent({
                     </div>
                   </div>
                 </TableCell>
-
                 <TableCell className="min-w-[200px]">
                   <div
                     className="space-y-1 cursor-pointer hover:bg-slate-50 p-2 rounded-md transition-colors"
-                    onClick={() => handleViewDetails(condicion)}                  >
+                    onClick={() => handleViewDetails(condicion)}
+                  >
                     <div className="flex items-center text-sm">
                       <Clock className="h-3.5 w-3.5 mr-2 text-muted-foreground" />
                       <span>{condicion.periodicidad}</span>
@@ -479,7 +481,6 @@ export default function ListadoCondicionesContractualesComponent({
                     )}
                   </div>
                 </TableCell>
-
                 <TableCell>
                   <Badge
                     variant={getStatusBadgeVariant(condicion.estado)}
@@ -488,7 +489,6 @@ export default function ListadoCondicionesContractualesComponent({
                     {condicion.estado}
                   </Badge>
                 </TableCell>
-
                 <TableCell className="flex gap-2">
                   <Button
                     variant="outline"
@@ -566,7 +566,6 @@ export default function ListadoCondicionesContractualesComponent({
               )}
             />
           </div>
-
           <Controller
             name="fecha_inicio"
             control={control}
@@ -581,7 +580,6 @@ export default function ListadoCondicionesContractualesComponent({
               />
             )}
           />
-
           <Controller
             name="fecha_fin"
             control={control}
@@ -595,7 +593,8 @@ export default function ListadoCondicionesContractualesComponent({
                 type="date"
               />
             )}
-          />          <Controller
+          />{" "}
+          <Controller
             name="periodicidad"
             control={control}
             render={({ field, fieldState }) => (
@@ -618,7 +617,6 @@ export default function ListadoCondicionesContractualesComponent({
               />
             )}
           />
-
           <Controller
             name="tarifa"
             control={control}
@@ -634,7 +632,6 @@ export default function ListadoCondicionesContractualesComponent({
               />
             )}
           />
-
           <Controller
             name="estado"
             control={control}
@@ -696,7 +693,8 @@ export default function ListadoCondicionesContractualesComponent({
                 <h4 className="font-medium text-md mb-3 flex items-center">
                   <FileText className="h-4 w-4 mr-2 text-indigo-600" />
                   Información General
-                </h4>                <div className="grid grid-cols-2 gap-4">
+                </h4>{" "}
+                <div className="grid grid-cols-2 gap-4">
                   {selectedCondicion.tipo_servicio && (
                     <div>
                       <h5 className="text-xs uppercase font-medium text-muted-foreground">
@@ -748,7 +746,8 @@ export default function ListadoCondicionesContractualesComponent({
                       </p>
                     </div>
                   )}
-                </div>              </div>
+                </div>{" "}
+              </div>
 
               {/* Sección: Información Financiera - Solo para administradores */}
               {isAdmin && (

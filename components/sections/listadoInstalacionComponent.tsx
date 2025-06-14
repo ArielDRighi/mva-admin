@@ -289,7 +289,7 @@ export function ListadoServiciosComponent() {
             </div>
 
             <div className="mt-4 space-y-4">
-              {/* Filtro por tipo de servicio */}
+              {/* Filtro por tipo de servicio */}{" "}
               <div>
                 <label className="text-sm font-medium">Tipo de Servicio:</label>
                 <Tabs
@@ -297,14 +297,14 @@ export function ListadoServiciosComponent() {
                   onValueChange={handleTipoServicioChange}
                   className="w-full mt-2"
                 >
-                  <TabsList className="grid grid-cols-3 w-full max-w-md">
+                  <TabsList className="grid grid-cols-4 w-full max-w-lg">
                     <TabsTrigger value="todos">Todos</TabsTrigger>
                     <TabsTrigger value="instalacion">Instalación</TabsTrigger>
                     <TabsTrigger value="limpieza">Limpieza</TabsTrigger>
+                    <TabsTrigger value="capacitacion">Capacitación</TabsTrigger>
                   </TabsList>
                 </Tabs>
               </div>
-
               {/* Filtro por estado */}
               <div>
                 <label className="text-sm font-medium">Estado:</label>

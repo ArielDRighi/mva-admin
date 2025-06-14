@@ -78,12 +78,13 @@ export default function ListadoClientesComponent({
   const [activeTab, setActiveTab] = useState("todos");
   const [isFirstLoad, setIsFirstLoad] = useState(true);
   // Añadir estado para controlar la hidratación
-  const [isMounted, setIsMounted] = useState(false);  // Estados para manejo de confirmación de eliminación
+  const [isMounted, setIsMounted] = useState(false); // Estados para manejo de confirmación de eliminación
   const [confirmDeleteDialogOpen, setConfirmDeleteDialogOpen] = useState(false);
   const [clienteToDelete, setClienteToDelete] = useState<string | null>(null);
   // Estados para el modal de visualización
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
-  const [selectedClientForView, setSelectedClientForView] = useState<Cliente | null>(null);
+  const [selectedClientForView, setSelectedClientForView] =
+    useState<Cliente | null>(null);
   const createClientSchema = z.object({
     nombre: z.string().min(1, "El nombre es obligatorio"),
 
@@ -93,10 +94,9 @@ export default function ListadoClientesComponent({
         /^\d{2}-\d{8}-\d$/,
         "Formato de CUIT incorrecto, debe ser xx-xxxxxxxx-x"
       )
-      .or(z.string().regex(/^\d{11}$/, "Debe tener 11 dígitos, sin guiones")),    direccion: z.string().min(1, "La dirección es obligatoria"),
-    telefono: z
-      .string()
-      .min(1, "El teléfono es obligatorio"),
+      .or(z.string().regex(/^\d{11}$/, "Debe tener 11 dígitos, sin guiones")),
+    direccion: z.string().min(1, "La dirección es obligatoria"),
+    telefono: z.string().min(1, "El teléfono es obligatorio"),
 
     email: z
       .string()
@@ -152,12 +152,14 @@ export default function ListadoClientesComponent({
     }
 
     // Siempre volver a la primera página al buscar
-    params.set("page", "1");    router.replace(`?${params.toString()}`);
+    params.set("page", "1");
+    router.replace(`?${params.toString()}`);
   };
 
   const handleEditClick = (cliente: Cliente) => {
     setSelectedClient(cliente);
-    setIsCreating(false);    const camposFormulario: (keyof ClienteFormulario)[] = [
+    setIsCreating(false);
+    const camposFormulario: (keyof ClienteFormulario)[] = [
       "nombre",
       "cuit",
       "direccion",
@@ -169,7 +171,8 @@ export default function ListadoClientesComponent({
       "contacto_obra1_telefono",
       "contactoObra2",
       "contacto_obra2_telefono",
-      "estado",    ];
+      "estado",
+    ];
 
     // Establecer todos los campos del formulario
     camposFormulario.forEach((key) => {
@@ -180,7 +183,8 @@ export default function ListadoClientesComponent({
   const handleViewClick = (cliente: Cliente) => {
     setSelectedClientForView(cliente);
     setIsViewModalOpen(true);
-  };  const handleCreateClick = () => {
+  };
+  const handleCreateClick = () => {
     // Resetear el formulario con valores iniciales
     reset({
       nombre: "",
@@ -239,7 +243,8 @@ export default function ListadoClientesComponent({
 
   const handleTabChange = (value: string) => {
     setActiveTab(value);
-  };  const onSubmit = async (data: z.infer<typeof createClientSchema>) => {
+  };
+  const onSubmit = async (data: z.infer<typeof createClientSchema>) => {
     try {
       setLoading(true);
 
@@ -419,10 +424,11 @@ export default function ListadoClientesComponent({
               { title: "Contacto", key: "contacto" },
               { title: "Información", key: "informacion" },
               { title: "Estado", key: "estado" },
-              { title: "Acciones", key: "acciones" },            ]}
+              { title: "Acciones", key: "acciones" },
+            ]}
             renderRow={(cliente) => (
               <>
-                <TableCell 
+                <TableCell
                   className="min-w-[250px] cursor-pointer hover:bg-slate-50"
                   onClick={() => handleViewClick(cliente)}
                 >
@@ -442,7 +448,7 @@ export default function ListadoClientesComponent({
                   </div>
                 </TableCell>
 
-                <TableCell 
+                <TableCell
                   className="min-w-[220px] cursor-pointer hover:bg-slate-50"
                   onClick={() => handleViewClick(cliente)}
                 >
@@ -458,7 +464,7 @@ export default function ListadoClientesComponent({
                   </div>
                 </TableCell>
 
-                <TableCell 
+                <TableCell
                   className="min-w-[200px] cursor-pointer hover:bg-slate-50"
                   onClick={() => handleViewClick(cliente)}
                 >
@@ -485,7 +491,7 @@ export default function ListadoClientesComponent({
                   </div>
                 </TableCell>
 
-                <TableCell 
+                <TableCell
                   className="cursor-pointer hover:bg-slate-50"
                   onClick={() => handleViewClick(cliente)}
                 >
@@ -501,7 +507,9 @@ export default function ListadoClientesComponent({
                   >
                     {cliente.estado}
                   </Badge>
-                </TableCell>                <TableCell className="flex gap-2">
+                </TableCell>
+
+                <TableCell className="flex gap-2">
                   <Button
                     variant="outline"
                     size="sm"
@@ -549,7 +557,9 @@ export default function ListadoClientesComponent({
             : "Completa el formulario para registrar un nuevo cliente."
         }
         onSubmit={handleSubmit(onSubmit)}
-      >        <div className="space-y-6">
+      >
+        {" "}
+        <div className="space-y-6">
           {/* Información de la Empresa */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
             <Controller
@@ -604,7 +614,8 @@ export default function ListadoClientesComponent({
               name="telefono"
               control={control}
               render={({ field, fieldState }) => (
-                <FormField                  label="Teléfono de la Empresa"
+                <FormField
+                  label="Teléfono de la Empresa"
                   name="telefono"
                   value={field.value?.toString() || ""}
                   onChange={field.onChange}
@@ -655,7 +666,8 @@ export default function ListadoClientesComponent({
                 name="contacto_principal_telefono"
                 control={control}
                 render={({ field, fieldState }) => (
-                  <FormField                    label="Teléfono"
+                  <FormField
+                    label="Teléfono"
                     name="contacto_principal_telefono"
                     value={field.value?.toString() || ""}
                     onChange={field.onChange}
@@ -674,10 +686,12 @@ export default function ListadoClientesComponent({
               <Phone className="h-5 w-5 mr-2 text-orange-600" />
               Contactos de Obra (Opcional)
             </h3>
-            
+
             {/* Contacto de Obra #1 */}
             <div className="mb-6">
-              <h4 className="text-md font-medium mb-3 text-muted-foreground">Contacto de Obra #1</h4>
+              <h4 className="text-md font-medium mb-3 text-muted-foreground">
+                Contacto de Obra #1
+              </h4>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
                 <Controller
                   name="contactoObra1"
@@ -697,7 +711,8 @@ export default function ListadoClientesComponent({
                   name="contacto_obra1_telefono"
                   control={control}
                   render={({ field, fieldState }) => (
-                    <FormField                      label="Teléfono"
+                    <FormField
+                      label="Teléfono"
                       name="contacto_obra1_telefono"
                       value={field.value?.toString() || ""}
                       onChange={field.onChange}
@@ -711,7 +726,9 @@ export default function ListadoClientesComponent({
 
             {/* Contacto de Obra #2 */}
             <div>
-              <h4 className="text-md font-medium mb-3 text-muted-foreground">Contacto de Obra #2</h4>
+              <h4 className="text-md font-medium mb-3 text-muted-foreground">
+                Contacto de Obra #2
+              </h4>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
                 <Controller
                   name="contactoObra2"
@@ -731,7 +748,8 @@ export default function ListadoClientesComponent({
                   name="contacto_obra2_telefono"
                   control={control}
                   render={({ field, fieldState }) => (
-                    <FormField                      label="Teléfono"
+                    <FormField
+                      label="Teléfono"
                       name="contacto_obra2_telefono"
                       value={field.value?.toString() || ""}
                       onChange={field.onChange}
@@ -793,10 +811,10 @@ export default function ListadoClientesComponent({
           <p>
             Esta acción eliminará permanentemente este cliente. Esta operación
             no se puede deshacer.
-          </p>          <p>¿Estás seguro de que deseas continuar?</p>
+          </p>{" "}
+          <p>¿Estás seguro de que deseas continuar?</p>
         </div>
       </FormDialog>
-
       {/* Modal para ver detalles completos del cliente */}
       <Dialog open={isViewModalOpen} onOpenChange={setIsViewModalOpen}>
         <DialogContent className="sm:max-w-[800px] max-h-[90vh] overflow-y-auto">
@@ -820,7 +838,9 @@ export default function ListadoClientesComponent({
                   <div className="flex items-center gap-2 mt-1">
                     <Badge
                       variant={
-                        selectedClientForView.estado === "ACTIVO" ? "default" : "outline"
+                        selectedClientForView.estado === "ACTIVO"
+                          ? "default"
+                          : "outline"
                       }
                       className={
                         selectedClientForView.estado === "ACTIVO"
@@ -832,13 +852,15 @@ export default function ListadoClientesComponent({
                     </Badge>
                     {selectedClientForView.fecha_registro && (
                       <span className="text-sm text-muted-foreground">
-                        Registrado el {new Date(selectedClientForView.fecha_registro).toLocaleDateString("es-AR")}
+                        Registrado el{" "}
+                        {new Date(
+                          selectedClientForView.fecha_registro
+                        ).toLocaleDateString("es-AR")}
                       </span>
                     )}
                   </div>
                 </div>
               </div>
-
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {/* Información de la Empresa */}
                 <div className="border rounded-lg p-4">
@@ -875,7 +897,8 @@ export default function ListadoClientesComponent({
                       </p>
                     </div>
                   </div>
-                </div>                {/* Contacto Principal */}
+                </div>{" "}
+                {/* Contacto Principal */}
                 <div className="border rounded-lg p-4">
                   <h4 className="font-medium text-md mb-3 flex items-center">
                     <User2 className="h-4 w-4 mr-2 text-green-600" />
@@ -890,68 +913,90 @@ export default function ListadoClientesComponent({
                         <p className="text-sm font-medium mt-1">
                           {selectedClientForView.contacto_principal}
                         </p>
-                      </div>                      <div>
+                      </div>{" "}
+                      <div>
                         <h5 className="text-xs uppercase font-medium text-muted-foreground">
                           Teléfono
                         </h5>
                         <p className="text-sm font-medium mt-1 flex items-center">
                           <Phone className="h-3.5 w-3.5 mr-2 text-muted-foreground" />
-                          {selectedClientForView.contacto_principal_telefono || "No especificado"}
+                          {selectedClientForView.contacto_principal_telefono ||
+                            "No especificado"}
                         </p>
                       </div>
                     </div>
                   </div>
                 </div>
-              </div>              {/* Contactos de Obra */}
-              {(selectedClientForView.contactoObra1 || 
-                selectedClientForView.contacto_obra1_telefono || 
-                selectedClientForView.contactoObra2 || 
+              </div>{" "}
+              {/* Contactos de Obra */}
+              {(selectedClientForView.contactoObra1 ||
+                selectedClientForView.contacto_obra1_telefono ||
+                selectedClientForView.contactoObra2 ||
                 selectedClientForView.contacto_obra2_telefono) && (
                 <div className="border rounded-lg p-4">
                   <h4 className="font-medium text-md mb-3 flex items-center">
                     <Phone className="h-4 w-4 mr-2 text-orange-600" />
                     Contactos de Obra
-                  </h4>                  <div className="space-y-4">
-                    {(selectedClientForView.contactoObra1 || selectedClientForView.contacto_obra1_telefono) && (
+                  </h4>{" "}
+                  <div className="space-y-4">
+                    {(selectedClientForView.contactoObra1 ||
+                      selectedClientForView.contacto_obra1_telefono) && (
                       <div className="bg-slate-50 rounded-md border p-3">
                         <h5 className="text-sm font-medium text-muted-foreground mb-2">
                           Contacto de Obra #1
                         </h5>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                           <div>
-                            <p className="text-xs uppercase font-medium text-muted-foreground">Nombre y Apellido</p>
+                            <p className="text-xs uppercase font-medium text-muted-foreground">
+                              Nombre y Apellido
+                            </p>
                             <p className="text-sm font-medium mt-1">
-                              {selectedClientForView.contactoObra1 || "No especificado"}
+                              {selectedClientForView.contactoObra1 ||
+                                "No especificado"}
                             </p>
                           </div>
                           <div>
-                            <p className="text-xs uppercase font-medium text-muted-foreground">Teléfono</p>
+                            <p className="text-xs uppercase font-medium text-muted-foreground">
+                              Teléfono
+                            </p>
                             <div className="flex items-center text-sm font-medium mt-1">
                               <Phone className="h-3.5 w-3.5 mr-2 text-muted-foreground" />
-                              <span>{selectedClientForView.contacto_obra1_telefono || "No especificado"}</span>
+                              <span>
+                                {selectedClientForView.contacto_obra1_telefono ||
+                                  "No especificado"}
+                              </span>
                             </div>
                           </div>
                         </div>
                       </div>
                     )}
 
-                    {(selectedClientForView.contactoObra2 || selectedClientForView.contacto_obra2_telefono) && (
+                    {(selectedClientForView.contactoObra2 ||
+                      selectedClientForView.contacto_obra2_telefono) && (
                       <div className="bg-slate-50 rounded-md border p-3">
                         <h5 className="text-sm font-medium text-muted-foreground mb-2">
                           Contacto de Obra #2
                         </h5>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                           <div>
-                            <p className="text-xs uppercase font-medium text-muted-foreground">Nombre y Apellido</p>
+                            <p className="text-xs uppercase font-medium text-muted-foreground">
+                              Nombre y Apellido
+                            </p>
                             <p className="text-sm font-medium mt-1">
-                              {selectedClientForView.contactoObra2 || "No especificado"}
+                              {selectedClientForView.contactoObra2 ||
+                                "No especificado"}
                             </p>
                           </div>
                           <div>
-                            <p className="text-xs uppercase font-medium text-muted-foreground">Teléfono</p>
+                            <p className="text-xs uppercase font-medium text-muted-foreground">
+                              Teléfono
+                            </p>
                             <div className="flex items-center text-sm font-medium mt-1">
                               <Phone className="h-3.5 w-3.5 mr-2 text-muted-foreground" />
-                              <span>{selectedClientForView.contacto_obra2_telefono || "No especificado"}</span>
+                              <span>
+                                {selectedClientForView.contacto_obra2_telefono ||
+                                  "No especificado"}
+                              </span>
                             </div>
                           </div>
                         </div>
@@ -960,7 +1005,6 @@ export default function ListadoClientesComponent({
                   </div>
                 </div>
               )}
-
               <DialogFooter className="flex justify-between mt-6">
                 <div className="flex space-x-2">
                   <Button
@@ -981,7 +1025,9 @@ export default function ListadoClientesComponent({
                     onClick={() => {
                       setIsViewModalOpen(false);
                       if (selectedClientForView.clienteId) {
-                        handleDeleteClick(selectedClientForView.clienteId.toString());
+                        handleDeleteClick(
+                          selectedClientForView.clienteId.toString()
+                        );
                       }
                     }}
                     className="cursor-pointer bg-red-100 text-red-700 hover:bg-red-200 hover:text-red-800"
