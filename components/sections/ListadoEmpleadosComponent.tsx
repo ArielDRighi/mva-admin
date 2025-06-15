@@ -742,10 +742,9 @@ export default function ListadoEmpleadosComponent({
                       <FileText className="h-3.5 w-3.5 mr-2 text-muted-foreground" />
                       <span>CUIL: {empleado.cuil || "No especificado"}</span>
                     </div>
-                  </div>
+                  </div>{" "}
                 </TableCell>
                 <TableCell>
-                  {" "}
                   <Badge
                     variant={
                       empleado.estado === "ASIGNADO"
@@ -764,7 +763,7 @@ export default function ListadoEmpleadosComponent({
                   >
                     {empleado.estado}
                   </Badge>
-                </TableCell>{" "}
+                </TableCell>
                 <TableCell className="flex gap-2">
                   <Button
                     variant="outline"

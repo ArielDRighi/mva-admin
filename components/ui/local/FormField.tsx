@@ -49,6 +49,7 @@ interface FormFieldProps {
   placeholder?: string;
   required?: boolean;
   error?: string;
+  helperText?: string;
   // Agregamos esto para aceptar cualquier otro atributo de un input
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   [key: string]: any;
@@ -65,6 +66,7 @@ export const FormField: React.FC<FormFieldProps> = ({
   placeholder,
   required = false,
   error,
+  helperText,
   ...rest // <- capturamos los demás props
 }) => {
   return (
@@ -72,7 +74,6 @@ export const FormField: React.FC<FormFieldProps> = ({
       <Label htmlFor={name} className="block font-medium">
         {label}
       </Label>
-
       {fieldType === "input" && (
         <Input
           id={name}
@@ -89,7 +90,6 @@ export const FormField: React.FC<FormFieldProps> = ({
           {...rest}
         />
       )}
-
       {fieldType === "select" && (
         <Select value={value} onValueChange={onChange} required={required}>
           <SelectTrigger>
@@ -103,9 +103,9 @@ export const FormField: React.FC<FormFieldProps> = ({
             ))}
           </SelectContent>
         </Select>
-      )}
-
+      )}{" "}
       {error && <p className="text-sm text-red-500">{error}</p>}
+      {helperText && <p className="text-sm text-gray-500">{helperText}</p>}
     </div>
   );
 };

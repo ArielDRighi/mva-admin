@@ -37,7 +37,7 @@ import { toast } from "sonner";
 
 export type User = {
   id: number;
-  name: string;
+  nombre: string;
   email: string;
   empleadoId: number | null;
   estado: string;
@@ -140,7 +140,8 @@ const DashboardComponent = () => {
   const router = useRouter(); // Estado para tracking de errores de carga
   const [loadingErrors, setLoadingErrors] = useState<Record<string, string>>(
     {}
-  );  useEffect(() => {
+  );
+  useEffect(() => {
     const fetchData = async () => {
       // Definimos las promesas básicas que todos pueden ver
       const basePromises = [
@@ -170,7 +171,9 @@ const DashboardComponent = () => {
       ];
 
       // Combinamos las promesas según el rol
-      const promises = isAdmin ? [...basePromises, ...adminOnlyPromises] : basePromises;
+      const promises = isAdmin
+        ? [...basePromises, ...adminOnlyPromises]
+        : basePromises;
 
       // Ejecutamos todas las promesas y manejamos éxitos/errores individualmente
       const results = await Promise.allSettled(
@@ -221,7 +224,8 @@ const DashboardComponent = () => {
               ? result.reason
               : result.reason instanceof Error
               ? result.reason.message
-              : `Error al cargar ${name}`;          console.error(`Error fetching ${name}:`, result.reason);
+              : `Error al cargar ${name}`;
+          console.error(`Error fetching ${name}:`, result.reason);
 
           // Guardar en el estado de errores para mostrar en el componente
           errorMessages[name] = errorMessage;
@@ -229,30 +233,33 @@ const DashboardComponent = () => {
           // Solo mostrar toast para errores críticos y que NO sean de permisos
           const criticalResources = [
             "totalVehicles",
-            "totalEmployees", 
+            "totalEmployees",
             "totalSanitarios",
             "proximosServicios",
           ];
-          
+
           // No mostrar toast si es error de permisos
-          const isPermissionError = errorMessage.includes("permisos") || 
-                                   errorMessage.includes("No tiene") ||
-                                   errorMessage.includes("Unauthorized");
-          
+          const isPermissionError =
+            errorMessage.includes("permisos") ||
+            errorMessage.includes("No tiene") ||
+            errorMessage.includes("Unauthorized");
+
           if (criticalResources.includes(name) && !isPermissionError) {
             toast.error(`Error al cargar datos importantes`, {
               description: errorMessage,
               duration: 5000,
             });
           }
-        }      });
+        }
+      });
 
       // Solo mostrar errores que NO sean de permisos
       const nonPermissionErrors = Object.fromEntries(
-        Object.entries(errorMessages).filter(([_, message]) => 
-          !message.includes("permisos") && 
-          !message.includes("No tiene") && 
-          !message.includes("Unauthorized")
+        Object.entries(errorMessages).filter(
+          ([_, message]) =>
+            !message.includes("permisos") &&
+            !message.includes("No tiene") &&
+            !message.includes("Unauthorized")
         )
       );
 
@@ -262,7 +269,8 @@ const DashboardComponent = () => {
       }
     };
 
-    fetchData();  }, [isAdmin, isSupervisor]);
+    fetchData();
+  }, [isAdmin, isSupervisor]);
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -309,7 +317,9 @@ const DashboardComponent = () => {
   return (
     <div className="container mx-auto p-4">
       <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-8">
-        <div>          <h1 className="text-3xl font-bold">
+        <div>
+          {" "}
+          <h1 className="text-3xl font-bold">
             Bienvenido, {user?.name || "Administrador"}
           </h1>
           <p className="text-gray-500 mt-1">
@@ -325,7 +335,6 @@ const DashboardComponent = () => {
           </Button>
         </div>
       </div>
-
       {/* Mostrar errores de carga si los hay */}
       {Object.keys(loadingErrors).length > 0 && (
         <div className="mb-4">
@@ -350,7 +359,6 @@ const DashboardComponent = () => {
           </Card>
         </div>
       )}
-
       {/* Resource summary cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
         <Card>
@@ -483,7 +491,6 @@ const DashboardComponent = () => {
           </CardContent>
         </Card>
       </div>
-
       {/* Today's services and summary */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
         <div className="col-span-2">
@@ -611,7 +618,6 @@ const DashboardComponent = () => {
           </Card>
         </div>
       </div>
-
       {/* Tabs with upcoming maintenance and recent activity */}
       <div className="grid grid-cols-1 gap-6 mb-8">
         <Tabs defaultValue="maintenance" className="w-full">
@@ -916,7 +922,8 @@ const DashboardComponent = () => {
             </Card>
           </TabsContent>
         </Tabs>
-      </div>      {/* Alerts and notifications - Solo para administradores */}
+      </div>{" "}
+      {/* Alerts and notifications - Solo para administradores */}
       {isAdmin &&
         licenciasToExpire &&
         licenciasToExpire.data &&
