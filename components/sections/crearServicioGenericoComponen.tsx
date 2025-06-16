@@ -37,6 +37,7 @@ import { SimpleDatePicker } from "@/components/ui/simple-date-picker";
 import { getEmployees } from "@/app/actions/empleados";
 import { getVehicles } from "@/app/actions/vehiculos";
 import { getSanitariosByClient } from "@/app/actions/sanitarios";
+import { useCurrentUser } from "@/hooks/useCurrentUser";
 
 // Schema for the form
 const formSchema = z.object({
@@ -54,17 +55,10 @@ const formSchema = z.object({
   }),
   cantidadVehiculos: z.number().min(1, "Debe especificar al menos 1 vehículo"),
   ubicacion: z.string().min(3, "La ubicación debe tener al menos 3 caracteres"),
-  notas: z.string().optional(),
-  // Step 4
-  banosInstalados: z
-    .array(z.number())
-    .min(1, "Debe seleccionar al menos un baño"),
-  empleadosIds: z
-    .array(z.number())
-    .min(1, "Debe seleccionar al menos un empleado"),
-  vehiculosIds: z
-    .array(z.number())
-    .min(1, "Debe seleccionar al menos un vehículo"),
+  notas: z.string().optional(), // Step 4 - campos opcionales para permitir navegación entre pasos
+  banosInstalados: z.array(z.number()),
+  empleadosIds: z.array(z.number()),
+  vehiculosIds: z.array(z.number()),
 
   // Additional fields for service creation
   tipoServicio: z.literal(ServiceType.LIMPIEZA),
@@ -73,10 +67,9 @@ const formSchema = z.object({
 
 type FormData = z.infer<typeof formSchema>;
 
-type CondicionContractual = {
-  condicionContractualId: number;
+type CondicionContractual = {  condicionContractualId: number;
   clientId: number;
-  tipo_de_contrato: string;
+  tipo_servicio?: string; // Agregando tipo de servicio
   fecha_inicio: string;
   fecha_fin: string;
   condiciones_especificas: string;
@@ -97,6 +90,7 @@ interface VehiculosResponse {
 
 export function CrearServicioGenericoComponent() {
   const router = useRouter();
+  const { isAdmin } = useCurrentUser();
   const [step, setStep] = useState<number>(1);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
 
@@ -115,15 +109,18 @@ export function CrearServicioGenericoComponent() {
   const [vehiculosDisponibles, setVehiculosDisponibles] = useState<Vehiculo[]>(
     []
   );
-
   const [selectedEmpleados, setSelectedEmpleados] = useState<number[]>([]);
   const [selectedVehiculos, setSelectedVehiculos] = useState<number[]>([]);
   const [selectedBanos, setSelectedBanos] = useState<number[]>([]);
 
-  const [isLoading, setIsLoading] = useState<boolean>(true);
+  // Estado para asignación de roles A y B
+  const [empleadoRolA, setEmpleadoRolA] = useState<number | null>(null);
+  const [empleadoRolB, setEmpleadoRolB] = useState<number | null>(null);
 
+  const [isLoading, setIsLoading] = useState<boolean>(true);
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
+    mode: "onSubmit", // Solo validar cuando se envía el formulario
     defaultValues: {
       clienteId: 0,
       condicionContractualId: 0,
@@ -260,7 +257,6 @@ export function CrearServicioGenericoComponent() {
             items?: CondicionContractual[];
             data?: CondicionContractual[];
           }
-
           const condicionesData = (await getContractualConditionsByClient(
             selectedClientId
           )) as CondicionesResponse | CondicionContractual[];
@@ -479,15 +475,49 @@ export function CrearServicioGenericoComponent() {
 
     fetchResources();
   }, [selectedClientId, selectedFechaProgramada, step]);
-
   // Manejar selección de empleado
   const handleEmpleadoSelection = (empleadoId: number) => {
     const updatedSelection = selectedEmpleados.includes(empleadoId)
       ? selectedEmpleados.filter((id) => id !== empleadoId)
       : [...selectedEmpleados, empleadoId];
 
+    // Si estamos deseleccionando un empleado, también quitarlo de los roles
+    if (
+      selectedEmpleados.includes(empleadoId) &&
+      !updatedSelection.includes(empleadoId)
+    ) {
+      if (empleadoRolA === empleadoId) {
+        setEmpleadoRolA(null);
+      }
+      if (empleadoRolB === empleadoId) {
+        setEmpleadoRolB(null);
+      }
+    }
+
     setSelectedEmpleados(updatedSelection);
     setValue("empleadosIds", updatedSelection);
+
+    // Actualizar los valores del formulario para asignaciones específicas
+    updateAsignacionesManual(updatedSelection, selectedVehiculos);
+  };
+  // Estas funciones se utilizan directamente en los botones onClick
+  // Actualizar las asignaciones manuales en el formulario
+  const updateAsignacionesManual = (
+    empleadosIds: number[],
+    vehiculosIds: number[],
+    rolA: number | null = empleadoRolA,
+    rolB: number | null = empleadoRolB
+  ) => {
+    // Determinar empleado A y B para asignaciones
+    const empleadoA =
+      rolA !== null ? rolA : empleadosIds.length > 0 ? empleadosIds[0] : 0;
+    const empleadoB =
+      rolB !== null ? rolB : empleadosIds.length > 1 ? empleadosIds[1] : 0;
+
+    // Asignar vehículo al empleado A (si hay vehículos seleccionados)
+    const vehiculoAsignado = vehiculosIds.length > 0 ? vehiculosIds[0] : 0;
+
+    // Las asignaciones serán usadas en onSubmit
   };
 
   // Manejar selección de vehículo
@@ -508,8 +538,7 @@ export function CrearServicioGenericoComponent() {
 
     setSelectedBanos(updatedSelection);
     setValue("banosInstalados", updatedSelection);
-  };
-  // Avanzar al siguiente paso
+  }; // Avanzar al siguiente paso
   const handleNextStep = async () => {
     // Validar campos según el paso actual
     let isStepValid = false;
@@ -519,13 +548,18 @@ export function CrearServicioGenericoComponent() {
         isStepValid = await trigger("clienteId");
         break;
       case 2:
+        // Verificar primero si hay condiciones contractuales disponibles
+        if (condicionesContractuales.length === 0) {
+          toast.error("Este cliente no tiene condiciones contractuales", {
+            description:
+              "Por favor, seleccione otro cliente o cree una condición contractual antes de continuar.",
+          });
+          return false;
+        }
+
         isStepValid = await trigger("condicionContractualId");
         // Double-check that we have a valid condition selected
         const currentCondicionId = getValues("condicionContractualId");
-        console.log(
-          "Validating step 2, condicionContractualId:",
-          currentCondicionId
-        );
 
         if (currentCondicionId <= 0 || !currentCondicionId) {
           // If form validation didn't catch it, enforce it here
@@ -545,35 +579,117 @@ export function CrearServicioGenericoComponent() {
         break;
     }
     if (isStepValid) {
-      // Log the values before advancing to catch any issues
-      console.log(
-        "Advancing to next step. Current form values:",
-        form.getValues()
-      );
       setStep((prevStep) => prevStep + 1);
     }
   };
   // Retroceder al paso anterior
   const handlePrevStep = () => {
-    // Asegurarse de que los datos del formulario sean consistentes al moverse entre pasos
-    console.log(
-      "Going back to previous step. Current form values:",
-      form.getValues()
-    );
-
     // Si venimos del paso 3, asegurarse de que la condición contractual esté correctamente establecida
     if (step === 3) {
       if (selectedCondicionId > 0) {
         setValue("condicionContractualId", selectedCondicionId);
-        console.log("Restored condicionContractualId to", selectedCondicionId);
       }
     }
 
     setStep((prevStep) => prevStep - 1);
-  }; // Enviar formulario
+  };
+  // Enviar formulario
   const onSubmit = async (data: FormData) => {
     try {
       setIsSubmitting(true);
+
+      // Validación manual de campos requeridos del paso 4
+      if (!data.banosInstalados || data.banosInstalados.length === 0) {
+        toast.error("Validación de formulario", {
+          description: "Debe seleccionar al menos un baño instalado.",
+        });
+        setIsSubmitting(false);
+        return;
+      }
+
+      if (!data.empleadosIds || data.empleadosIds.length === 0) {
+        toast.error("Validación de formulario", {
+          description: "Debe seleccionar al menos un empleado.",
+        });
+        setIsSubmitting(false);
+        return;
+      }
+
+      if (!data.vehiculosIds || data.vehiculosIds.length === 0) {
+        toast.error("Validación de formulario", {
+          description: "Debe seleccionar al menos un vehículo.",
+        });
+        setIsSubmitting(false);
+        return;
+      }
+
+      // Validar que haya al menos un empleado seleccionado para el rol A si hay vehículos seleccionados
+      if (
+        data.vehiculosIds.length > 0 &&
+        empleadoRolA === null &&
+        data.empleadosIds.length === 0
+      ) {
+        toast.error("Error en la asignación de roles", {
+          description:
+            "Debe seleccionar al menos un empleado para el rol de conductor (Rol A) cuando hay vehículos asignados.",
+        });
+        setIsSubmitting(false);
+        return;
+      }
+
+      // Si hay vehículos y empleados pero no se asignó el rol A, asignar automáticamente
+      if (
+        data.vehiculosIds.length > 0 &&
+        empleadoRolA === null &&
+        data.empleadosIds.length > 0
+      ) {
+        setEmpleadoRolA(data.empleadosIds[0]);
+        // Si hay más de un empleado y no hay rol B asignado
+        if (data.empleadosIds.length > 1 && empleadoRolB === null) {
+          setEmpleadoRolB(data.empleadosIds[1]);
+        }
+        // Notificar al usuario
+        toast.info("Roles asignados automáticamente", {
+          description:
+            "Se han asignado roles automáticamente a los empleados seleccionados.",
+        });
+      }
+
+      // Determinar quiénes son los empleados para los roles A y B
+      // Si hay roles asignados explícitamente, usarlos; si no, usar los primeros empleados seleccionados
+      const empleadoA =
+        empleadoRolA !== null
+          ? empleadoRolA
+          : data.empleadosIds.length > 0
+          ? data.empleadosIds[0]
+          : 0;
+
+      // Para el empleado B, si hay un rol asignado, usarlo;
+      // si no, usar el segundo empleado seleccionado o el primero si solo hay uno y no es el mismo que empleadoA
+      const empleadoB =
+        empleadoRolB !== null
+          ? empleadoRolB
+          : data.empleadosIds.length > 1
+          ? data.empleadosIds[0] !== empleadoA
+            ? data.empleadosIds[0]
+            : data.empleadosIds[1]
+          : data.empleadosIds.length === 1 && data.empleadosIds[0] !== empleadoA
+          ? data.empleadosIds[0]
+          : 0;
+
+      const empleadoAObj = empleadoA
+        ? empleadosDisponibles.find((e: Empleado) => e.id === empleadoA)
+        : null;
+      const empleadoBObj = empleadoB
+        ? empleadosDisponibles.find((e: Empleado) => e.id === empleadoB)
+        : null;
+
+      const empleadoANombre = empleadoAObj
+        ? `${empleadoAObj.nombre} ${empleadoAObj.apellido}`
+        : "Ninguno";
+      const empleadoBNombre = empleadoBObj
+        ? `${empleadoBObj.nombre} ${empleadoBObj.apellido}`
+        : "Ninguno";
 
       // Preparar las asignaciones manuales según el formato exacto requerido por CreateLimpiezaDto
       const asignacionesManual: [
@@ -581,13 +697,13 @@ export function CrearServicioGenericoComponent() {
         { empleadoId: number }
       ] = [
         {
-          // Primera asignación principal (conductor y vehículo)
-          empleadoId: data.empleadosIds.length > 0 ? data.empleadosIds[0] : 0,
+          // Rol A: Conductor principal con vehículo
+          empleadoId: empleadoA,
           vehiculoId: data.vehiculosIds.length > 0 ? data.vehiculosIds[0] : 0,
         },
         {
-          // Segunda asignación (empleado adicional)
-          empleadoId: data.empleadosIds.length > 1 ? data.empleadosIds[1] : 0,
+          // Rol B: Empleado adicional/asistente
+          empleadoId: empleadoB,
         },
       ];
 
@@ -649,7 +765,7 @@ export function CrearServicioGenericoComponent() {
 
       // Redireccionar a la página de listado de servicios después de un breve retraso
       setTimeout(() => {
-        router.push("/admin/services");
+        router.push("/admin/dashboard/servicios/listado");
       }, 1000);
     } catch (error) {
       console.error("Error al crear el servicio:", error);
@@ -659,13 +775,6 @@ export function CrearServicioGenericoComponent() {
         error instanceof Error
           ? error.message
           : "No se pudo crear el servicio. Por favor, intente nuevamente.";
-
-      // Log detallado para debugging
-      console.log({
-        errorType: typeof error,
-        errorObject: JSON.stringify(error, null, 2),
-        errorMessage,
-      });
 
       // Mostrar toast con el mensaje específico del error
       toast.error("Error al crear el servicio", {
@@ -684,16 +793,6 @@ export function CrearServicioGenericoComponent() {
       </div>
     );
   }
-  // Log the current form state when component renders
-  console.log("Component rendering with form state:", {
-    values: form.getValues(),
-    errors: form.formState.errors,
-    isDirty: form.formState.isDirty,
-    isValid: form.formState.isValid,
-    isSubmitted: form.formState.isSubmitted,
-    isSubmitting: form.formState.isSubmitting,
-    isSubmitSuccessful: form.formState.isSubmitSuccessful,
-  });
 
   return (
     <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
@@ -744,12 +843,10 @@ export function CrearServicioGenericoComponent() {
             <form
               onSubmit={handleSubmit(
                 (data) => {
-                  console.log("Form submitted successfully, data:", data);
                   onSubmit(data);
                 },
                 (errors) => {
                   console.error("Form validation failed:", errors);
-                  console.log("Current form values:", form.getValues());
                   return false;
                 }
               )}
@@ -782,17 +879,74 @@ export function CrearServicioGenericoComponent() {
                             ? "border-blue-500 bg-blue-50"
                             : "hover:border-blue-300 hover:bg-blue-50/50"
                         }`}
-                        onClick={() => {
+                        onClick={async () => {
                           if (cliente.clienteId !== undefined) {
                             setValue("clienteId", cliente.clienteId);
                             // Reset condicionContractualId when changing clients to avoid confusion
                             if (selectedClientId !== cliente.clienteId) {
                               setValue("condicionContractualId", 0);
                               setSelectedCondicionId(0);
+
+                              // Verificar si el cliente tiene condiciones contractuales
+                              try {
+                                setIsLoading(true);
+
+                                interface CondicionesResponse {
+                                  items?: CondicionContractual[];
+                                  data?: CondicionContractual[];
+                                }
+
+                                const condicionesData =
+                                  (await getContractualConditionsByClient(
+                                    cliente.clienteId
+                                  )) as
+                                    | CondicionesResponse
+                                    | CondicionContractual[];
+
+                                let condiciones: CondicionContractual[] = [];
+
+                                if (Array.isArray(condicionesData)) {
+                                  condiciones = condicionesData;
+                                } else if (
+                                  condicionesData &&
+                                  typeof condicionesData === "object"
+                                ) {
+                                  if (
+                                    "items" in condicionesData &&
+                                    Array.isArray(condicionesData.items)
+                                  ) {
+                                    condiciones = condicionesData.items;
+                                  } else if (
+                                    "data" in condicionesData &&
+                                    Array.isArray(condicionesData.data)
+                                  ) {
+                                    condiciones = condicionesData.data;
+                                  }
+                                }
+
+                                if (condiciones.length === 0) {
+                                  toast.warning(
+                                    `${cliente.nombre} no tiene condiciones contractuales`,
+                                    {
+                                      description:
+                                        "Este cliente no tiene condiciones contractuales configuradas, lo que será necesario para crear un servicio.",
+                                      duration: 5000,
+                                    }
+                                  );
+                                }
+                              } catch (error) {
+                                console.error(
+                                  "Error al verificar condiciones contractuales:",
+                                  error
+                                );
+                              } finally {
+                                setIsLoading(false);
+                              }
                             }
                           }
                         }}
                       >
+                        {" "}
                         <div className="font-medium text-lg">
                           {cliente.nombre}
                         </div>
@@ -823,17 +977,29 @@ export function CrearServicioGenericoComponent() {
                   <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
                     <FileText className="h-5 w-5" />
                     Selección de Condición Contractual
-                  </h2>
+                  </h2>{" "}
                   {isLoading ? (
                     <div className="flex justify-center py-8">
                       <Loader />
                     </div>
                   ) : condicionesContractuales.length === 0 ? (
-                    <div className="text-center py-8 border rounded-md">
-                      <p className="text-gray-500">
-                        No hay condiciones contractuales disponibles para este
-                        cliente.
+                    <div className="text-center py-8 border rounded-md flex flex-col items-center">
+                      <p className="text-red-500 font-semibold mb-2">
+                        No hay condiciones contractuales disponibles
                       </p>
+                      <p className="text-gray-500 mb-4">
+                        Este cliente no tiene condiciones contractuales
+                        configuradas. Primero debe crear al menos una condición
+                        contractual para poder asignarle un servicio.
+                      </p>
+                      <Button
+                        variant="outline"
+                        onClick={handlePrevStep}
+                        className="mt-2"
+                      >
+                        <ChevronLeft className="mr-2 h-4 w-4" /> Seleccionar
+                        otro cliente
+                      </Button>
                     </div>
                   ) : (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
@@ -856,10 +1022,9 @@ export function CrearServicioGenericoComponent() {
                             setSelectedCondicionId(
                               condicion.condicionContractualId
                             );
-                          }}
-                        >
+                          }}                        >
                           <div className="font-medium">
-                            {condicion.tipo_de_contrato}
+                            {condicion.tipo_servicio}
                           </div>
                           <div className="text-sm text-gray-500">
                             Período:{" "}
@@ -867,12 +1032,13 @@ export function CrearServicioGenericoComponent() {
                               condicion.fecha_inicio
                             ).toLocaleDateString()}{" "}
                             -{" "}
-                            {new Date(condicion.fecha_fin).toLocaleDateString()}
-                          </div>
-                          <div className="text-sm text-gray-500">
-                            Tarifa: ${condicion.tarifa} (
-                            {condicion.periodicidad})
-                          </div>
+                            {new Date(condicion.fecha_fin).toLocaleDateString()}                          </div>
+                          {isAdmin && (
+                            <div className="text-sm text-gray-500">
+                              Tarifa: ${condicion.tarifa} (
+                              {condicion.periodicidad})
+                            </div>
+                          )}
                           {condicion.condiciones_especificas && (
                             <div className="text-sm text-gray-500 mt-2">
                               <span className="font-medium">
@@ -903,44 +1069,6 @@ export function CrearServicioGenericoComponent() {
                       {errors.condicionContractualId.message}
                     </p>
                   )}
-                  {/* Debug information (only visible in development) */}
-                  {process.env.NODE_ENV !== "production" && (
-                    <div className="mt-4 px-4 py-2 rounded bg-gray-100 border border-gray-200">
-                      <h3 className="font-medium text-sm mb-1">Debug Info:</h3>
-                      <p className="text-xs text-gray-600">
-                        ID en el state: {selectedCondicionId}
-                      </p>
-                      <p className="text-xs text-gray-600">
-                        ID en el formulario:{" "}
-                        {getValues("condicionContractualId")}
-                      </p>
-                      {selectedCondicionId !==
-                        getValues("condicionContractualId") && (
-                        <p className="text-xs text-red-500 font-bold mt-1">
-                          ¡Atención! El valor seleccionado no coincide con el
-                          valor del formulario.
-                        </p>
-                      )}
-                    </div>
-                  )}
-                  {/* Mostrar el valor actual para debugging */}
-                  <div className="mt-4 text-sm text-gray-500">
-                    <p>
-                      Condición contractual seleccionada ID:{" "}
-                      {selectedCondicionId}
-                    </p>
-                    <p>
-                      Valor en el formulario:{" "}
-                      {getValues("condicionContractualId")}
-                    </p>
-                    {selectedCondicionId !==
-                      getValues("condicionContractualId") && (
-                      <p className="text-red-500">
-                        ¡Atención! El valor seleccionado no coincide con el
-                        valor del formulario.
-                      </p>
-                    )}
-                  </div>
                 </div>
               )}
 
@@ -1119,17 +1247,81 @@ export function CrearServicioGenericoComponent() {
                             {errors.banosInstalados.message}
                           </p>
                         )}
-                      </div>
-
+                      </div>{" "}
                       {/* Selección de Empleados */}
                       <div>
+                        {" "}
                         <h3 className="text-lg font-medium mb-3 flex items-center justify-between">
                           Seleccionar Empleados
                           <Badge variant="outline" className="bg-blue-50">
                             {selectedEmpleados.length} seleccionados
                           </Badge>
-                        </h3>
+                        </h3>{" "}
+                        <div className="bg-blue-50 p-3 rounded-md mb-3 text-sm">
+                          <p className="font-medium mb-1">
+                            Asignación de roles:
+                          </p>
+                          <p>
+                            <span className="font-medium">Rol A (azul):</span>{" "}
+                            Conductor principal con vehículo asignado
+                          </p>
+                          <p>
+                            <span className="font-medium">Rol B (verde):</span>{" "}
+                            Asistente/s
+                          </p>
+                          <p className="mt-1 text-xs text-gray-500">
+                            Después de seleccionar un empleado, puede asignarle
+                            un rol haciendo clic en los botones de &quot;Rol
+                            A&quot; o &quot;Rol B&quot;
+                          </p>
 
+                          {/* Resumen de asignaciones actuales */}
+                          {(empleadoRolA !== null || empleadoRolB !== null) && (
+                            <div className="mt-3 pt-2 border-t border-blue-200">
+                              <p className="font-medium mb-1">
+                                Asignaciones actuales:
+                              </p>
+                              {empleadoRolA !== null &&
+                                empleadosDisponibles && (
+                                  <div className="flex items-center gap-2">
+                                    <Badge className="bg-blue-600">Rol A</Badge>
+                                    <span>
+                                      {
+                                        empleadosDisponibles.find(
+                                          (e: Empleado) => e.id === empleadoRolA
+                                        )?.nombre
+                                      }{" "}
+                                      {
+                                        empleadosDisponibles.find(
+                                          (e: Empleado) => e.id === empleadoRolA
+                                        )?.apellido
+                                      }
+                                    </span>
+                                  </div>
+                                )}
+                              {empleadoRolB !== null &&
+                                empleadosDisponibles && (
+                                  <div className="flex items-center gap-2 mt-1">
+                                    <Badge className="bg-green-600">
+                                      Rol B
+                                    </Badge>
+                                    <span>
+                                      {
+                                        empleadosDisponibles.find(
+                                          (e: Empleado) => e.id === empleadoRolB
+                                        )?.nombre
+                                      }{" "}
+                                      {
+                                        empleadosDisponibles.find(
+                                          (e: Empleado) => e.id === empleadoRolB
+                                        )?.apellido
+                                      }
+                                    </span>
+                                  </div>
+                                )}
+                            </div>
+                          )}
+                        </div>
                         {empleadosDisponibles.length === 0 ? (
                           <div className="text-center py-8 border rounded-md">
                             <p className="text-gray-500">
@@ -1162,31 +1354,74 @@ export function CrearServicioGenericoComponent() {
                                       {empleado.nombre.charAt(0)}
                                       {empleado.apellido.charAt(0)}
                                     </div>
-                                  </div>
+                                  </div>{" "}
                                   <div className="flex-grow">
                                     <p className="font-medium">{`${empleado.apellido}, ${empleado.nombre}`}</p>
                                     <p className="text-xs text-gray-500">{`DNI: ${empleado.documento}`}</p>
                                     <p className="text-xs text-gray-500">{`Cargo: ${empleado.cargo}`}</p>
-                                    <Badge
-                                      variant="outline"
-                                      className="mt-1 bg-green-100 text-green-800 hover:bg-green-100"
-                                    >
-                                      {empleado.estado}
-                                    </Badge>
+                                    <div className="flex flex-wrap gap-2 mt-1">
+                                      <Badge
+                                        variant="outline"
+                                        className="bg-green-100 text-green-800 hover:bg-green-100"
+                                      >
+                                        {empleado.estado}
+                                      </Badge>
+
+                                      {selectedEmpleados.includes(
+                                        empleado.id
+                                      ) && (
+                                        <div className="flex gap-1 mt-1">
+                                          <Badge
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              setEmpleadoRolA(empleado.id);
+                                              if (
+                                                empleadoRolB === empleado.id
+                                              ) {
+                                                setEmpleadoRolB(null);
+                                              }
+                                            }}
+                                            className={`cursor-pointer ${
+                                              empleadoRolA === empleado.id
+                                                ? "bg-blue-600 hover:bg-blue-700"
+                                                : "bg-gray-300 hover:bg-gray-400"
+                                            }`}
+                                          >
+                                            Rol A
+                                          </Badge>
+                                          <Badge
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              setEmpleadoRolB(empleado.id);
+                                              if (
+                                                empleadoRolA === empleado.id
+                                              ) {
+                                                setEmpleadoRolA(null);
+                                              }
+                                            }}
+                                            className={`cursor-pointer ${
+                                              empleadoRolB === empleado.id
+                                                ? "bg-green-600 hover:bg-green-700"
+                                                : "bg-gray-300 hover:bg-gray-400"
+                                            }`}
+                                          >
+                                            Rol B
+                                          </Badge>
+                                        </div>
+                                      )}
+                                    </div>
                                   </div>
                                 </div>
                               </div>
                             ))}
                           </div>
                         )}
-
                         {errors.empleadosIds && (
                           <p className="text-red-500 text-sm mt-2">
                             {errors.empleadosIds.message}
                           </p>
                         )}
                       </div>
-
                       {/* Selección de Vehículos */}
                       <div>
                         <h3 className="text-lg font-medium mb-3 flex items-center justify-between">
@@ -1280,27 +1515,8 @@ export function CrearServicioGenericoComponent() {
                   <Button
                     type="submit"
                     disabled={isSubmitting}
-                    className="flex items-center gap-2 bg-green-600 hover:bg-green-700"
-                    onClick={async () => {
-                      console.log(
-                        "Submit button clicked",
-                        form.getValues(),
-                        "Current errors:",
-                        form.formState.errors
-                      );
-                      // Trigger validation for step 4 fields
-                      const step4Valid = await trigger([
-                        "banosInstalados",
-                        "empleadosIds",
-                        "vehiculosIds",
-                      ]);
-                      console.log(
-                        "Step 4 validation result:",
-                        step4Valid,
-                        "Errors after validation:",
-                        form.formState.errors
-                      );
-                    }}
+                    className="flex items-center gap-2 bg-green-600 hover:bg-green-700" // El onClick no es necesario aquí, ya que estamos usando handleSubmit
+                    // que manejará la validación y enviará los datos
                   >
                     {isSubmitting ? (
                       <>

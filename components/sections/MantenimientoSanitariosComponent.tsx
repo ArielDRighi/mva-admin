@@ -6,7 +6,9 @@ import {
   editSanitarioEnMantenimiento,
   getSanitariosEnMantenimiento,
 } from "@/app/actions/sanitarios";
+import { getEmployeeById } from "@/app/actions/empleados";
 import { SanitarioSelector } from "@/components/ui/local/SearchSelector/Selectors/SanitarioSelector";
+import { EmpleadoSelector } from "@/components/ui/local/SearchSelector/Selectors/EmpleadoSelector";
 import { MantenimientoSanitario } from "@/types/types";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -72,7 +74,6 @@ const MantenimientoSanitariosComponent = ({
   >(null);
   const [activeTab, setActiveTab] = useState("todos");
   const [isFirstLoad, setIsFirstLoad] = useState(true);
-
   const createSanitarioSchema = z.object({
     baño_id: z.number({
       required_error: "El baño es obligatorio",
@@ -87,21 +88,21 @@ const MantenimientoSanitariosComponent = ({
           "El tipo de mantenimiento debe ser 'Preventivo' o 'Correctivo'",
       }),
     }),
-
     descripcion: z.string().min(1, "La descripción es obligatoria"),
-
-    tecnico_responsable: z
-      .string()
-      .min(1, "El técnico responsable es obligatorio"),
+    empleado_id: z
+      .number({
+        required_error: "El técnico responsable es obligatorio",
+        invalid_type_error: "Debe seleccionar un empleado válido",
+      })
+      .positive("Debe seleccionar un empleado válido"),
 
     costo: z
       .number({
-        required_error: "El costo es obligatorio",
         invalid_type_error: "El costo debe ser un número",
       })
-      .nonnegative("El costo no puede ser negativo"),
+      .nonnegative("El costo no puede ser negativo")
+      .optional(),
   });
-
   const form = useForm<z.infer<typeof createSanitarioSchema>>({
     resolver: zodResolver(createSanitarioSchema),
     defaultValues: {
@@ -109,8 +110,8 @@ const MantenimientoSanitariosComponent = ({
       fecha_mantenimiento: new Date().toISOString().split("T")[0],
       tipo_mantenimiento: "Preventivo",
       descripcion: "",
-      tecnico_responsable: "",
-      costo: 0,
+      empleado_id: 1, // Temporary default - user must select an employee
+      costo: undefined,
     },
   });
 
@@ -174,18 +175,22 @@ const MantenimientoSanitariosComponent = ({
         : "Correctivo"
     );
     setValue("descripcion", mantenimientoSanitario.descripcion);
-    setValue("tecnico_responsable", mantenimientoSanitario.tecnico_responsable);
+    setValue(
+      "empleado_id",
+      typeof mantenimientoSanitario.empleado_id === "string"
+        ? 1 // Si es string (legacy data), usar 1 como default para que pase validación
+        : mantenimientoSanitario.empleado_id || 1
+    );
     setValue("costo", mantenimientoSanitario.costo);
   };
-
   const handleCreateClick = () => {
     reset({
       baño_id: 0,
       fecha_mantenimiento: new Date().toISOString().split("T")[0],
       tipo_mantenimiento: "Preventivo",
       descripcion: "",
-      tecnico_responsable: "",
-      costo: 0,
+      empleado_id: 1, // Temporary default - user must select an employee
+      costo: undefined,
     });
     setSelectedMantenimientoSanitario(null);
     setIsCreating(true);
@@ -256,7 +261,53 @@ const MantenimientoSanitariosComponent = ({
   };
   const onSubmit = async (data: z.infer<typeof createSanitarioSchema>) => {
     try {
-      setLoading(true);
+      setLoading(true); // Debug: Log the form data
+      console.log("Form data:", data);
+      console.log("empleado_id:", data.empleado_id, typeof data.empleado_id);
+
+      // Validate empleado_id before processing
+      if (!data.empleado_id || data.empleado_id <= 0) {
+        toast.error("Error de validación", {
+          description: "Debe seleccionar un empleado válido",
+          duration: 5000,
+        });
+        return;
+      }
+
+      // Fetch employee name from ID
+      let empleadoNombre = "";
+      if (data.empleado_id && data.empleado_id > 0) {
+        try {
+          const empleado = (await getEmployeeById(
+            data.empleado_id.toString()
+          )) as {
+            nombre: string;
+            apellido: string;
+          };
+          empleadoNombre = `${empleado.nombre} ${empleado.apellido}`;
+        } catch (error) {
+          console.error("Error fetching employee:", error);
+          toast.error("Error", {
+            description:
+              "No se pudo obtener la información del empleado seleccionado",
+            duration: 5000,
+          });
+          return;
+        }
+      } // Transform the form data to match API expectations
+      const submitData: MantenimientoSanitario = {
+        ...data,
+        empleado_id: Number(data.empleado_id), // Ensure it's a number for API compatibility
+        costo: data.costo || 0, // Default to 0 if undefined
+      };
+
+      // Debug: Log the submit data with type information
+      console.log("Submit data:", submitData);
+      console.log(
+        "empleado_id",
+        submitData.empleado_id,
+        typeof submitData.empleado_id
+      );
 
       if (
         selectedMantenimientoSanitario &&
@@ -265,7 +316,7 @@ const MantenimientoSanitariosComponent = ({
         // Actualizar mantenimiento existente
         const result = await editSanitarioEnMantenimiento(
           selectedMantenimientoSanitario.mantenimiento_id,
-          data
+          submitData
         );
 
         // Verificar resultado
@@ -277,7 +328,8 @@ const MantenimientoSanitariosComponent = ({
         }
       } else {
         // Crear nuevo mantenimiento
-        const result = await createSanitarioEnMantenimiento(data);
+        console.log("Creating new maintenance with data:", submitData);
+        const result = await createSanitarioEnMantenimiento(submitData);
 
         // Verificar resultado
         if (result) {
@@ -371,8 +423,8 @@ const MantenimientoSanitariosComponent = ({
           fecha_mantenimiento: new Date().toISOString().split("T")[0],
           tipo_mantenimiento: "Preventivo",
           descripcion: "",
-          tecnico_responsable: "",
-          costo: 0,
+          empleado_id: 1, // Temporary default - user must select an employee
+          costo: undefined,
         });
 
         // Mostrar el formulario de creación
@@ -455,7 +507,7 @@ const MantenimientoSanitariosComponent = ({
             itemsPerPage={itemsPerPage}
             searchableKeys={[
               "tipo_mantenimiento",
-              "tecnico_responsable",
+              "empleado_id",
               "descripcion",
               "baño_id",
               "completado",
@@ -472,7 +524,7 @@ const MantenimientoSanitariosComponent = ({
               { title: "Fecha", key: "fecha_mantenimiento" },
               { title: "Tipo", key: "tipo_mantenimiento" },
               { title: "Descripción", key: "descripcion" },
-              { title: "Técnico", key: "tecnico_responsable" },
+              { title: "Técnico", key: "empleado_id" },
               { title: "Estado", key: "estado" },
               { title: "Acciones", key: "acciones" },
             ]}
@@ -524,9 +576,7 @@ const MantenimientoSanitariosComponent = ({
                   {mantenimientoSanitario.descripcion}
                 </TableCell>
 
-                <TableCell>
-                  {mantenimientoSanitario.tecnico_responsable}
-                </TableCell>
+                <TableCell>{mantenimientoSanitario.empleado_id}</TableCell>
 
                 <TableCell>
                   <Badge
@@ -625,7 +675,10 @@ const MantenimientoSanitariosComponent = ({
             ? "Modificar información del mantenimiento de sanitario en el sistema."
             : "Completa el formulario para registrar un nuevo mantenimiento."
         }
-        onSubmit={handleSubmit(onSubmit)}
+        onSubmit={handleSubmit((data) => {
+          console.log("Form submission attempt with data:", data);
+          onSubmit(data);
+        })}
       >
         <div className="grid grid-cols-1 gap-x-6 gap-y-4">
           <Controller
@@ -678,33 +731,48 @@ const MantenimientoSanitariosComponent = ({
                 error={fieldState.error?.message}
               />
             )}
-          />
+          />{" "}
           <Controller
             name="costo"
             control={control}
             render={({ field, fieldState }) => (
               <FormField
-                label="Costo"
+                label="Costo (Opcional)"
                 name="costo"
                 type="number"
-                value={String(field.value)}
-                onChange={(value) => field.onChange(parseFloat(value))}
+                value={field.value ? String(field.value) : ""}
+                onChange={(value) =>
+                  field.onChange(value ? parseFloat(value) : undefined)
+                }
                 error={fieldState.error?.message}
+                placeholder="$0.00"
               />
             )}
-          />
+          />{" "}
           <Controller
-            name="tecnico_responsable"
+            name="empleado_id"
             control={control}
             render={({ field, fieldState }) => (
-              <FormField
-                label="Técnico responsable"
-                name="tecnico_responsable"
-                value={field.value}
-                onChange={field.onChange}
-                error={fieldState.error?.message}
-                placeholder="Nombre del técnico"
-              />
+              <div className="space-y-2">
+                <label htmlFor="empleado_id" className="text-sm font-medium">
+                  Técnico Responsable
+                </label>{" "}
+                <EmpleadoSelector
+                  value={field.value === 1 ? 0 : field.value} // Convert temporary default back to 0 for display
+                  onChange={(empleadoId) => {
+                    console.log(
+                      "EmpleadoSelector onChange called with:",
+                      empleadoId,
+                      typeof empleadoId
+                    );
+                    field.onChange(empleadoId || 1); // Ensure we always have a valid value
+                  }}
+                  name="empleado_id"
+                  label=""
+                  error={fieldState.error?.message}
+                  disabled={false}
+                />
+              </div>
             )}
           />
           <Controller

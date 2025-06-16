@@ -240,6 +240,11 @@ export type Cliente = {
   telefono: string;
   email: string;
   contacto_principal: string;
+  contacto_principal_telefono?: string;
+  contactoObra1?: string;
+  contacto_obra1_telefono?: string;
+  contactoObra2?: string;
+  contacto_obra2_telefono?: string;
   fecha_registro?: string;
   estado: "ACTIVO" | "INACTIVO" | string;
 };
@@ -260,6 +265,11 @@ export type ClienteFormulario = Pick<
   | "telefono"
   | "email"
   | "contacto_principal"
+  | "contacto_principal_telefono"
+  | "contactoObra1"
+  | "contacto_obra1_telefono"
+  | "contactoObra2"
+  | "contacto_obra2_telefono"
   | "estado"
 >;
 
@@ -296,8 +306,8 @@ export type MantenimientoSanitario = {
   fecha_mantenimiento?: string;
   tipo_mantenimiento: "Preventivo" | "Correctivo" | string;
   descripcion: string;
-  tecnico_responsable: string;
-  costo: number;
+  empleado_id: string | number; // Support both string (legacy) and number (employee ID)
+  costo?: number; // Made optional
   completado?: boolean;
   fechaCompletado?: string | null;
   toilet?: Sanitario;
@@ -309,8 +319,8 @@ export type MantenimientoSanitarioForm = {
   fecha_mantenimiento?: string;
   tipo_mantenimiento: "Preventivo" | "Correctivo" | string;
   descripcion: string;
-  tecnico_responsable: string;
-  costo: number;
+  empleado_id: number; // Employee ID for form
+  costo?: number; // Made optional
   completado?: boolean;
   fechaCompletado?: string | null;
   toilet?: Sanitario;
@@ -326,11 +336,7 @@ export type MantenimientosSanitariosResponse = {
 
 export type MantenimientoSanitarioFormulario = Pick<
   MantenimientoSanitario,
-  | "baño_id"
-  | "tipo_mantenimiento"
-  | "descripcion"
-  | "tecnico_responsable"
-  | "costo"
+  "baño_id" | "tipo_mantenimiento" | "descripcion" | "empleado_id" | "costo"
 >;
 
 export type ChemicalToilet = {

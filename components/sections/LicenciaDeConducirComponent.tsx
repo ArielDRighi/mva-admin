@@ -17,7 +17,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { useToast } from "@/components/ui/use-toast";
 import { format, isAfter, isValid, differenceInDays } from "date-fns";
 import { User } from "./DashboardComponent";
 import { getCookie } from "cookies-next";
@@ -39,6 +38,7 @@ import {
 import Loader from "../ui/local/Loader";
 import { LicenciaConducir } from "@/types/licenciasConducirTypes";
 import { CustomDatePicker } from "../ui/local/CustomDatePicker";
+import { toast } from "sonner";
 
 // Categorías de licencia de conducir
 const CATEGORIAS_LICENCIA = [
@@ -80,16 +80,12 @@ const LicenciaDeConducirComponent = () => {
     fecha_expedicion: false,
     fecha_vencimiento: false,
   });
-
   // Estados de datos
   const [user, setUser] = useState<User | null>(null);
   const [employeeId, setEmployeeId] = useState(0);
   const [originalLicencia, setOriginalLicencia] =
     useState<LicenciaConducir | null>(null);
-  
-  // Toast para notificaciones
-  const { toast } = useToast();
-  
+
   // Cargar usuario
   useEffect(() => {
     const userCookie = getCookie("user");
@@ -98,14 +94,12 @@ const LicenciaDeConducirComponent = () => {
         setUser(JSON.parse(userCookie as string));
       } catch (error) {
         console.error("Error al parsear la cookie de usuario:", error);
-        toast({
-          variant: "destructive",
-          title: "Error de autenticación",
-          description: "No se pudo cargar la información del usuario"
+        toast.error("Error de autenticación", {
+          description: "No se pudo cargar la información del usuario",
         });
       }
     }
-  }, [toast]);
+  }, []);
 
   // Cargar ID del empleado
   useEffect(() => {
@@ -115,34 +109,35 @@ const LicenciaDeConducirComponent = () => {
       try {
         setLoading(true);
         // Usar type assertion para tipar correctamente la respuesta
-        const fetchedUser = await getUserById(user.id) as { empleadoId?: number };
-        
+        const fetchedUser = (await getUserById(user.id)) as {
+          empleadoId?: number;
+        };
+
         if (fetchedUser && typeof fetchedUser.empleadoId === "number") {
           setEmployeeId(fetchedUser.empleadoId);
         } else {
-          console.error("No se encontró el ID del empleado o no es válido:", fetchedUser);
-          toast({
-            variant: "destructive",
-            title: "Error",
-            description: "No se pudo obtener la información del empleado"
+          console.error(
+            "No se encontró el ID del empleado o no es válido:",
+            fetchedUser
+          );
+          toast.error("Error", {
+            description: "No se pudo obtener la información del empleado",
           });
         }
       } catch (error) {
         console.error("Error al obtener datos del empleado:", error);
-        toast({
-          variant: "destructive",
-          title: "Error",
-          description: error instanceof Error 
-            ? error.message 
-            : "No se pudo obtener la información del empleado"
+        toast.error("Error", {
+          description:
+            error instanceof Error
+              ? error.message
+              : "No se pudo obtener la información del empleado",
         });
       } finally {
         setLoading(false);
       }
     };
-
     if (user?.id) fetchEmployee();
-  }, [user?.id, toast]);
+  }, [user?.id]);
 
   // Cargar licencia de conducir
   useEffect(() => {
@@ -152,13 +147,17 @@ const LicenciaDeConducirComponent = () => {
       try {
         setLoading(true);
         const response = await getLicenciaByEmpleadoId(employeeId);
-        
+
         // Verificar si hay respuesta y tiene la estructura correcta
         if (response && typeof response === "object") {
           // Verificar si tiene las propiedades esperadas de una licencia
-          if ("categoria" in response || "fecha_expedicion" in response || "fecha_vencimiento" in response) {
+          if (
+            "categoria" in response ||
+            "fecha_expedicion" in response ||
+            "fecha_vencimiento" in response
+          ) {
             const fetchedLicencia = response as LicenciaConducir;
-            
+
             setOriginalLicencia(fetchedLicencia);
             setLicencia({
               categoria: fetchedLicencia.categoria || "",
@@ -169,7 +168,10 @@ const LicenciaDeConducirComponent = () => {
                 ? new Date(fetchedLicencia.fecha_vencimiento)
                 : null,
             });
-          } else if ("message" in response && typeof response.message === "string") {
+          } else if (
+            "message" in response &&
+            typeof response.message === "string"
+          ) {
             // Si es una respuesta de "no hay licencia" pero es normal (no un error)
             console.log("No hay licencia registrada:", response.message);
             setOriginalLicencia(null);
@@ -182,28 +184,24 @@ const LicenciaDeConducirComponent = () => {
           setOriginalLicencia(null);
         } else {
           console.error("Respuesta no válida:", response);
-          toast({
-            variant: "destructive",
-            title: "Error",
-            description: "Formato de datos no válido"
+          toast.error("Error", {
+            description: "Formato de datos no válido",
           });
         }
       } catch (error) {
         console.error("Error al cargar licencia de conducir:", error);
-        toast({
-          variant: "destructive",
-          title: "Error",
-          description: error instanceof Error 
-            ? error.message 
-            : "Error al cargar la licencia de conducir"
+        toast.error("Error", {
+          description:
+            error instanceof Error
+              ? error.message
+              : "Error al cargar la licencia de conducir",
         });
       } finally {
         setLoading(false);
       }
     };
-
     if (employeeId) fetchData();
-  }, [employeeId, toast]);
+  }, [employeeId]);
 
   // Manejadores de eventos
   const handleChange = (value: string) => {
@@ -252,47 +250,41 @@ const LicenciaDeConducirComponent = () => {
       if (!originalLicencia) {
         // Crear nueva licencia
         response = await createLicenciaConducir(employeeId, licenciaData);
-        
+
         // Verificar respuesta
         if (response && typeof response === "object") {
           // Intentar extraer mensaje personalizado si existe
           let successMessage = "Licencia de conducir creada con éxito";
-          
           if ("message" in response && typeof response.message === "string") {
             successMessage = response.message;
           }
-          
-          toast({
-            title: "Éxito",
-            description: successMessage
+
+          toast.success("Éxito", {
+            description: successMessage,
           });
         } else {
-          toast({
-            title: "Éxito",
-            description: "Licencia de conducir creada con éxito"
+          toast.success("Éxito", {
+            description: "Licencia de conducir creada con éxito",
           });
         }
       } else {
         // Actualizar licencia existente
         response = await updateLicenciaConducir(employeeId, licenciaData);
-        
+
         // Verificar respuesta
         if (response && typeof response === "object") {
           // Intentar extraer mensaje personalizado si existe
           let successMessage = "Licencia de conducir actualizada con éxito";
-          
           if ("message" in response && typeof response.message === "string") {
             successMessage = response.message;
           }
-          
-          toast({
-            title: "Éxito",
-            description: successMessage
+
+          toast.success("Éxito", {
+            description: successMessage,
           });
         } else {
-          toast({
-            title: "Éxito",
-            description: "Licencia de conducir actualizada con éxito"
+          toast.success("Éxito", {
+            description: "Licencia de conducir actualizada con éxito",
           });
         }
       }
@@ -304,12 +296,16 @@ const LicenciaDeConducirComponent = () => {
       if (employeeId) {
         try {
           const updatedResponse = await getLicenciaByEmpleadoId(employeeId);
-          
+
           if (updatedResponse && typeof updatedResponse === "object") {
             // Verificar si tiene las propiedades esperadas de una licencia
-            if ("categoria" in updatedResponse || "fecha_expedicion" in updatedResponse || "fecha_vencimiento" in updatedResponse) {
+            if (
+              "categoria" in updatedResponse ||
+              "fecha_expedicion" in updatedResponse ||
+              "fecha_vencimiento" in updatedResponse
+            ) {
               const updatedLicense = updatedResponse as LicenciaConducir;
-              
+
               setOriginalLicencia(updatedLicense);
               setLicencia({
                 categoria: updatedLicense.categoria || "",
@@ -321,7 +317,10 @@ const LicenciaDeConducirComponent = () => {
                   : null,
               });
             } else {
-              console.error("Formato de licencia actualizada no reconocido:", updatedResponse);
+              console.error(
+                "Formato de licencia actualizada no reconocido:",
+                updatedResponse
+              );
             }
           } else {
             console.error("No se pudo refrescar la información de la licencia");
@@ -333,12 +332,12 @@ const LicenciaDeConducirComponent = () => {
       }
     } catch (error) {
       console.error("Error al procesar la licencia:", error);
-      
+
       // Determinar mensaje de error específico
       let errorMessage = originalLicencia
         ? "Error al actualizar la licencia"
         : "Error al crear la licencia";
-      
+
       if (error instanceof Error) {
         errorMessage = `Error: ${error.message}`;
       } else if (typeof error === "object" && error !== null) {
@@ -348,11 +347,9 @@ const LicenciaDeConducirComponent = () => {
           errorMessage = error.error;
         }
       }
-      
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: errorMessage
+
+      toast.error("Error", {
+        description: errorMessage,
       });
     } finally {
       setLoading(false);
@@ -510,6 +507,7 @@ const LicenciaDeConducirComponent = () => {
 
               {editMode ? (
                 <div className="bg-white rounded-lg border p-6 shadow-sm">
+                  {" "}
                   <h3 className="text-lg font-medium mb-4">
                     Registro de Licencia
                   </h3>
@@ -520,7 +518,10 @@ const LicenciaDeConducirComponent = () => {
                         value={licencia.categoria}
                         onValueChange={handleChange}
                       >
-                        <SelectTrigger id="categoria" className={errors.categoria ? "border-red-500" : ""}>
+                        <SelectTrigger
+                          id="categoria"
+                          className={errors.categoria ? "border-red-500" : ""}
+                        >
                           <SelectValue placeholder="Selecciona una categoría" />
                         </SelectTrigger>
                         <SelectContent>
@@ -540,13 +541,18 @@ const LicenciaDeConducirComponent = () => {
 
                     <div className="space-y-6">
                       <div className="space-y-2">
-                        <Label htmlFor="fecha_expedicion">Fecha de expedición</Label>
+                        <Label htmlFor="fecha_expedicion">
+                          Fecha de expedición
+                        </Label>
                         <CustomDatePicker
-                          id="fecha_expedicion"
                           date={licencia.fecha_expedicion}
-                          onChange={(date) => handleDateChange("fecha_expedicion", date)}
+                          onChange={(date) =>
+                            handleDateChange("fecha_expedicion", date)
+                          }
                           placeholder="Selecciona fecha de expedición"
-                          className={errors.fecha_expedicion ? "border-red-500" : ""}
+                          className={
+                            errors.fecha_expedicion ? "border-red-500" : ""
+                          }
                         />
                         {errors.fecha_expedicion && (
                           <p className="text-red-500 text-sm">
@@ -556,13 +562,18 @@ const LicenciaDeConducirComponent = () => {
                       </div>
 
                       <div className="space-y-2">
-                        <Label htmlFor="fecha_vencimiento">Fecha de vencimiento</Label>
+                        <Label htmlFor="fecha_vencimiento">
+                          Fecha de vencimiento
+                        </Label>
                         <CustomDatePicker
-                          id="fecha_vencimiento"
                           date={licencia.fecha_vencimiento}
-                          onChange={(date) => handleDateChange("fecha_vencimiento", date)}
+                          onChange={(date) =>
+                            handleDateChange("fecha_vencimiento", date)
+                          }
                           placeholder="Selecciona fecha de vencimiento"
-                          className={errors.fecha_vencimiento ? "border-red-500" : ""}
+                          className={
+                            errors.fecha_vencimiento ? "border-red-500" : ""
+                          }
                           minDate={licencia.fecha_expedicion || undefined}
                         />
                         {errors.fecha_vencimiento && (
@@ -573,7 +584,6 @@ const LicenciaDeConducirComponent = () => {
                       </div>
                     </div>
                   </div>
-
                   <div className="flex justify-end gap-2 mt-6">
                     <Button
                       variant="outline"
@@ -647,7 +657,10 @@ const LicenciaDeConducirComponent = () => {
                           value={licencia.categoria}
                           onValueChange={handleChange}
                         >
-                          <SelectTrigger id="categoria" className={errors.categoria ? "border-red-500" : ""}>
+                          <SelectTrigger
+                            id="categoria"
+                            className={errors.categoria ? "border-red-500" : ""}
+                          >
                             <SelectValue placeholder="Selecciona una categoría" />
                           </SelectTrigger>
                           <SelectContent>
@@ -666,30 +679,40 @@ const LicenciaDeConducirComponent = () => {
                       </div>
 
                       <div className="space-y-6">
+                        {" "}
                         <div className="space-y-2">
-                          <Label htmlFor="fecha_expedicion">Fecha de expedición</Label>
+                          <Label htmlFor="fecha_expedicion">
+                            Fecha de expedición
+                          </Label>
                           <CustomDatePicker
-                            id="fecha_expedicion"
                             date={licencia.fecha_expedicion}
-                            onChange={(date) => handleDateChange("fecha_expedicion", date)}
+                            onChange={(date) =>
+                              handleDateChange("fecha_expedicion", date)
+                            }
                             placeholder="Selecciona fecha de expedición"
-                            className={errors.fecha_expedicion ? "border-red-500" : ""}
+                            className={
+                              errors.fecha_expedicion ? "border-red-500" : ""
+                            }
                           />
                           {errors.fecha_expedicion && (
                             <p className="text-red-500 text-sm">
                               Fecha de expedición inválida
                             </p>
                           )}
-                        </div>
-
+                        </div>{" "}
                         <div className="space-y-2">
-                          <Label htmlFor="fecha_vencimiento">Fecha de vencimiento</Label>
+                          <Label htmlFor="fecha_vencimiento">
+                            Fecha de vencimiento
+                          </Label>
                           <CustomDatePicker
-                            id="fecha_vencimiento"
                             date={licencia.fecha_vencimiento}
-                            onChange={(date) => handleDateChange("fecha_vencimiento", date)}
+                            onChange={(date) =>
+                              handleDateChange("fecha_vencimiento", date)
+                            }
                             placeholder="Selecciona fecha de vencimiento"
-                            className={errors.fecha_vencimiento ? "border-red-500" : ""}
+                            className={
+                              errors.fecha_vencimiento ? "border-red-500" : ""
+                            }
                             minDate={licencia.fecha_expedicion || undefined}
                           />
                           {errors.fecha_vencimiento && (

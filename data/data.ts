@@ -8,6 +8,7 @@ import {
   Wrench,
   UserCog,
   Shirt,
+  DollarSign,
 } from "lucide-react";
 
 const dataSideBar = {
@@ -78,25 +79,18 @@ const dataSideBar = {
           title: "Crear Capacitacion",
           url: "/admin/dashboard/servicios/capacitaciones/crear",
         },
-        {
-          title: "Listado capacitaciones",
-          url: "/admin/dashboard/servicios/capacitaciones/listado",
-        },
+
         {
           title: "Crear Instalacion",
           url: "/admin/dashboard/servicios/instalacion/crear",
-        },
-        {
-          title: "Listado Instalaciones",
-          url: "/admin/dashboard/servicios/instalacion/listado",
         },
         {
           title: "Crear Servicio Generico",
           url: "/admin/dashboard/servicios/genericos/crear",
         },
         {
-          title: "Listado Servicios Genericos",
-          url: "/admin/dashboard/servicios/genericos/listado",
+          title: "Listado Servicios",
+          url: "/admin/dashboard/servicios/listado",
         },
       ],
     },
@@ -134,6 +128,17 @@ const dataSideBar = {
         {
           title: "Listado",
           url: "/admin/dashboard/talles-de-empleados/listado",
+        },
+      ],
+    },
+    {
+      title: "Gestión de Adelantos",
+      url: "/admin/dashboard/salary-advances",
+      icon: DollarSign,
+      items: [
+        {
+          title: "Listado",
+          url: "/admin/dashboard/salary-advances/listado",
         },
       ],
     },

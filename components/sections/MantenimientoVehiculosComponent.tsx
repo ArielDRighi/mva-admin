@@ -86,7 +86,6 @@ const MantenimientoVehiculosComponent = ({
     number | null
   >(null);
   console.log("mantenimientos", mantenimientos);
-
   const mantenimientoSchema = z.object({
     vehiculoId: z.number({
       required_error: "El vehículo es obligatorio",
@@ -108,7 +107,10 @@ const MantenimientoVehiculosComponent = ({
         invalid_type_error: "El costo debe ser un número",
       })
       .nonnegative("El costo no puede ser negativo"),
-    proximoMantenimiento: z.string().optional(),
+    proximoMantenimiento: z
+      .string()
+      .optional()
+      .transform((val) => (val === "" || val === undefined ? undefined : val)),
   });
 
   const form = useForm<z.infer<typeof mantenimientoSchema>>({
@@ -129,16 +131,30 @@ const MantenimientoVehiculosComponent = ({
     const params = new URLSearchParams(searchParams.toString());
     params.set("page", String(page));
     router.replace(`?${params.toString()}`);
-  };
-
-  const handleSearchChange = (search: string) => {
+  };  const handleSearchChange = (search: string) => {
     const params = new URLSearchParams(searchParams.toString());
-    params.set("search", search);
+
+    // Si no hay término de búsqueda, eliminar el parámetro
+    if (!search || search.trim() === "") {
+      params.delete("search");
+    } else {
+      // Verificar si es una búsqueda directa de tipo de mantenimiento
+      if (search.toLowerCase() === "preventivo" || search.toLowerCase() === "correctivo") {
+        // Añadir exactamente el tipo con la primera letra mayúscula
+        const tipoFormateado = search.charAt(0).toUpperCase() + search.slice(1).toLowerCase();
+        params.set("search", tipoFormateado);
+        console.log("Buscando por tipo específico:", tipoFormateado);
+      } else {
+        params.set("search", search);
+      }
+    }
+
+    // Siempre volver a la primera página al buscar
     params.set("page", "1");
     router.replace(`?${params.toString()}`);
 
-    // Update the URL and then fetch with the updated search parameter
-    fetchMantenimientos();
+    // No llamar fetchMantenimientos aquí ya que se ejecutará automáticamente
+    // cuando cambien los searchParams a través del useEffect
   };
 
   const handleTabChange = (value: string) => {
@@ -202,7 +218,6 @@ const MantenimientoVehiculosComponent = ({
     },
     [vehiculosInfo]
   );
-
   const handleEditClick = (mantenimiento: VehicleMaintenance) => {
     setSelectedMantenimiento(mantenimiento);
     setIsCreating(false);
@@ -218,11 +233,15 @@ const MantenimientoVehiculosComponent = ({
     );
     setValue("descripcion", mantenimiento.descripcion || "");
     setValue("costo", mantenimiento.costo);
+    
+    // Manejar proximoMantenimiento de forma segura
     if (mantenimiento.proximoMantenimiento) {
       setValue(
         "proximoMantenimiento",
         new Date(mantenimiento.proximoMantenimiento).toISOString().split("T")[0]
       );
+    } else {
+      setValue("proximoMantenimiento", "");
     }
   };
   const handleCreateClick = () => {
@@ -317,19 +336,23 @@ const MantenimientoVehiculosComponent = ({
       setConfirmCompleteDialogOpen(false);
       setMantenimientoToComplete(null);
     }
-  };
-  const onSubmit = async (data: z.infer<typeof mantenimientoSchema>) => {
+  };  const onSubmit = async (data: z.infer<typeof mantenimientoSchema>) => {
     try {
+      // Filtrar campos undefined para evitar enviar valores no válidos
+      const cleanedData = Object.fromEntries(
+        Object.entries(data).filter(([_, value]) => value !== undefined && value !== "")
+      );
+
       if (selectedMantenimiento) {
         await editMantenimientoVehiculo(
           selectedMantenimiento.id,
-          data as UpdateVehicleMaintenance
+          cleanedData as UpdateVehicleMaintenance
         );
         toast.success("Mantenimiento actualizado", {
           description: "Los cambios se han guardado correctamente.",
         });
       } else {
-        await createMantenimientoVehiculo(data as CreateVehicleMaintenance);
+        await createMantenimientoVehiculo(cleanedData as CreateVehicleMaintenance);
         toast.success("Mantenimiento creado", {
           description: "El mantenimiento se ha programado correctamente.",
         });
@@ -358,30 +381,46 @@ const MantenimientoVehiculosComponent = ({
         duration: 5000, // Duración aumentada para mejor visibilidad
       });
     }
-  };
-  const fetchMantenimientos = useCallback(async () => {
+  };  const fetchMantenimientos = useCallback(async () => {
     const currentPage = Number(searchParams.get("page")) || 1;
     const searchTerm = searchParams.get("search") || "";
+    const isSearchingByType = searchTerm.toLowerCase() === "correctivo" || searchTerm.toLowerCase() === "preventivo";
+    
     setLoading(true);
     console.log("currentPage", currentPage);
     console.log("itemsPerPage", itemsPerPage);
     console.log("search term:", searchTerm);
+    console.log("isSearchingByType:", isSearchingByType);
+    
     try {
+      // Si estamos buscando por tipo específicamente, hacemos la llamada sin término de búsqueda
+      // y luego filtramos los resultados localmente para mayor precisión
       const fetchedMantenimientos = (await getMantenimientosVehiculos(
         currentPage,
         itemsPerPage,
-        searchTerm // Make sure this value is passed correctly
+        isSearchingByType ? "" : searchTerm
       )) as {
         data: VehicleMaintenance[];
         totalItems: number;
         currentPage: number;
-      };
-      setMantenimientos(fetchedMantenimientos.data);
-      setTotal(fetchedMantenimientos.totalItems);
-      setPage(fetchedMantenimientos.currentPage);
+      };      // Si estamos buscando por tipo, filtramos los resultados localmente
+      if (isSearchingByType) {
+        const tipoFormateado = searchTerm.charAt(0).toUpperCase() + searchTerm.slice(1).toLowerCase();
+        const mantenimientosFiltrados = fetchedMantenimientos.data.filter(
+          mantenimiento => mantenimiento.tipoMantenimiento === tipoFormateado
+        );
+        console.log(`Filtrado local por tipo "${tipoFormateado}": ${mantenimientosFiltrados.length} resultados`);
+        setMantenimientos(mantenimientosFiltrados);
+        setTotal(mantenimientosFiltrados.length); // Ajustamos el total para la paginación
+        setPage(1); // Volvemos a la primera página
+      } else {
+        setMantenimientos(fetchedMantenimientos.data);
+        setTotal(fetchedMantenimientos.totalItems);
+        setPage(fetchedMantenimientos.currentPage);
+      }
 
       // Cargar información de vehículos
-      loadVehiclesInfo(fetchedMantenimientos.data);
+      loadVehiclesInfo(isSearchingByType ? fetchedMantenimientos.data : fetchedMantenimientos.data);
     } catch (error) {
       console.error("Error al cargar los mantenimientos:", error);
 
@@ -398,6 +437,11 @@ const MantenimientoVehiculosComponent = ({
       setLoading(false);
     }
   }, [searchParams, itemsPerPage, loadVehiclesInfo]);
+
+  // useEffect to call fetchMantenimientos when searchParams change
+  useEffect(() => {
+    fetchMantenimientos();
+  }, [fetchMantenimientos]);
 
   // En el componente MantenimientoVehiculosComponent
   useEffect(() => {
@@ -527,7 +571,7 @@ const MantenimientoVehiculosComponent = ({
               "vehicle.modelo",
               "vehicle.numeroInterno",
             ]}
-            searchPlaceholder="Buscar por tipo, descripción o vehículo..."
+            searchPlaceholder="Buscar por tipo, descripción o vehículo"
             remotePagination
             totalItems={total}
             currentPage={page}

@@ -31,7 +31,8 @@ export function NavMain({ items }: { items: NavMainItem[] }) {
         Gestión
       </SidebarGroupLabel>
       <SidebarMenu>
-        {items.map((item) => {          const isActive =
+        {items.map((item) => {
+          const isActive =
             pathname === item.url || pathname.startsWith(item.url);
           const hasActiveChild = item.items?.some(
             (subItem) => pathname === subItem.url
@@ -85,32 +86,8 @@ export function NavMain({ items }: { items: NavMainItem[] }) {
                     exit={{ opacity: 0 }}
                     transition={{ duration: 0.2 }}
                   >
+                    {" "}
                     <SidebarMenuSub className="pl-4 border-l-[1px] border-border/40 ml-4 mt-1 flex flex-col">
-                      {/* Si hay una URL principal para este elemento que no sea "#", mostrarla como primer elemento del submenú */}
-                      {item.url && item.url !== "#" && (
-                        <SidebarMenuSubItem className="w-full flex-wrap">
-                          <SidebarMenuSubButton
-                            asChild
-                            className={cn(
-                              "transition-all duration-150 hover:text-primary flex w-full h-auto",
-                              pathname === item.url &&
-                                "font-medium text-primary bg-muted/50"
-                            )}
-                          >
-                            <Link
-                              href={item.url}
-                              className="py-2 px-2 rounded flex items-center min-h-[36px] break-words w-full"
-                            >
-                              <span className="flex-1 whitespace-normal overflow-visible hyphens-auto">
-                                General
-                              </span>
-                              {pathname === item.url && (
-                                <div className="ml-auto h-1.5 w-1.5 rounded-full bg-primary shrink-0" />
-                              )}
-                            </Link>
-                          </SidebarMenuSubButton>
-                        </SidebarMenuSubItem>
-                      )}
                       {item.items?.map((subItem) => {
                         const isSubActive = pathname === subItem.url;
                         return (

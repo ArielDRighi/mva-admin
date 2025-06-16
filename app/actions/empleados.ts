@@ -263,3 +263,26 @@ export const getCompletedServicesByEmployee = createServerAction(
   },
   "Error al obtener los servicios completados del empleado"
 );
+
+/**
+ * Obtiene los próximos servicios asignados a un empleado específico
+ */
+export const getProximosServiciosPorEmpleado = createServerAction(
+  async (employeeId: number) => {
+    const headers = await createAuthHeaders();
+
+    const res = await fetch(
+      `${process.env.NEXT_PUBLIC_API_URL}/api/employees/${employeeId}/proximos-servicios`,
+      {
+        headers,
+        cache: "no-store",
+      }
+    );
+
+    return handleApiResponse(
+      res,
+      "Error al obtener los próximos servicios del empleado"
+    );
+  },
+  "Error al obtener los próximos servicios del empleado"
+);

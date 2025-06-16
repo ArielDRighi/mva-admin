@@ -18,9 +18,13 @@ import {
   Truck,
   UserRound,
   LogOut,
+  DollarSign,
+  Key,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import Link from "next/link";
 import { User } from "@/components/sections/DashboardComponent";
 import { deleteCookie, getCookie } from "cookies-next";
@@ -46,6 +50,30 @@ import { updateStatusService } from "@/app/actions/services";
 import { toast } from "sonner";
 import { CreateEmployeeLeaveDto, LeaveType } from "@/types/types";
 import { useRouter } from "next/navigation";
+import { changePassword } from "@/app/actions/login";
+
+// Import types and utilities
+import {
+  ServiceStatus,
+  ProximoServicio,
+  Licencia,
+  CompletedService,
+  UpdateResponse,
+  LeaveResponse,
+} from "@/types/dashboardEmployeeTypes";
+import { availableLeaveTypes } from "./constants/employeeConstants";
+import {
+  formatDate,
+  formatTime,
+  getServiceTypeBadge,
+  getLeaveStatusBadge,
+} from "./utils/employeeUtils";
+
+// Import custom hooks
+import { useEmployeeData } from "@/hooks/useEmployeeData";
+import { useServices } from "@/hooks/useServices";
+import { useLeaveManagement } from "@/hooks/useLeaveManagement";
+import { useLogout } from "@/hooks/useLogout";
 
 enum serviceStatus {
   EN_PROGRESO = "EN_PROGRESO",
@@ -53,575 +81,81 @@ enum serviceStatus {
   CANCELADO = "CANCELADO",
   SUSPENDIDO = "SUSPENDIDO",
 }
-interface ProximoServicio {
-  id: number;
-  clienteId: number;
-  cliente?: {
-    id: number;
-    nombre: string;
-  };
-  fechaInicio?: string;
-  fechaFin?: string;
-  fechaProgramada: string;
-  ubicacion: string;
-  tipoServicio: string;
-  estado: string;
-  cantidadBanos?: number;
-  cantidadEmpleados?: number;
-  cantidadVehiculos?: number;
-  notas?: string;
-  vehiculo?: {
-    id: number;
-    modelo: string;
-    patente?: string;
-  };
-}
-
-// Agregar cerca de las otras interfaces al inicio del archivo
-
-interface Licencia {
-  id: number;
-  employeeId: number;
-  fechaInicio: string;
-  fechaFin: string;
-  tipoLicencia: string;
-  notas: string;
-  aprobado: boolean;
-  employee?: {
-    id: number;
-    nombre: string;
-    apellido: string;
-    documento: string;
-    cargo: string;
-    estado: string;
-    // Otros campos del empleado
-  };
-}
-
-// Add this interface with your other interfaces at the top of the file
-interface CompletedService {
-  id: number;
-  clienteId: number;
-  cliente?: {
-    id: number;
-    nombre: string;
-    cuit: string;
-    direccion: string;
-    email: string;
-    telefono: string;
-    contacto_principal: string;
-    estado: string;
-  };
-  tipoServicio: string;
-  estado: string;
-  fechaCreacion: string;
-  fechaProgramada: string;
-  fechaInicio: string;
-  fechaFin: string;
-  ubicacion: string;
-  notas?: string;
-  cantidadBanos?: number;
-  cantidadEmpleados?: number;
-  cantidadVehiculos?: number;
-  asignaciones?: Array<{
-    id: number;
-    servicioId: number;
-    empleadoId: number;
-    vehiculoId?: number;
-    banoId?: number;
-    fechaAsignacion: string;
-    empleado?: {
-      id: number;
-      nombre: string;
-      apellido: string;
-      documento: string;
-    };
-    vehiculo?: {
-      id: number;
-      numeroInterno?: number;
-      placa?: string;
-      marca: string;
-      modelo: string;
-    };
-    bano?: {
-      baño_id: number;
-      codigo_interno: string;
-      modelo: string;
-      fecha_adquisicion: string;
-      estado: string;
-    };
-  }>;
-  banosInstalados?: Array<{
-    id: number;
-    codigo: string;
-    estado: string;
-  }>;
-}
-
-const availableLeaveTypes = [
-  { value: "VACACIONES", label: "Vacaciones" },
-  { value: "ENFERMEDAD", label: "Licencia por enfermedad" },
-  { value: "CASAMIENTO", label: "Licencia por casamiento" },
-  { value: "NACIMIENTO", label: "Licencia por nacimiento" },
-  { value: "FALLECIMIENTO_FAMILIAR", label: "Licencia por fallecimiento" },
-  { value: "CAPACITACION", label: "Licencia por capacitación" },
-  { value: "ORDINARIA", label: "Licencia ordinaria" },
-];
-
-// Utility function to format dates
-const formatDate = (dateString: string) => {
-  const date = new Date(dateString);
-  return date.toLocaleDateString("es-AR", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-  });
-};
-
-// Utility function to format time
-const formatTime = (dateString: string) => {
-  const date = new Date(dateString);
-  const hours = date.getHours();
-  const minutes = date.getMinutes();
-  // Consistent format that doesn't depend on locale
-  return `${hours.toString().padStart(2, "0")}:${minutes
-    .toString()
-    .padStart(2, "0")}`;
-};
-
-// Function to get the badge style for service type
-const getServiceTypeBadge = (type: string) => {
-  switch (type) {
-    case "INSTALACION":
-      return "bg-blue-100 text-blue-800 hover:bg-blue-100";
-    case "LIMPIEZA":
-      return "bg-green-100 text-green-800 hover:bg-green-100";
-    case "RETIRO":
-      return "bg-amber-100 text-amber-800 hover:bg-amber-100";
-    default:
-      return "bg-slate-100 text-slate-800 hover:bg-slate-100";
-  }
-};
-
-// Function to get the badge style for leave status
-const getLeaveStatusBadge = (status: string) => {
-  switch (status) {
-    case "APROBADO":
-      return "bg-green-100 text-green-800 hover:bg-green-100";
-    case "RECHAZADO":
-      return "bg-red-100 text-red-800 hover:bg-red-100";
-    case "PENDIENTE":
-      return "bg-blue-100 text-blue-800 hover:bg-blue-100";
-    default:
-      return "bg-slate-100 text-slate-800 hover:bg-slate-100";
-  }
-};
 
 const DashboardEmployeeComponent = () => {
-  const [user, setUser] = useState<User | null>(null);
-  const [proximosServicios, setProximosServicios] =
-    useState<ProximoServicio[]>();
-  const [loading, setLoading] = useState(true);
-  const [employeeId, setEmployeeId] = useState(0);
-  const [licencias, setLicencias] = useState<Licencia[]>([]);
-  const [lastServices, setLastServices] = useState<CompletedService[]>([]);
-  const [selectedService, setSelectedService] =
-    useState<ProximoServicio | null>(null);
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [startingTask, setStartingTask] = useState(false);
-  const [completingTask, setCompletingTask] = useState(false);
+  // Use custom hooks for state management and logic
+  const { user, employeeId, loading: userLoading } = useEmployeeData();
+  const {
+    proximosServicios,
+    inProgressServices,
+    lastServices,
+    selectedService,
+    selectedCompletedService,
+    isModalOpen,
+    isCompletedServiceModalOpen,
+    startingTask,
+    completingTask,
+    loading: servicesLoading,
+    setSelectedService,
+    setSelectedCompletedService,
+    setIsModalOpen,
+    setIsCompletedServiceModalOpen,
+    handleStartTask,
+    handleCompleteTask,
+    refreshServices,
+  } = useServices(employeeId);
+  const {
+    licencias,
+    selectedLeaveType,
+    startDate,
+    endDate,
+    notesText,
+    isSubmittingLeave,
+    isLeaveModalOpen,
+    setSelectedLeaveType,
+    setStartDate,
+    setEndDate,
+    setNotesText,
+    setIsLeaveModalOpen,
+    handleLeaveRequest,
+    openLeaveModal,
+    closeLeaveModal,
+  } = useLeaveManagement(employeeId);
+
+  const { handleLogoutClick } = useLogout();
+
+  // Add missing state for password change functionality
+  const [isChangePasswordOpen, setIsChangePasswordOpen] = useState(false);
+  const [oldPassword, setOldPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+
   const userId = user?.id || 0;
-  const [inProgressServices, setInProgressServices] =
-    useState<ProximoServicio[]>();
-
-  const [selectedCompletedService, setSelectedCompletedService] =
-    useState<CompletedService | null>(null);
-  const [isCompletedServiceModalOpen, setIsCompletedServiceModalOpen] =
-    useState(false);
-
-  // Add these state variables after your existing useState declarations
-  const [selectedLeaveType, setSelectedLeaveType] = useState<LeaveType | "">(
-    ""
-  );
-  const [startDate, setStartDate] = useState("");
-  const [endDate, setEndDate] = useState("");
-  const [notesText, setNotesText] = useState("");
-  const [isSubmittingLeave, setIsSubmittingLeave] = useState(false);
-  const [isLeaveModalOpen, setIsLeaveModalOpen] = useState(false);
+  const loading = userLoading || servicesLoading;
   const router = useRouter();
-  const handleLogoutClick = () => {
-    try {
-      deleteCookie("user");
-      deleteCookie("token");
 
-      // Es mejor usar router.push para manejar la navegación
-      // pero si no está disponible, usar window.location es una alternativa
-      router.push("/login");
-
-      toast.success("Sesión finalizada", {
-        description: "Ha cerrado sesión correctamente.",
-      });
-    } catch (error) {
-      console.error("Error al cerrar sesión:", error);
-      toast.error("Error al cerrar sesión", {
-        description:
-          "No se pudo cerrar la sesión correctamente. Por favor intente nuevamente.",
-      });
-    }
-  };
-  useEffect(() => {
-    const userCookie = getCookie("user");
-
-    if (userCookie) {
-      try {
-        const parsedUser = JSON.parse(userCookie as string);
-        setUser(parsedUser);
-      } catch (error) {
-        console.error("Error al parsear el usuario:", error);
-        toast.error("Error de sesión", {
-          description:
-            "No se pudo cargar la información del usuario. Por favor, intente iniciar sesión nuevamente.",
-        });
-        router.push("/login");
-      }
-    }
-  }, [router]);
-
-  useEffect(() => {
-    const fetchEmployee = async () => {
-      try {
-        if (userId === 0) return;
-
-        setLoading(true);
-
-        // Tipamos la respuesta esperada
-        interface UserResponse {
-          empleadoId: number;
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          [key: string]: any;
-        }
-
-        const fetchEmployee = (await getUserById(userId)) as UserResponse;
-
-        if (!fetchEmployee || !fetchEmployee.empleadoId) {
-          throw new Error("No se encontró la información del empleado");
-        }
-
-        setEmployeeId(fetchEmployee.empleadoId);
-      } catch (error) {
-        console.error("Error al obtener información del empleado:", error);
-        toast.error("Error de datos", {
-          description:
-            error instanceof Error
-              ? error.message
-              : "No se pudo cargar la información del empleado. Por favor, refresque la página.",
-        });
-        setEmployeeId(0); // Reset to safe default
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchEmployee();
-  }, [userId]);
-
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        if (employeeId === 0) return;
-
-        setLoading(true);
-
-        // Definimos interfaces para las respuestas esperadas
-        interface ServiceResponse {
-          id: number;
-          clienteId: number;
-          fechaProgramada: string;
-          ubicacion: string;
-          tipoServicio: string;
-          estado: string;
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          [key: string]: any;
-        }
-
-        interface LicenciaResponse {
-          id: number;
-          employeeId: number;
-          fechaInicio: string;
-          fechaFin: string;
-          tipoLicencia: string;
-          notas: string;
-          aprobado: boolean;
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          [key: string]: any;
-        }
-
-        // Usamos Promise.allSettled para manejar múltiples peticiones independientemente
-        const [
-          pendingServicesResult,
-          inProgressServicesResult,
-          licenciasResult,
-          lastServicesResult,
-        ] = await Promise.allSettled([
-          getMineAssignedServicesPending(employeeId),
-          getMineAssignedServicesInProgress(employeeId),
-          getLicenciasByUserId(employeeId),
-          getLastServicesByUserId(employeeId),
-        ]);
-
-        // Manejo de cada resultado individualmente
-        if (pendingServicesResult.status === "fulfilled") {
-          setProximosServicios(
-            pendingServicesResult.value as ServiceResponse[]
-          );
-        } else {
-          console.error(
-            "Error al cargar servicios pendientes:",
-            pendingServicesResult.reason
-          );
-          toast.error("Error al cargar servicios pendientes", {
-            description: "Algunos datos pueden estar incompletos.",
-          });
-          setProximosServicios([]);
-        }
-
-        if (inProgressServicesResult.status === "fulfilled") {
-          setInProgressServices(
-            inProgressServicesResult.value as ProximoServicio[]
-          );
-        } else {
-          console.error(
-            "Error al cargar servicios en progreso:",
-            inProgressServicesResult.reason
-          );
-          toast.error("Error al cargar servicios en progreso", {
-            description: "Algunos datos pueden estar incompletos.",
-          });
-          setInProgressServices([]);
-        }
-
-        if (licenciasResult.status === "fulfilled") {
-          setLicencias(licenciasResult.value as LicenciaResponse[]);
-        } else {
-          console.error("Error al cargar licencias:", licenciasResult.reason);
-          toast.error("Error al cargar licencias", {
-            description: "Algunos datos pueden estar incompletos.",
-          });
-          setLicencias([]);
-        }
-
-        if (lastServicesResult.status === "fulfilled") {
-          setLastServices(lastServicesResult.value as CompletedService[]);
-        } else {
-          console.error(
-            "Error al cargar servicios completados:",
-            lastServicesResult.reason
-          );
-          toast.error("Error al cargar servicios completados", {
-            description: "Algunos datos pueden estar incompletos.",
-          });
-          setLastServices([]);
-        }
-      } catch (error) {
-        console.error("Error general al cargar datos:", error);
-        toast.error("Error de conexión", {
-          description:
-            error instanceof Error
-              ? error.message
-              : "No se pudieron cargar algunos datos. Por favor, refresque la página.",
-        });
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchData();
-  }, [employeeId]);
-
-  const handleStartTask = async (serviceId: number) => {
-    try {
-      setStartingTask(true);
-
-      // Verificamos que el ID sea válido
-      if (!serviceId || serviceId <= 0) {
-        throw new Error("ID de servicio inválido");
-      }
-
-      // Definimos una interfaz para la respuesta
-      interface UpdateResponse {
-        success?: boolean;
-        message?: string;
-      }
-
-      const response = (await updateStatusService(
-        serviceId,
-        serviceStatus.EN_PROGRESO
-      )) as UpdateResponse;
-
-      if (!response || response.success === false) {
-        throw new Error(
-          response?.message || "Error al actualizar el estado del servicio"
-        );
-      }
-
-      toast.success("Tarea iniciada", {
-        description: "La tarea se ha iniciado correctamente.",
-      });
-
-      // Actualizar la lista de servicios después de iniciar la tarea
-      if (employeeId) {
-        // Actualizamos ambas listas para mantener consistencia
-        const [pendingServices, inProgressServices] = await Promise.all([
-          getMineAssignedServicesPending(employeeId),
-          getMineAssignedServicesInProgress(employeeId),
-        ]);
-
-        setProximosServicios(pendingServices as ProximoServicio[]);
-        setInProgressServices(inProgressServices as ProximoServicio[]);
-      }
-
-      setIsModalOpen(false);
-    } catch (error) {
-      console.error("Error al iniciar tarea:", error);
-      toast.error("Error al iniciar la tarea", {
-        description:
-          error instanceof Error
-            ? error.message
-            : "No se pudo iniciar la tarea. Intente nuevamente.",
-      });
-    } finally {
-      setStartingTask(false);
-    }
+  // Add missing password change handlers
+  const handleChangePassword = () => {
+    setIsChangePasswordOpen(true);
   };
 
-  // Añadir esta función para manejar la finalización de una tarea
-  const handleCompleteTask = async (serviceId: number) => {
-    try {
-      setCompletingTask(true);
-
-      // Verificamos que el ID sea válido
-      if (!serviceId || serviceId <= 0) {
-        throw new Error("ID de servicio inválido");
-      }
-
-      // Definimos una interfaz para la respuesta
-      interface UpdateResponse {
-        success?: boolean;
-        message?: string;
-      }
-
-      const response = (await updateStatusService(
-        serviceId,
-        serviceStatus.COMPLETADO
-      )) as UpdateResponse;
-
-      if (!response || response.success === false) {
-        throw new Error(
-          response?.message || "Error al actualizar el estado del servicio"
-        );
-      }
-
-      toast.success("Tarea completada", {
-        description: "La tarea se ha completado correctamente.",
-      });
-
-      // Actualizar las listas de servicios después de completar la tarea
-      if (employeeId) {
-        // Actualizamos todas las listas para mantener consistencia
-        const [inProgressServices, lastServices] = await Promise.all([
-          getMineAssignedServicesInProgress(employeeId),
-          getLastServicesByUserId(employeeId),
-        ]);
-
-        setInProgressServices(inProgressServices as ProximoServicio[]);
-        setLastServices(lastServices as CompletedService[]);
-      }
-
-      setIsModalOpen(false);
-    } catch (error) {
-      console.error("Error al completar tarea:", error);
-      toast.error("Error al completar la tarea", {
-        description:
-          error instanceof Error
-            ? error.message
-            : "No se pudo completar la tarea. Intente nuevamente.",
-      });
-    } finally {
-      setCompletingTask(false);
-    }
+  const handleCancelPasswordChange = () => {
+    setIsChangePasswordOpen(false);
+    setOldPassword("");
+    setNewPassword("");
   };
-
-  // Update the handleLeaveRequest function
-  const handleLeaveRequest = async () => {
-    if (!selectedLeaveType || !startDate || !endDate || !employeeId) {
-      toast.error("Datos incompletos", {
-        description: "Por favor complete todos los campos requeridos.",
-      });
+  const handleSubmitPasswordChange = async () => {
+    if (!oldPassword || !newPassword) {
+      toast.error("Por favor, completa todos los campos");
       return;
     }
 
-    // Validamos que la fecha de fin no sea anterior a la fecha de inicio
-    if (new Date(endDate) < new Date(startDate)) {
-      toast.error("Fechas inválidas", {
-        description:
-          "La fecha de fin no puede ser anterior a la fecha de inicio.",
-      });
-      return;
-    }
-
-    setIsSubmittingLeave(true);
-
     try {
-      const leaveData: CreateEmployeeLeaveDto = {
-        employeeId: employeeId,
-        fechaInicio: startDate,
-        fechaFin: endDate,
-        tipoLicencia: selectedLeaveType as LeaveType,
-        notas: notesText.trim(),
-      };
-
-      // Tipamos la respuesta esperada
-      interface LeaveResponse {
-        id?: number;
-        success?: boolean;
-        message?: string;
-      }
-
-      const response = (await createEmployeeLeave(leaveData)) as LeaveResponse;
-
-      if (!response || response.success === false) {
-        throw new Error(
-          response?.message || "Error al crear la solicitud de licencia"
-        );
-      }
-
-      toast.success("Solicitud enviada", {
-        description:
-          "Su solicitud de licencia ha sido enviada correctamente y está pendiente de aprobación.",
-      });
-
-      // Clear form and refresh licencias
-      setSelectedLeaveType("");
-      setStartDate("");
-      setEndDate("");
-      setNotesText("");
-
-      // Close the modal after successful submission
-      setIsLeaveModalOpen(false);
-
-      // Refresh the licencias list
-      const fetchLicencias = await getLicenciasByUserId(employeeId);
-      setLicencias(fetchLicencias as Licencia[]);
+      await changePassword(oldPassword, newPassword);
+      // The function already shows success toast, so we just need to close the modal
+      handleCancelPasswordChange();
     } catch (error) {
-      console.error("Error al solicitar licencia:", error);
-      toast.error("Error al solicitar licencia", {
-        description:
-          error instanceof Error
-            ? error.message
-            : "No se pudo enviar la solicitud. Por favor intente nuevamente.",
-      });
-    } finally {
-      setIsSubmittingLeave(false);
+      console.error("Error changing password:", error);
+      // The function already shows error toast, so we don't need to show another one
     }
   };
 
@@ -639,10 +173,9 @@ const DashboardEmployeeComponent = () => {
               <Badge className="bg-white/20 text-white hover:bg-white/30 ml-1">
                 {user?.estado}
               </Badge>
-            </p>
-
+            </p>{" "}
             {/* Quick links section moved to header */}
-            <div className="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-2">
+            <div className="mt-4 grid grid-cols-2 sm:grid-cols-4 gap-2">
               <Button
                 variant="outline"
                 className="justify-start bg-white/10 hover:bg-white/20 text-white border-0 h-auto py-2"
@@ -681,10 +214,29 @@ const DashboardEmployeeComponent = () => {
                   <span className="text-sm">Mi licencia de conducir</span>
                 </Link>
               </Button>
+              <Button
+                variant="outline"
+                className="justify-start bg-white/10 hover:bg-white/20 text-white border-0 h-auto py-2"
+                asChild
+              >
+                <Link
+                  href="/empleado/adelantos-salario"
+                  className="flex items-center"
+                >
+                  <DollarSign className="mr-2 h-4 w-4 flex-shrink-0" />
+                  <span className="text-sm">Adelantos de salario</span>
+                </Link>
+              </Button>
             </div>
-          </div>
+          </div>{" "}
           <div className="flex gap-2">
-            {" "}
+            <Button
+              variant="outline"
+              className="bg-white/10 hover:bg-white/20 text-white border-0"
+              onClick={handleChangePassword}
+            >
+              <Key className="h-4 w-4 mr-2" /> Cambiar contraseña
+            </Button>
             <Button
               variant="outline"
               className="bg-red-500 text-white hover:bg-red-600 border-none"
@@ -1050,7 +602,7 @@ const DashboardEmployeeComponent = () => {
                 </p>
                 <Button
                   className="w-full bg-purple-600 hover:bg-purple-700"
-                  onClick={() => setIsLeaveModalOpen(true)}
+                  onClick={openLeaveModal}
                 >
                   Solicitar licencia
                 </Button>
@@ -1419,7 +971,9 @@ const DashboardEmployeeComponent = () => {
                 id="leaveType"
                 className="w-full rounded-md border border-input bg-background px-3 py-2"
                 value={selectedLeaveType}
-                onChange={(e) => setSelectedLeaveType(e.target.value as LeaveType)}
+                onChange={(e) =>
+                  setSelectedLeaveType(e.target.value as LeaveType)
+                }
               >
                 <option value="">-- Selecciona un tipo --</option>
                 {availableLeaveTypes.map((type) => (
@@ -1479,17 +1033,8 @@ const DashboardEmployeeComponent = () => {
           </div>
 
           <DialogFooter className="flex flex-col sm:flex-row gap-2 mt-2">
-            <Button
-              variant="outline"
-              onClick={() => {
-                setIsLeaveModalOpen(false);
-                // Reset form values when canceling
-                setSelectedLeaveType("");
-                setStartDate("");
-                setEndDate("");
-                setNotesText("");
-              }}
-            >
+            {" "}
+            <Button variant="outline" onClick={closeLeaveModal}>
               Cancelar
             </Button>
             <Button
@@ -1503,6 +1048,66 @@ const DashboardEmployeeComponent = () => {
               }
             >
               {isSubmittingLeave ? "Enviando solicitud..." : "Enviar solicitud"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      {/* Change Password Modal */}
+      <Dialog
+        open={isChangePasswordOpen}
+        onOpenChange={setIsChangePasswordOpen}
+      >
+        <DialogContent className="sm:max-w-[400px]">
+          <DialogHeader>
+            <DialogTitle className="text-xl">Cambiar Contraseña</DialogTitle>
+            <DialogDescription>
+              Actualiza tu contraseña de acceso
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-2">
+            {/* Old password field */}
+            <div className="space-y-2">
+              <Label htmlFor="oldPassword" className="text-sm font-medium">
+                Contraseña actual *
+              </Label>
+              <Input
+                id="oldPassword"
+                type="password"
+                placeholder="Ingresa tu contraseña actual"
+                value={oldPassword}
+                onChange={(e) => setOldPassword(e.target.value)}
+                required
+              />
+            </div>
+
+            {/* New password field */}
+            <div className="space-y-2">
+              <Label htmlFor="newPassword" className="text-sm font-medium">
+                Nueva contraseña *
+              </Label>
+              <Input
+                id="newPassword"
+                type="password"
+                placeholder="Ingresa una nueva contraseña"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                required
+              />
+            </div>
+          </div>
+
+          <DialogFooter className="flex flex-col sm:flex-row gap-2 mt-2">
+            {" "}
+            <Button variant="outline" onClick={handleCancelPasswordChange}>
+              Cancelar
+            </Button>
+            <Button
+              className="bg-blue-600 hover:bg-blue-700"
+              onClick={handleSubmitPasswordChange}
+              disabled={!oldPassword || !newPassword}
+            >
+              Actualizar contraseña
             </Button>
           </DialogFooter>
         </DialogContent>

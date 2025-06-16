@@ -137,7 +137,7 @@ export function SearchSelector<T extends Selectable>({
             <button 
               type="button" 
               onClick={handleClearSelection}
-              className="ml-2 p-1 rounded-full hover:bg-gray-100"
+              className="ml-2 p-1 rounded-full hover:bg-gray-100 cursor-pointer"
               disabled={disabled}
             >
               <X className="h-4 w-4" />

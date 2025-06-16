@@ -39,6 +39,14 @@ import {
 } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
   createClient,
   deleteClient,
   editClient,
@@ -70,11 +78,13 @@ export default function ListadoClientesComponent({
   const [activeTab, setActiveTab] = useState("todos");
   const [isFirstLoad, setIsFirstLoad] = useState(true);
   // Añadir estado para controlar la hidratación
-  const [isMounted, setIsMounted] = useState(false);
-  // Estados para manejo de confirmación de eliminación
+  const [isMounted, setIsMounted] = useState(false); // Estados para manejo de confirmación de eliminación
   const [confirmDeleteDialogOpen, setConfirmDeleteDialogOpen] = useState(false);
   const [clienteToDelete, setClienteToDelete] = useState<string | null>(null);
-
+  // Estados para el modal de visualización
+  const [isViewModalOpen, setIsViewModalOpen] = useState(false);
+  const [selectedClientForView, setSelectedClientForView] =
+    useState<Cliente | null>(null);
   const createClientSchema = z.object({
     nombre: z.string().min(1, "El nombre es obligatorio"),
 
@@ -85,15 +95,8 @@ export default function ListadoClientesComponent({
         "Formato de CUIT incorrecto, debe ser xx-xxxxxxxx-x"
       )
       .or(z.string().regex(/^\d{11}$/, "Debe tener 11 dígitos, sin guiones")),
-
     direccion: z.string().min(1, "La dirección es obligatoria"),
-    telefono: z
-      .string()
-      .regex(
-        /^\d{3}-\d{4}-\d{4}$/,
-        "Formato de teléfono incorrecto,ss debe ser xxx-xxxx-xxxx"
-      )
-      .or(z.string().regex(/^\d{10}$/, "Debe tener 12 dígitos, sin barras")),
+    telefono: z.string().min(1, "El teléfono es obligatorio"),
 
     email: z
       .string()
@@ -103,12 +106,16 @@ export default function ListadoClientesComponent({
       ),
 
     contacto_principal: z.string().min(1, "El contacto es obligatorio"),
+    contacto_principal_telefono: z.string().optional(),
+    contactoObra1: z.string().optional(),
+    contacto_obra1_telefono: z.string().optional(),
+    contactoObra2: z.string().optional(),
+    contacto_obra2_telefono: z.string().optional(),
 
     estado: z.enum(["ACTIVO", "INACTIVO"], {
       errorMap: () => ({ message: "El estado es obligatorio" }),
     }),
   });
-
   const form = useForm<z.infer<typeof createClientSchema>>({
     resolver: zodResolver(createClientSchema),
     defaultValues: {
@@ -118,6 +125,11 @@ export default function ListadoClientesComponent({
       telefono: "",
       email: "",
       contacto_principal: "",
+      contacto_principal_telefono: "",
+      contactoObra1: "",
+      contacto_obra1_telefono: "",
+      contactoObra2: "",
+      contacto_obra2_telefono: "",
       estado: "ACTIVO",
     },
   });
@@ -143,55 +155,34 @@ export default function ListadoClientesComponent({
     params.set("page", "1");
     router.replace(`?${params.toString()}`);
   };
-  // Función auxiliar para quitar los guiones del número de teléfono
-  /**
-   * Quita todos los guiones de un número de teléfono
-   * Se utiliza cuando cargamos el teléfono en el formulario de edición
-   * para evitar problemas de formato
-   */
-  const stripPhoneFormat = (phone: string): string => {
-    return phone ? phone.replace(/-/g, "") : "";
-  };
-
-  /**
-   * Formatea un número de teléfono agregando guiones en el formato xxx-xxxx-xxxx
-   * Se utiliza al guardar los datos para asegurar que el teléfono tenga el formato correcto
-   * Convierte cualquier string de 11 dígitos al formato esperado
-   */
-  const formatPhoneNumber = (phone: string): string => {
-    if (!phone) return "";
-
-    // Quitar todos los guiones primero para asegurarnos de que no haya duplicados
-    const cleaned = stripPhoneFormat(phone);
-
-    // Si no tiene la longitud adecuada, devolver tal cual
-    if (cleaned.length !== 11) return phone;
-
-    // Formatear con guiones: xxx-xxxx-xxxx
-    return `${cleaned.substring(0, 3)}-${cleaned.substring(
-      3,
-      7
-    )}-${cleaned.substring(7)}`;
-  };
 
   const handleEditClick = (cliente: Cliente) => {
     setSelectedClient(cliente);
     setIsCreating(false);
-
     const camposFormulario: (keyof ClienteFormulario)[] = [
       "nombre",
       "cuit",
       "direccion",
+      "telefono",
       "email",
       "contacto_principal",
+      "contacto_principal_telefono",
+      "contactoObra1",
+      "contacto_obra1_telefono",
+      "contactoObra2",
+      "contacto_obra2_telefono",
       "estado",
     ];
 
-    // Establecer todos los campos excepto el teléfono que requiere procesamiento especial
-    camposFormulario.forEach((key) => setValue(key, cliente[key]));
+    // Establecer todos los campos del formulario
+    camposFormulario.forEach((key) => {
+      setValue(key, cliente[key] || "");
+    });
+  };
 
-    // Manejar el teléfono de forma especial - quitar los guiones al cargar para editar
-    setValue("telefono", stripPhoneFormat(cliente.telefono));
+  const handleViewClick = (cliente: Cliente) => {
+    setSelectedClientForView(cliente);
+    setIsViewModalOpen(true);
   };
   const handleCreateClick = () => {
     // Resetear el formulario con valores iniciales
@@ -202,6 +193,11 @@ export default function ListadoClientesComponent({
       telefono: "", // Teléfono vacío sin formato
       email: "",
       contacto_principal: "",
+      contacto_principal_telefono: "",
+      contactoObra1: "",
+      contacto_obra1_telefono: "",
+      contactoObra2: "",
+      contacto_obra2_telefono: "",
       estado: "ACTIVO",
     });
     setSelectedClient(null);
@@ -252,21 +248,17 @@ export default function ListadoClientesComponent({
     try {
       setLoading(true);
 
-      // Crear una copia de los datos para no modificar el objeto original
-      const formattedData = {
-        ...data,
-        // Aplicar formato al teléfono antes de guardar
-        telefono: formatPhoneNumber(data.telefono),
-      };
+      // Los datos ya vienen en el formato correcto del formulario
+      const clientData = data;
 
       if (selectedClient && selectedClient.clienteId) {
-        await editClient(selectedClient.clienteId.toString(), formattedData);
+        await editClient(selectedClient.clienteId.toString(), clientData);
         toast.success("Cliente actualizado", {
           description: "Los cambios se han guardado correctamente.",
           duration: 3000,
         });
       } else {
-        await createClient(formattedData);
+        await createClient(clientData);
         toast.success("Cliente creado", {
           description: "El cliente se ha agregado correctamente.",
           duration: 3000,
@@ -436,7 +428,10 @@ export default function ListadoClientesComponent({
             ]}
             renderRow={(cliente) => (
               <>
-                <TableCell className="min-w-[250px]">
+                <TableCell
+                  className="min-w-[250px] cursor-pointer hover:bg-slate-50"
+                  onClick={() => handleViewClick(cliente)}
+                >
                   <div className="flex items-center gap-3">
                     <div className="h-10 w-10 rounded-full bg-slate-100 flex items-center justify-center">
                       <Building className="h-5 w-5 text-slate-600" />
@@ -453,7 +448,10 @@ export default function ListadoClientesComponent({
                   </div>
                 </TableCell>
 
-                <TableCell className="min-w-[220px]">
+                <TableCell
+                  className="min-w-[220px] cursor-pointer hover:bg-slate-50"
+                  onClick={() => handleViewClick(cliente)}
+                >
                   <div className="space-y-1">
                     <div className="flex items-center text-sm">
                       <Mail className="h-3.5 w-3.5 mr-2 text-muted-foreground" />
@@ -466,7 +464,10 @@ export default function ListadoClientesComponent({
                   </div>
                 </TableCell>
 
-                <TableCell className="min-w-[200px]">
+                <TableCell
+                  className="min-w-[200px] cursor-pointer hover:bg-slate-50"
+                  onClick={() => handleViewClick(cliente)}
+                >
                   <div className="space-y-1">
                     <div className="flex items-center text-sm">
                       <User2 className="h-3.5 w-3.5 mr-2 text-muted-foreground" />
@@ -490,7 +491,10 @@ export default function ListadoClientesComponent({
                   </div>
                 </TableCell>
 
-                <TableCell>
+                <TableCell
+                  className="cursor-pointer hover:bg-slate-50"
+                  onClick={() => handleViewClick(cliente)}
+                >
                   <Badge
                     variant={
                       cliente.estado === "ACTIVO" ? "default" : "outline"
@@ -509,7 +513,10 @@ export default function ListadoClientesComponent({
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => handleEditClick(cliente)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleEditClick(cliente);
+                    }}
                     className="cursor-pointer border-slate-200 hover:bg-slate-50 hover:text-slate-900"
                   >
                     <Edit2 className="h-3.5 w-3.5 mr-1" />
@@ -519,10 +526,11 @@ export default function ListadoClientesComponent({
                   <Button
                     variant="destructive"
                     size="sm"
-                    onClick={() =>
+                    onClick={(e) => {
+                      e.stopPropagation();
                       cliente.clienteId &&
-                      handleDeleteClick(cliente.clienteId.toString())
-                    }
+                        handleDeleteClick(cliente.clienteId.toString());
+                    }}
                     className="cursor-pointer bg-red-100 text-red-700 hover:bg-red-200 hover:text-red-800"
                   >
                     <Trash2 className="h-3.5 w-3.5 mr-1" />
@@ -550,116 +558,235 @@ export default function ListadoClientesComponent({
         }
         onSubmit={handleSubmit(onSubmit)}
       >
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
-          <Controller
-            name="nombre"
-            control={control}
-            render={({ field, fieldState }) => (
-              <FormField
-                label="Nombre"
-                name="nombre"
-                value={field.value?.toString() || ""}
-                onChange={field.onChange}
-                error={fieldState.error?.message}
-                placeholder="Nombre de la empresa"
-              />
-            )}
-          />
-          <Controller
-            name="cuit"
-            control={control}
-            render={({ field, fieldState }) => (
-              <FormField
-                label="CUIT"
-                name="cuit"
-                value={field.value?.toString() || ""}
-                onChange={field.onChange}
-                error={fieldState.error?.message}
-                placeholder="xx-xxxxxxxx-x"
-              />
-            )}
-          />
-          <Controller
-            name="direccion"
-            control={control}
-            render={({ field, fieldState }) => (
-              <FormField
-                label="Dirección"
-                name="direccion"
-                value={field.value?.toString() || ""}
-                onChange={field.onChange}
-                error={fieldState.error?.message}
-                placeholder="Dirección completa"
-              />
-            )}
-          />{" "}
-          <Controller
-            name="telefono"
-            control={control}
-            render={({ field, fieldState }) => (
-              <FormField
-                label="Teléfono"
-                name="telefono"
-                value={field.value?.toString() || ""}
-                onChange={(value) => {
-                  // Permitir solo números para simplificar la validación
-                  const numbersOnly = value.replace(/\D/g, "");
-                  field.onChange(numbersOnly.substring(0, 11)); // Limitar a 11 dígitos
-                }}
-                error={fieldState.error?.message}
-                placeholder="Ingrese solo números (sin guiones)"
-                helperText="El formato xxx-xxxx-xxxx se aplicará automáticamente al guardar"
-              />
-            )}
-          />
-          <Controller
-            name="email"
-            control={control}
-            render={({ field, fieldState }) => (
-              <FormField
-                label="Email"
-                name="email"
-                value={field.value?.toString() || ""}
-                onChange={field.onChange}
-                error={fieldState.error?.message}
-                placeholder="correo@ejemplo.com"
-              />
-            )}
-          />
-          <Controller
-            name="contacto_principal"
-            control={control}
-            render={({ field, fieldState }) => (
-              <FormField
-                label="Contacto Principal"
+        {" "}
+        <div className="space-y-6">
+          {/* Información de la Empresa */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
+            <Controller
+              name="nombre"
+              control={control}
+              render={({ field, fieldState }) => (
+                <FormField
+                  label="Nombre de la Empresa"
+                  name="nombre"
+                  value={field.value?.toString() || ""}
+                  onChange={field.onChange}
+                  error={fieldState.error?.message}
+                  placeholder="Nombre de la empresa"
+                />
+              )}
+            />
+            <Controller
+              name="cuit"
+              control={control}
+              render={({ field, fieldState }) => (
+                <FormField
+                  label="CUIT"
+                  name="cuit"
+                  value={field.value?.toString() || ""}
+                  onChange={field.onChange}
+                  error={fieldState.error?.message}
+                  placeholder="xx-xxxxxxxx-x"
+                />
+              )}
+            />
+          </div>
+
+          <div className="grid grid-cols-1 gap-4">
+            <Controller
+              name="direccion"
+              control={control}
+              render={({ field, fieldState }) => (
+                <FormField
+                  label="Dirección"
+                  name="direccion"
+                  value={field.value?.toString() || ""}
+                  onChange={field.onChange}
+                  error={fieldState.error?.message}
+                  placeholder="Dirección completa"
+                />
+              )}
+            />
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
+            <Controller
+              name="telefono"
+              control={control}
+              render={({ field, fieldState }) => (
+                <FormField
+                  label="Teléfono de la Empresa"
+                  name="telefono"
+                  value={field.value?.toString() || ""}
+                  onChange={field.onChange}
+                  error={fieldState.error?.message}
+                  placeholder="Teléfono de la empresa"
+                  helperText="Ingrese el teléfono en el formato que prefiera"
+                />
+              )}
+            />
+            <Controller
+              name="email"
+              control={control}
+              render={({ field, fieldState }) => (
+                <FormField
+                  label="Email Corporativo"
+                  name="email"
+                  value={field.value?.toString() || ""}
+                  onChange={field.onChange}
+                  error={fieldState.error?.message}
+                  placeholder="correo@ejemplo.com"
+                />
+              )}
+            />
+          </div>
+
+          {/* Contacto Principal */}
+          <div className="border-t pt-6">
+            <h3 className="text-lg font-medium mb-4 flex items-center">
+              <User2 className="h-5 w-5 mr-2 text-green-600" />
+              Contacto Principal
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
+              <Controller
                 name="contacto_principal"
-                value={field.value?.toString() || ""}
-                onChange={field.onChange}
-                error={fieldState.error?.message}
-                placeholder="Nombre del contacto"
+                control={control}
+                render={({ field, fieldState }) => (
+                  <FormField
+                    label="Nombre y Apellido"
+                    name="contacto_principal"
+                    value={field.value?.toString() || ""}
+                    onChange={field.onChange}
+                    error={fieldState.error?.message}
+                    placeholder="Nombre completo del contacto"
+                  />
+                )}
               />
-            )}
-          />
-          <Controller
-            name="estado"
-            control={control}
-            render={({ field, fieldState }) => (
-              <FormField
-                label="Estado"
+              <Controller
+                name="contacto_principal_telefono"
+                control={control}
+                render={({ field, fieldState }) => (
+                  <FormField
+                    label="Teléfono"
+                    name="contacto_principal_telefono"
+                    value={field.value?.toString() || ""}
+                    onChange={field.onChange}
+                    error={fieldState.error?.message}
+                    placeholder="Teléfono del contacto (opcional)"
+                    helperText="Si no se especifica, se usará el teléfono de la empresa"
+                  />
+                )}
+              />
+            </div>
+          </div>
+
+          {/* Contactos de Obra */}
+          <div className="border-t pt-6">
+            <h3 className="text-lg font-medium mb-4 flex items-center">
+              <Phone className="h-5 w-5 mr-2 text-orange-600" />
+              Contactos de Obra (Opcional)
+            </h3>
+
+            {/* Contacto de Obra #1 */}
+            <div className="mb-6">
+              <h4 className="text-md font-medium mb-3 text-muted-foreground">
+                Contacto de Obra #1
+              </h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
+                <Controller
+                  name="contactoObra1"
+                  control={control}
+                  render={({ field, fieldState }) => (
+                    <FormField
+                      label="Nombre y Apellido"
+                      name="contactoObra1"
+                      value={field.value?.toString() || ""}
+                      onChange={field.onChange}
+                      error={fieldState.error?.message}
+                      placeholder="Nombre del contacto de obra"
+                    />
+                  )}
+                />
+                <Controller
+                  name="contacto_obra1_telefono"
+                  control={control}
+                  render={({ field, fieldState }) => (
+                    <FormField
+                      label="Teléfono"
+                      name="contacto_obra1_telefono"
+                      value={field.value?.toString() || ""}
+                      onChange={field.onChange}
+                      error={fieldState.error?.message}
+                      placeholder="Teléfono del contacto"
+                    />
+                  )}
+                />
+              </div>
+            </div>
+
+            {/* Contacto de Obra #2 */}
+            <div>
+              <h4 className="text-md font-medium mb-3 text-muted-foreground">
+                Contacto de Obra #2
+              </h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
+                <Controller
+                  name="contactoObra2"
+                  control={control}
+                  render={({ field, fieldState }) => (
+                    <FormField
+                      label="Nombre y Apellido"
+                      name="contactoObra2"
+                      value={field.value?.toString() || ""}
+                      onChange={field.onChange}
+                      error={fieldState.error?.message}
+                      placeholder="Nombre del contacto de obra"
+                    />
+                  )}
+                />
+                <Controller
+                  name="contacto_obra2_telefono"
+                  control={control}
+                  render={({ field, fieldState }) => (
+                    <FormField
+                      label="Teléfono"
+                      name="contacto_obra2_telefono"
+                      value={field.value?.toString() || ""}
+                      onChange={field.onChange}
+                      error={fieldState.error?.message}
+                      placeholder="Teléfono del contacto"
+                    />
+                  )}
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Estado */}
+          <div className="border-t pt-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
+              <Controller
                 name="estado"
-                fieldType="select"
-                value={field.value || ""}
-                onChange={(selectedValue: string) =>
-                  field.onChange(selectedValue)
-                }
-                options={[
-                  { label: "Activo", value: "ACTIVO" },
-                  { label: "Inactivo", value: "INACTIVO" },
-                ]}
-                error={fieldState.error?.message}
+                control={control}
+                render={({ field, fieldState }) => (
+                  <FormField
+                    label="Estado"
+                    name="estado"
+                    fieldType="select"
+                    value={field.value || ""}
+                    onChange={(selectedValue: string) =>
+                      field.onChange(selectedValue)
+                    }
+                    options={[
+                      { label: "Activo", value: "ACTIVO" },
+                      { label: "Inactivo", value: "INACTIVO" },
+                    ]}
+                    error={fieldState.error?.message}
+                  />
+                )}
               />
-            )}
-          />
+            </div>
+          </div>
         </div>{" "}
       </FormDialog>
       {/* Diálogo de confirmación para eliminación */}
@@ -684,10 +811,242 @@ export default function ListadoClientesComponent({
           <p>
             Esta acción eliminará permanentemente este cliente. Esta operación
             no se puede deshacer.
-          </p>
+          </p>{" "}
           <p>¿Estás seguro de que deseas continuar?</p>
         </div>
       </FormDialog>
+      {/* Modal para ver detalles completos del cliente */}
+      <Dialog open={isViewModalOpen} onOpenChange={setIsViewModalOpen}>
+        <DialogContent className="sm:max-w-[800px] max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-xl">
+              Información Completa del Cliente
+            </DialogTitle>
+            <DialogDescription>
+              Todos los detalles y contactos registrados
+            </DialogDescription>
+          </DialogHeader>
+
+          {selectedClientForView && (
+            <div className="space-y-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-lg font-semibold flex items-center gap-2">
+                    <Building className="h-5 w-5 text-blue-600" />
+                    {selectedClientForView.nombre}
+                  </h3>
+                  <div className="flex items-center gap-2 mt-1">
+                    <Badge
+                      variant={
+                        selectedClientForView.estado === "ACTIVO"
+                          ? "default"
+                          : "outline"
+                      }
+                      className={
+                        selectedClientForView.estado === "ACTIVO"
+                          ? "bg-green-100 text-green-800 hover:bg-green-100"
+                          : "bg-gray-100 text-gray-800 hover:bg-gray-100"
+                      }
+                    >
+                      {selectedClientForView.estado}
+                    </Badge>
+                    {selectedClientForView.fecha_registro && (
+                      <span className="text-sm text-muted-foreground">
+                        Registrado el{" "}
+                        {new Date(
+                          selectedClientForView.fecha_registro
+                        ).toLocaleDateString("es-AR")}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Información de la Empresa */}
+                <div className="border rounded-lg p-4">
+                  <h4 className="font-medium text-md mb-3 flex items-center">
+                    <Building className="h-4 w-4 mr-2 text-blue-600" />
+                    Información de la Empresa
+                  </h4>
+                  <div className="space-y-3">
+                    <div>
+                      <h5 className="text-xs uppercase font-medium text-muted-foreground">
+                        CUIT
+                      </h5>
+                      <p className="text-sm font-medium mt-1 flex items-center">
+                        <CreditCard className="h-3.5 w-3.5 mr-2 text-muted-foreground" />
+                        {selectedClientForView.cuit}
+                      </p>
+                    </div>
+                    <div>
+                      <h5 className="text-xs uppercase font-medium text-muted-foreground">
+                        Dirección
+                      </h5>
+                      <p className="text-sm font-medium mt-1 flex items-start">
+                        <MapPin className="h-3.5 w-3.5 mr-2 text-muted-foreground mt-0.5 flex-shrink-0" />
+                        <span>{selectedClientForView.direccion}</span>
+                      </p>
+                    </div>
+                    <div>
+                      <h5 className="text-xs uppercase font-medium text-muted-foreground">
+                        Email Corporativo
+                      </h5>
+                      <p className="text-sm font-medium mt-1 flex items-center">
+                        <Mail className="h-3.5 w-3.5 mr-2 text-muted-foreground" />
+                        {selectedClientForView.email}
+                      </p>
+                    </div>
+                  </div>
+                </div>{" "}
+                {/* Contacto Principal */}
+                <div className="border rounded-lg p-4">
+                  <h4 className="font-medium text-md mb-3 flex items-center">
+                    <User2 className="h-4 w-4 mr-2 text-green-600" />
+                    Contacto Principal
+                  </h4>
+                  <div className="space-y-3">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      <div>
+                        <h5 className="text-xs uppercase font-medium text-muted-foreground">
+                          Nombre y Apellido
+                        </h5>
+                        <p className="text-sm font-medium mt-1">
+                          {selectedClientForView.contacto_principal}
+                        </p>
+                      </div>{" "}
+                      <div>
+                        <h5 className="text-xs uppercase font-medium text-muted-foreground">
+                          Teléfono
+                        </h5>
+                        <p className="text-sm font-medium mt-1 flex items-center">
+                          <Phone className="h-3.5 w-3.5 mr-2 text-muted-foreground" />
+                          {selectedClientForView.contacto_principal_telefono ||
+                            "No especificado"}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>{" "}
+              {/* Contactos de Obra */}
+              {(selectedClientForView.contactoObra1 ||
+                selectedClientForView.contacto_obra1_telefono ||
+                selectedClientForView.contactoObra2 ||
+                selectedClientForView.contacto_obra2_telefono) && (
+                <div className="border rounded-lg p-4">
+                  <h4 className="font-medium text-md mb-3 flex items-center">
+                    <Phone className="h-4 w-4 mr-2 text-orange-600" />
+                    Contactos de Obra
+                  </h4>{" "}
+                  <div className="space-y-4">
+                    {(selectedClientForView.contactoObra1 ||
+                      selectedClientForView.contacto_obra1_telefono) && (
+                      <div className="bg-slate-50 rounded-md border p-3">
+                        <h5 className="text-sm font-medium text-muted-foreground mb-2">
+                          Contacto de Obra #1
+                        </h5>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                          <div>
+                            <p className="text-xs uppercase font-medium text-muted-foreground">
+                              Nombre y Apellido
+                            </p>
+                            <p className="text-sm font-medium mt-1">
+                              {selectedClientForView.contactoObra1 ||
+                                "No especificado"}
+                            </p>
+                          </div>
+                          <div>
+                            <p className="text-xs uppercase font-medium text-muted-foreground">
+                              Teléfono
+                            </p>
+                            <div className="flex items-center text-sm font-medium mt-1">
+                              <Phone className="h-3.5 w-3.5 mr-2 text-muted-foreground" />
+                              <span>
+                                {selectedClientForView.contacto_obra1_telefono ||
+                                  "No especificado"}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {(selectedClientForView.contactoObra2 ||
+                      selectedClientForView.contacto_obra2_telefono) && (
+                      <div className="bg-slate-50 rounded-md border p-3">
+                        <h5 className="text-sm font-medium text-muted-foreground mb-2">
+                          Contacto de Obra #2
+                        </h5>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                          <div>
+                            <p className="text-xs uppercase font-medium text-muted-foreground">
+                              Nombre y Apellido
+                            </p>
+                            <p className="text-sm font-medium mt-1">
+                              {selectedClientForView.contactoObra2 ||
+                                "No especificado"}
+                            </p>
+                          </div>
+                          <div>
+                            <p className="text-xs uppercase font-medium text-muted-foreground">
+                              Teléfono
+                            </p>
+                            <div className="flex items-center text-sm font-medium mt-1">
+                              <Phone className="h-3.5 w-3.5 mr-2 text-muted-foreground" />
+                              <span>
+                                {selectedClientForView.contacto_obra2_telefono ||
+                                  "No especificado"}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+              <DialogFooter className="flex justify-between mt-6">
+                <div className="flex space-x-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setIsViewModalOpen(false);
+                      handleEditClick(selectedClientForView);
+                    }}
+                    className="cursor-pointer border-slate-200 hover:bg-slate-50 hover:text-slate-900"
+                  >
+                    <Edit2 className="h-3.5 w-3.5 mr-1" />
+                    Editar
+                  </Button>
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    onClick={() => {
+                      setIsViewModalOpen(false);
+                      if (selectedClientForView.clienteId) {
+                        handleDeleteClick(
+                          selectedClientForView.clienteId.toString()
+                        );
+                      }
+                    }}
+                    className="cursor-pointer bg-red-100 text-red-700 hover:bg-red-200 hover:text-red-800"
+                  >
+                    <Trash2 className="h-3.5 w-3.5 mr-1" />
+                    Eliminar
+                  </Button>
+                </div>
+                <Button
+                  variant="outline"
+                  onClick={() => setIsViewModalOpen(false)}
+                >
+                  Cerrar
+                </Button>
+              </DialogFooter>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 }

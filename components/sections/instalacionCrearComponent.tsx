@@ -39,6 +39,7 @@ import { CustomDatePicker } from "@/components/ui/local/CustomDatePicker";
 import { getEmployees } from "@/app/actions/empleados";
 import { getVehicles } from "@/app/actions/vehiculos";
 import { getSanitarios } from "@/app/actions/sanitarios";
+import { useCurrentUser } from "@/hooks/useCurrentUser";
 
 // Combined schema
 const formSchema = z.object({
@@ -57,7 +58,6 @@ const formSchema = z.object({
   cantidadVehiculos: z.number().min(1, "Debe especificar al menos 1 vehículo"),
   ubicacion: z.string().min(3, "La ubicación debe tener al menos 3 caracteres"),
   notas: z.string().optional(),
-
   // Step 4
   empleadosIds: z
     .array(z.number())
@@ -74,6 +74,10 @@ const formSchema = z.object({
     .number()
     .min(0, "La cantidad de baños no puede ser negativa"),
   asignacionAutomatica: z.boolean(),
+
+  // Campos opcionales para empleados A y B
+  empleadoAId: z.number().optional(),
+  empleadoBId: z.number().optional(),
 });
 
 type FormData = z.infer<typeof formSchema>;
@@ -81,7 +85,7 @@ type FormData = z.infer<typeof formSchema>;
 type CondicionContractual = {
   condicionContractualId: number;
   clientId: number;
-  tipo_de_contrato: string;
+  tipo_servicio?: string; // Agregando tipo de servicio
   fecha_inicio: string;
   fecha_fin: string;
   condiciones_especificas: string;
@@ -93,6 +97,7 @@ type CondicionContractual = {
 
 export default function CrearInstalacionComponent() {
   const router = useRouter();
+  const { isAdmin } = useCurrentUser();
   const [step, setStep] = useState<number>(1);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [selectedCondicionContractualId, setSelectedCondicionContractualId] =
@@ -105,7 +110,6 @@ export default function CrearInstalacionComponent() {
   const [condicionesContractuales, setCondicionesContractuales] = useState<
     CondicionContractual[]
   >([]);
-  console.log("condicioneSContractuales", condicionesContractuales);
   const [cantidadBanosRequired, setCantidadBanosRequired] = useState<number>(0);
 
   const [empleadosDisponibles, setEmpleadosDisponibles] = useState<Empleado[]>(
@@ -115,6 +119,10 @@ export default function CrearInstalacionComponent() {
     []
   );
   const [banosDisponibles, setBanosDisponibles] = useState<Sanitario[]>([]);
+
+  // Estado para asignación de roles A y B
+  const [empleadoRolA, setEmpleadoRolA] = useState<number | null>(null);
+  const [empleadoRolB, setEmpleadoRolB] = useState<number | null>(null);
 
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
@@ -134,6 +142,8 @@ export default function CrearInstalacionComponent() {
       cantidadEmpleados: 1,
       cantidadBanos: 0,
       asignacionAutomatica: false,
+      empleadoAId: undefined,
+      empleadoBId: undefined,
     },
   });
 
@@ -161,15 +171,18 @@ export default function CrearInstalacionComponent() {
           total?: number;
           totalItems?: number;
         }
-        
-        const clientesData = await getClients() as ClienteResponse;
-        
+
+        const clientesData = (await getClients()) as ClienteResponse;
+
         if (clientesData && typeof clientesData === "object") {
           // Determinar qué propiedad contiene los datos (items o data)
           if ("items" in clientesData && Array.isArray(clientesData.items)) {
             setClientes(clientesData.items);
             setFilteredClientes(clientesData.items);
-          } else if ("data" in clientesData && Array.isArray(clientesData.data)) {
+          } else if (
+            "data" in clientesData &&
+            Array.isArray(clientesData.data)
+          ) {
             setClientes(clientesData.data);
             setFilteredClientes(clientesData.data);
           } else {
@@ -191,9 +204,10 @@ export default function CrearInstalacionComponent() {
       } catch (error) {
         console.error("Error al cargar los clientes:", error);
         toast.error("Error al cargar los clientes", {
-          description: error instanceof Error 
-            ? error.message 
-            : "No se pudieron cargar los clientes. Por favor, intente nuevamente.",
+          description:
+            error instanceof Error
+              ? error.message
+              : "No se pudieron cargar los clientes. Por favor, intente nuevamente.",
         });
       } finally {
         setIsLoading(false);
@@ -225,7 +239,7 @@ export default function CrearInstalacionComponent() {
           const condicionesData = await getContractualConditionsByClient(
             selectedClientId
           );
-          
+
           // Verificar que la respuesta sea válida
           if (condicionesData && Array.isArray(condicionesData)) {
             setCondicionesContractuales(condicionesData);
@@ -235,14 +249,17 @@ export default function CrearInstalacionComponent() {
               data?: CondicionContractual[];
               items?: CondicionContractual[];
             }
-            
+
             const response = condicionesData as CondicionesResponse;
             if ("data" in response && Array.isArray(response.data)) {
               setCondicionesContractuales(response.data);
             } else if ("items" in response && Array.isArray(response.items)) {
               setCondicionesContractuales(response.items);
             } else {
-              console.error("Formato de respuesta no reconocido:", condicionesData);
+              console.error(
+                "Formato de respuesta no reconocido:",
+                condicionesData
+              );
               toast.error("Error de formato", {
                 description: "El formato de los datos recibidos no es válido",
               });
@@ -251,7 +268,8 @@ export default function CrearInstalacionComponent() {
           } else {
             console.error("Respuesta no válida:", condicionesData);
             toast.error("Error", {
-              description: "No se pudieron obtener las condiciones contractuales",
+              description:
+                "No se pudieron obtener las condiciones contractuales",
             });
             setCondicionesContractuales([]);
           }
@@ -265,9 +283,10 @@ export default function CrearInstalacionComponent() {
             error
           );
           toast.error("Error al cargar condiciones contractuales", {
-            description: error instanceof Error 
-              ? error.message 
-              : "No se pudieron cargar las condiciones del cliente seleccionado.",
+            description:
+              error instanceof Error
+                ? error.message
+                : "No se pudieron cargar las condiciones del cliente seleccionado.",
           });
           setCondicionesContractuales([]);
         } finally {
@@ -291,35 +310,44 @@ export default function CrearInstalacionComponent() {
             data?: Empleado[];
             items?: Empleado[];
           }
-          
+
           interface VehiculosResponse {
             data?: Vehiculo[];
             items?: Vehiculo[];
           }
-          
+
           interface SanitariosResponse {
             data?: Sanitario[];
             items?: Sanitario[];
           }
 
           // Obtener datos con Promise.all para optimizar las peticiones
-          const [empleadosResponseRaw, vehiculosResponseRaw, sanitariosResponseRaw] =
-            await Promise.all([
-              getEmployees(), 
-              getVehicles(), 
-              getSanitarios()
-            ]);
-            
+          const [
+            empleadosResponseRaw,
+            vehiculosResponseRaw,
+            sanitariosResponseRaw,
+          ] = await Promise.all([
+            getEmployees(),
+            getVehicles(),
+            getSanitarios(),
+          ]);
+
           // Procesar respuesta de empleados con verificación de tipo
           const empleadosResponse = empleadosResponseRaw as EmpleadosResponse;
           let empleadosDisp: Empleado[] = [];
-          
+
           if (empleadosResponse && typeof empleadosResponse === "object") {
-            if ("data" in empleadosResponse && Array.isArray(empleadosResponse.data)) {
+            if (
+              "data" in empleadosResponse &&
+              Array.isArray(empleadosResponse.data)
+            ) {
               empleadosDisp = empleadosResponse.data.filter(
                 (empleado) => empleado.estado === "DISPONIBLE"
               );
-            } else if ("items" in empleadosResponse && Array.isArray(empleadosResponse.items)) {
+            } else if (
+              "items" in empleadosResponse &&
+              Array.isArray(empleadosResponse.items)
+            ) {
               empleadosDisp = empleadosResponse.items.filter(
                 (empleado) => empleado.estado === "DISPONIBLE"
               );
@@ -329,13 +357,19 @@ export default function CrearInstalacionComponent() {
           // Procesar respuesta de vehículos con verificación de tipo
           const vehiculosResponse = vehiculosResponseRaw as VehiculosResponse;
           let vehiculosDisp: Vehiculo[] = [];
-          
+
           if (vehiculosResponse && typeof vehiculosResponse === "object") {
-            if ("data" in vehiculosResponse && Array.isArray(vehiculosResponse.data)) {
+            if (
+              "data" in vehiculosResponse &&
+              Array.isArray(vehiculosResponse.data)
+            ) {
               vehiculosDisp = vehiculosResponse.data.filter(
                 (vehiculo) => vehiculo.estado === "DISPONIBLE"
               );
-            } else if ("items" in vehiculosResponse && Array.isArray(vehiculosResponse.items)) {
+            } else if (
+              "items" in vehiculosResponse &&
+              Array.isArray(vehiculosResponse.items)
+            ) {
               vehiculosDisp = vehiculosResponse.items.filter(
                 (vehiculo) => vehiculo.estado === "DISPONIBLE"
               );
@@ -343,15 +377,22 @@ export default function CrearInstalacionComponent() {
           }
 
           // Procesar respuesta de sanitarios con verificación de tipo
-          const sanitariosResponse = sanitariosResponseRaw as SanitariosResponse;
+          const sanitariosResponse =
+            sanitariosResponseRaw as SanitariosResponse;
           let sanitariosDisp: Sanitario[] = [];
-          
+
           if (sanitariosResponse && typeof sanitariosResponse === "object") {
-            if ("data" in sanitariosResponse && Array.isArray(sanitariosResponse.data)) {
+            if (
+              "data" in sanitariosResponse &&
+              Array.isArray(sanitariosResponse.data)
+            ) {
               sanitariosDisp = sanitariosResponse.data.filter(
                 (sanitario) => sanitario.estado === "DISPONIBLE"
               );
-            } else if ("items" in sanitariosResponse && Array.isArray(sanitariosResponse.items)) {
+            } else if (
+              "items" in sanitariosResponse &&
+              Array.isArray(sanitariosResponse.items)
+            ) {
               sanitariosDisp = sanitariosResponse.items.filter(
                 (sanitario) => sanitario.estado === "DISPONIBLE"
               );
@@ -370,9 +411,10 @@ export default function CrearInstalacionComponent() {
         } catch (error) {
           console.error("Error al cargar recursos:", error);
           toast.error("Error al cargar recursos", {
-            description: error instanceof Error 
-              ? error.message 
-              : "No se pudieron cargar los recursos disponibles.",
+            description:
+              error instanceof Error
+                ? error.message
+                : "No se pudieron cargar los recursos disponibles.",
           });
         } finally {
           setIsLoading(false);
@@ -475,7 +517,8 @@ export default function CrearInstalacionComponent() {
 
   const handleBack = () => {
     setStep(step - 1);
-  };  const onSubmit = async (data: FormData) => {
+  };
+  const onSubmit = async (data: FormData) => {
     setIsSubmitting(true);
 
     try {
@@ -497,46 +540,49 @@ export default function CrearInstalacionComponent() {
       // Validar que haya al menos un vehículo seleccionado
       if (!data.vehiculosIds || data.vehiculosIds.length === 0) {
         throw new Error("Se requiere seleccionar al menos un vehículo");
-      }
-
-      // Formatear fecha correctamente
+      } // Formatear fecha correctamente
       const date = new Date(data.fechaProgramada);
       const formattedDate = date.toISOString().split("T")[0];
 
-      // Crear las asignaciones manuales según el formato requerido para CreateInstalacionDto
-      const firstEmployeeId =
-        empleadosSeleccionados.length > 0
-          ? empleadosSeleccionados[0]
-          : undefined;
-      const secondEmployeeId =
-        empleadosSeleccionados.length > 1
-          ? empleadosSeleccionados[1]
-          : undefined;
+      // Determinar empleados A y B basándose en los roles asignados o en el orden de selección
+      let empleadoA = empleadoRolA;
+      let empleadoB = empleadoRolB;
 
-      // Asegurar que asignacionesManual cumpla con el tipo esperado [{ empleadoId?, vehiculoId, banosIds }, { empleadoId? }]
+      // Si no hay roles asignados explícitamente, usar el orden de selección
+      if (!empleadoA && empleadosSeleccionados.length > 0) {
+        empleadoA = empleadosSeleccionados[0];
+      }
+      if (!empleadoB && empleadosSeleccionados.length > 1) {
+        empleadoB = empleadosSeleccionados[1];
+      }
+
+      // Crear las asignaciones manuales según el formato requerido para CreateInstalacionDto
       const asignacionesManual: [
         { empleadoId?: number; vehiculoId: number; banosIds: number[] },
         { empleadoId?: number }
       ] = [
         {
-          empleadoId: firstEmployeeId,
+          empleadoId: empleadoA || undefined,
           vehiculoId: data.vehiculosIds.length > 0 ? data.vehiculosIds[0] : 0,
           banosIds: data.banosIds || [],
         },
         {
-          empleadoId: secondEmployeeId,
+          empleadoId: empleadoB || undefined,
         },
-      ];
-
-      // Construir objeto con datos del servicio
+      ]; // Construir objeto con datos del servicio
       const serviceData = {
+        clienteId: data.clienteId,
         condicionContractualId: effectiveCondicionId,
         fechaProgramada: formattedDate,
+        tipoServicio: "INSTALACION" as const,
+        cantidadBanos: (data.banosIds || []).length, // Usar la cantidad real de baños seleccionados
         cantidadVehiculos: data.cantidadVehiculos,
         ubicacion: data.ubicacion,
-        asignacionAutomatica: false,
-        asignacionesManual: asignacionesManual,
         notas: data.notas || "",
+        asignacionAutomatica: false,
+        empleadoAId: empleadoA || undefined,
+        empleadoBId: empleadoB || undefined,
+        asignacionesManual: asignacionesManual,
       };
 
       // Realizar la llamada a la API
@@ -545,7 +591,7 @@ export default function CrearInstalacionComponent() {
       // Verificar respuesta
       if (response && typeof response === "object") {
         let successMessage = "El servicio ha sido programado con éxito.";
-        
+
         // Intentar extraer un mensaje específico de la respuesta si existe
         if ("message" in response && typeof response.message === "string") {
           successMessage = response.message;
@@ -553,7 +599,7 @@ export default function CrearInstalacionComponent() {
           // Si tiene un ID, asumimos que se creó correctamente
           successMessage = `Servicio creado correctamente con ID: ${response.id}`;
         }
-        
+
         toast.success("¡Servicio creado correctamente!", {
           description: successMessage,
         });
@@ -565,14 +611,14 @@ export default function CrearInstalacionComponent() {
 
       // Redireccionar después de un breve delay
       setTimeout(() => {
-        router.push("/admin/dashboard/servicios");
+        router.push("/admin/dashboard/servicios/listado");
       }, 2000);
     } catch (error) {
       console.error("Error al crear el servicio:", error);
-      
+
       // Manejo detallado del error
       let errorMessage = "Ocurrió un error inesperado";
-      
+
       if (error instanceof Error) {
         errorMessage = error.message;
       } else if (typeof error === "object" && error !== null) {
@@ -584,15 +630,14 @@ export default function CrearInstalacionComponent() {
           errorMessage = error.detail;
         }
       }
-      
+
       toast.error("Error al crear el servicio", {
-        description: errorMessage
+        description: errorMessage,
       });
     } finally {
       setIsSubmitting(false);
     }
   };
-
   const toggleResourceSelection = (
     resourceType: "empleadosIds" | "vehiculosIds" | "banosIds",
     id: number
@@ -603,9 +648,43 @@ export default function CrearInstalacionComponent() {
         resourceType,
         currentSelection.filter((itemId) => itemId !== id)
       );
+
+      // Si se deselecciona un empleado, también quitarlo de los roles
+      if (resourceType === "empleadosIds") {
+        if (empleadoRolA === id) {
+          setEmpleadoRolA(null);
+          setValue("empleadoAId", undefined);
+        }
+        if (empleadoRolB === id) {
+          setEmpleadoRolB(null);
+          setValue("empleadoBId", undefined);
+        }
+      }
     } else {
       setValue(resourceType, [...currentSelection, id]);
     }
+  };
+
+  // Función para asignar rol A a un empleado
+  const handleAsignarRolA = (empleadoId: number) => {
+    // Si este empleado ya tiene rol B, intercambiar roles
+    if (empleadoRolB === empleadoId) {
+      setEmpleadoRolB(empleadoRolA);
+      setValue("empleadoBId", empleadoRolA || undefined);
+    }
+    setEmpleadoRolA(empleadoId);
+    setValue("empleadoAId", empleadoId);
+  };
+
+  // Función para asignar rol B a un empleado
+  const handleAsignarRolB = (empleadoId: number) => {
+    // Si este empleado ya tiene rol A, intercambiar roles
+    if (empleadoRolA === empleadoId) {
+      setEmpleadoRolA(empleadoRolB);
+      setValue("empleadoAId", empleadoRolB || undefined);
+    }
+    setEmpleadoRolB(empleadoId);
+    setValue("empleadoBId", empleadoId);
   };
 
   return (
@@ -672,7 +751,6 @@ export default function CrearInstalacionComponent() {
             ></div>
           </div>
         </div>
-
         {/* Step 1: Client selection */}
         {step === 1 && (
           <div className="space-y-6">
@@ -750,7 +828,6 @@ export default function CrearInstalacionComponent() {
             />
           </div>
         )}
-
         {/* Step 2: Contractual condition selection */}
         {step === 2 && (
           <div className="space-y-6">
@@ -800,12 +877,11 @@ export default function CrearInstalacionComponent() {
                             }}
                           >
                             {" "}
-                            <div className="flex justify-between">
-                              <Badge
+                            <div className="flex justify-between">                              <Badge
                                 variant="outline"
                                 className="bg-indigo-50 text-indigo-700 mb-1"
                               >
-                                ID: {condicion.condicionContractualId}
+                                {condicion.tipo_servicio}
                               </Badge>
                               <Badge
                                 variant={
@@ -821,18 +897,19 @@ export default function CrearInstalacionComponent() {
                               >
                                 {condicion.estado}
                               </Badge>
-                            </div>
+                            </div>{" "}
                             <div className="text-sm text-slate-600 mt-2">
                               <div className="mb-1">
                                 <span className="font-medium">
-                                  Tipo de Contrato:
+                                  Tipo de Servicio:
                                 </span>{" "}
                                 <span className="text-slate-800">
-                                  {condicion.tipo_de_contrato}
-                                </span>
-                              </div>
+                                  {condicion.tipo_servicio}
+                                </span>                              </div>
                               <div className="flex justify-between mb-1">
-                                <span>Tarifa: ${condicion.tarifa}</span>
+                                {isAdmin && (
+                                  <span>Tarifa: ${condicion.tarifa}</span>
+                                )}
                                 <span>
                                   Periodicidad: {condicion.periodicidad}
                                 </span>
@@ -887,7 +964,6 @@ export default function CrearInstalacionComponent() {
             />
           </div>
         )}
-
         {/* Step 3: Service scheduling */}
         {step === 3 && (
           <div className="space-y-6">
@@ -899,7 +975,8 @@ export default function CrearInstalacionComponent() {
                   <div>
                     <label className="block text-sm font-medium mb-2">
                       Fecha Programada
-                    </label>                    <CustomDatePicker
+                    </label>{" "}
+                    <CustomDatePicker
                       date={field.value}
                       onChange={field.onChange}
                       disabled={isSubmitting}
@@ -965,13 +1042,76 @@ export default function CrearInstalacionComponent() {
               )}
             />
           </div>
-        )}
-
+        )}{" "}
         {/* Step 4: Resource assignment */}
         {step === 4 && (
           <div className="space-y-6">
             <div>
-              <h3 className="font-medium mb-1">Empleados Disponibles</h3>
+              <h3 className="font-medium mb-1 flex items-center justify-between">
+                Empleados Disponibles
+                <Badge variant="outline" className="bg-blue-50">
+                  {watch("empleadosIds").length} seleccionados
+                </Badge>
+              </h3>
+
+              {/* Información de roles */}
+              <div className="bg-blue-50 p-3 rounded-md mb-3 text-sm">
+                <p className="font-medium mb-1">Asignación de roles:</p>
+                <p>
+                  <span className="font-medium">Empleado A (azul):</span>{" "}
+                  Conductor principal con vehículo asignado
+                </p>
+                <p>
+                  <span className="font-medium">Empleado B (verde):</span>{" "}
+                  Asistente/colaborador
+                </p>
+                <p className="mt-1 text-xs text-gray-500">
+                  Después de seleccionar empleados, puede asignarles roles
+                  haciendo clic en los botones "Rol A" o "Rol B"
+                </p>
+
+                {/* Resumen de asignaciones actuales */}
+                {(empleadoRolA !== null || empleadoRolB !== null) && (
+                  <div className="mt-3 pt-2 border-t border-blue-200">
+                    <p className="font-medium mb-1">Asignaciones actuales:</p>
+                    {empleadoRolA !== null && empleadosDisponibles && (
+                      <div className="flex items-center gap-2">
+                        <Badge className="bg-blue-600">Empleado A</Badge>
+                        <span>
+                          {
+                            empleadosDisponibles.find(
+                              (e: Empleado) => e.id === empleadoRolA
+                            )?.nombre
+                          }{" "}
+                          {
+                            empleadosDisponibles.find(
+                              (e: Empleado) => e.id === empleadoRolA
+                            )?.apellido
+                          }
+                        </span>
+                      </div>
+                    )}
+                    {empleadoRolB !== null && empleadosDisponibles && (
+                      <div className="flex items-center gap-2 mt-1">
+                        <Badge className="bg-green-600">Empleado B</Badge>
+                        <span>
+                          {
+                            empleadosDisponibles.find(
+                              (e: Empleado) => e.id === empleadoRolB
+                            )?.nombre
+                          }{" "}
+                          {
+                            empleadosDisponibles.find(
+                              (e: Empleado) => e.id === empleadoRolB
+                            )?.apellido
+                          }
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+
               <p className="text-xs text-slate-500 mb-3">
                 Solo se muestran empleados con estado &quot;DISPONIBLE&quot;
               </p>
@@ -988,7 +1128,7 @@ export default function CrearInstalacionComponent() {
                     return (
                       <div
                         key={empleado.id}
-                        className={`border rounded-md p-2 cursor-pointer ${
+                        className={`border rounded-md p-3 cursor-pointer ${
                           isSelected
                             ? "bg-indigo-50 border-indigo-300"
                             : "hover:bg-slate-50"
@@ -997,32 +1137,66 @@ export default function CrearInstalacionComponent() {
                           toggleResourceSelection("empleadosIds", empleado.id)
                         }
                       >
-                        <div className="flex items-center">
-                          <div
-                            className={`w-4 h-4 mr-2 rounded-full border flex items-center justify-center ${
-                              isSelected
-                                ? "border-indigo-500 bg-indigo-500"
-                                : "border-gray-300"
-                            }`}
-                          >
-                            {isSelected && (
-                              <Check className="h-3 w-3 text-white" />
-                            )}
-                          </div>
-                          <div>
-                            <div className="font-medium">{`${empleado.nombre} ${empleado.apellido}`}</div>
-                            <div className="text-xs flex items-center gap-2">
-                              <span className="text-slate-500">
-                                {empleado.cargo}
-                              </span>
-                              <Badge
-                                variant="outline"
-                                className="bg-green-50 text-green-700 text-xs"
-                              >
-                                {empleado.estado}
-                              </Badge>
+                        <div className="flex items-start justify-between">
+                          <div className="flex items-center flex-1">
+                            <div
+                              className={`w-4 h-4 mr-2 rounded-full border flex items-center justify-center ${
+                                isSelected
+                                  ? "border-indigo-500 bg-indigo-500"
+                                  : "border-gray-300"
+                              }`}
+                            >
+                              {isSelected && (
+                                <Check className="h-3 w-3 text-white" />
+                              )}
+                            </div>
+                            <div className="flex-1">
+                              <div className="font-medium">{`${empleado.nombre} ${empleado.apellido}`}</div>
+                              <div className="text-xs flex items-center gap-2">
+                                <span className="text-slate-500">
+                                  {empleado.cargo}
+                                </span>
+                                <Badge
+                                  variant="outline"
+                                  className="bg-green-50 text-green-700 text-xs"
+                                >
+                                  {empleado.estado}
+                                </Badge>
+                              </div>
                             </div>
                           </div>
+
+                          {/* Botones de roles - solo visibles si el empleado está seleccionado */}
+                          {isSelected && (
+                            <div className="flex gap-1 ml-2">
+                              <Badge
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleAsignarRolA(empleado.id);
+                                }}
+                                className={`cursor-pointer text-xs ${
+                                  empleadoRolA === empleado.id
+                                    ? "bg-blue-600 hover:bg-blue-700 text-white"
+                                    : "bg-gray-300 hover:bg-gray-400 text-gray-700"
+                                }`}
+                              >
+                                Rol A
+                              </Badge>
+                              <Badge
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleAsignarRolB(empleado.id);
+                                }}
+                                className={`cursor-pointer text-xs ${
+                                  empleadoRolB === empleado.id
+                                    ? "bg-green-600 hover:bg-green-700 text-white"
+                                    : "bg-gray-300 hover:bg-gray-400 text-gray-700"
+                                }`}
+                              >
+                                Rol B
+                              </Badge>
+                            </div>
+                          )}
                         </div>
                       </div>
                     );
@@ -1198,7 +1372,6 @@ export default function CrearInstalacionComponent() {
             </div>
           </div>
         )}
-
         {/* Navigation buttons */}
         <div className="mt-8 flex justify-between">
           {step > 1 && (
@@ -1269,12 +1442,35 @@ export default function CrearInstalacionComponent() {
                     });
                     return;
                   }
-
                   trigger().then((isValid) => {
                     if (!isValid) {
                       console.error("⛔ Form validation failed");
-
                       return;
+                    }
+
+                    // Validar asignación de roles
+                    const empleadosIds = getValues().empleadosIds || [];
+                    const vehiculosIds = getValues().vehiculosIds || [];
+
+                    // Si hay vehículos pero no hay empleado A asignado, asignar automáticamente
+                    if (
+                      vehiculosIds.length > 0 &&
+                      !empleadoRolA &&
+                      empleadosIds.length > 0
+                    ) {
+                      setEmpleadoRolA(empleadosIds[0]);
+                      setValue("empleadoAId", empleadosIds[0]);
+
+                      // Si hay más empleados y no hay empleado B, asignar automáticamente
+                      if (empleadosIds.length > 1 && !empleadoRolB) {
+                        setEmpleadoRolB(empleadosIds[1]);
+                        setValue("empleadoBId", empleadosIds[1]);
+                      }
+
+                      toast.info("Roles asignados automáticamente", {
+                        description:
+                          "Se han asignado roles automáticamente a los empleados seleccionados.",
+                      });
                     }
 
                     const banosIds = getValues().banosIds || [];
