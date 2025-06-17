@@ -1,4 +1,4 @@
-import { useMemo, useState, ReactNode, useEffect } from "react";
+import { useMemo, useState, ReactNode, useEffect, useRef } from "react";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import {
@@ -28,8 +28,10 @@ interface ListadoTablaProps<T> {
   totalItems?: number;
   currentPage?: number;
   searchPlaceholder?: string;
+  searchValue?: string; // Nuevo: valor de búsqueda controlado externamente
   onPageChange?: (page: number) => void;
   onSearchChange?: (search: string) => void;
+  onSearchClear?: () => void; // Nuevo: callback para limpiar búsqueda
   onEdit?: (item: T) => void;
   onDelete?: (item: T) => void;
   addButton?: ReactNode;
@@ -46,15 +48,25 @@ export function ListadoTabla<T>({
   totalItems,
   currentPage: externalPage,
   searchPlaceholder = "Buscar...",
+  searchValue,
   onPageChange,
   onSearchChange,
+  onSearchClear,
   onEdit,
   onDelete,
   addButton,
 }: ListadoTablaProps<T>) {
-  const [searchTerm, setSearchTerm] = useState("");
+  const [searchTerm, setSearchTerm] = useState(searchValue || "");
   const [internalPage, setInternalPage] = useState(1);
   const [isMounted, setIsMounted] = useState(false);
+  const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Sincronizar el estado interno con el valor externo
+  useEffect(() => {
+    if (searchValue !== undefined) {
+      setSearchTerm(searchValue);
+    }
+  }, [searchValue]);
 
   useEffect(() => {
     // Esperar a que el componente esté montado en el cliente
@@ -123,6 +135,49 @@ export function ListadoTabla<T>({
     }
   };
 
+  const handleSearchInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setSearchTerm(value);
+    
+    // Para paginación remota, usar debounce antes de llamar onSearchChange
+    if (remotePagination && onSearchChange) {
+      // Cancelar timer anterior si existe
+      if (searchTimeoutRef.current) {
+        clearTimeout(searchTimeoutRef.current);
+      }
+      
+      // Crear nuevo timer con debounce
+      searchTimeoutRef.current = setTimeout(() => {
+        onSearchChange(value);
+      }, 500); // 500ms de debounce para dar tiempo al usuario
+    }
+  };
+
+  const handleClearSearch = () => {
+    setSearchTerm("");
+    
+    // Limpiar timeout pendiente
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current);
+      searchTimeoutRef.current = null;
+    }
+    
+    if (onSearchClear) {
+      onSearchClear();
+    } else if (onSearchChange) {
+      onSearchChange("");
+    }
+  };
+
+  // Limpiar timeout al desmontar el componente
+  useEffect(() => {
+    return () => {
+      if (searchTimeoutRef.current) {
+        clearTimeout(searchTimeoutRef.current);
+      }
+    };
+  }, []);
+
   // // Efecto para implementar búsqueda automática con debounce
   // useEffect(() => {
   //   if (!remotePagination) return; // Sólo para búsqueda remota
@@ -171,8 +226,8 @@ export function ListadoTabla<T>({
                   type="text"
                   placeholder={searchPlaceholder}
                   value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-80 max-w-sm pl-8"
+                  onChange={handleSearchInputChange}
+                  className="w-80 max-w-sm pl-8 pr-10"
                 />
                 <span className="absolute left-2.5 top-2.5 text-muted-foreground">
                   <svg
@@ -191,6 +246,30 @@ export function ListadoTabla<T>({
                     <path d="m21 21-4.3-4.3" />
                   </svg>
                 </span>
+                {searchTerm && (
+                  <button
+                    type="button"
+                    onClick={handleClearSearch}
+                    className="absolute right-2.5 top-2.5 text-muted-foreground hover:text-foreground transition-colors"
+                    title="Limpiar búsqueda"
+                  >
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="16"
+                      height="16"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      className="lucide lucide-x"
+                    >
+                      <path d="M18 6L6 18" />
+                      <path d="M6 6l12 12" />
+                    </svg>
+                  </button>
+                )}
               </form>
             </div>
           )}

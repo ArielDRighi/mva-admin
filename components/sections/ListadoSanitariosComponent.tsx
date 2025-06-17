@@ -10,7 +10,7 @@ import { Sanitario, SanitarioFormulario } from "@/types/types";
 import { useMaintenanceToiletStore } from "@/store/maintenanceToiletStore";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter, useSearchParams } from "next/navigation";
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState, useMemo } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -30,8 +30,9 @@ import {
   Toilet,
   RefreshCcw,
   PlusCircle,
-  Info, // Agregar este icono
+  Info,
   Calendar,
+  X,
 } from "lucide-react";
 import { ToiletServicesDialog } from "./sanitarios/ToiletServicesDialog";
 import {
@@ -72,6 +73,7 @@ const ListadoSanitariosComponent = ({
   const [sanitarioToDelete, setSanitarioToDelete] = useState<string | null>(
     null
   );
+  const [searchTerm, setSearchTerm] = useState<string>(searchParams.get("search") || "");
 
   const createSanitarioSchema = z.object({
     codigo_interno: z.string().min(1, "El código interno es obligatorio"),
@@ -116,16 +118,28 @@ const ListadoSanitariosComponent = ({
    * Maneja el cambio en el término de búsqueda
    */
   const handleSearchChange = (search: string) => {
+    // Solo actualizar el estado local, no la URL
+    // La URL se actualizará cuando el debounce del ListadoTabla termine
+    setSearchTerm(search);
+    
+    // Actualizar URL cuando llegue la llamada desde ListadoTabla (ya con debounce)
     const params = new URLSearchParams(searchParams.toString());
-
-    // Si no hay término de búsqueda, eliminar el parámetro
+    
     if (!search || search.trim() === "") {
       params.delete("search");
     } else {
       params.set("search", search);
     }
+    
+    params.set("page", "1");
+    router.replace(`?${params.toString()}`);
+  };
 
-    // Siempre volver a la primera página al buscar
+  const handleClearSearch = () => {
+    setSearchTerm("");
+    
+    const params = new URLSearchParams(searchParams.toString());
+    params.delete("search");
     params.set("page", "1");
     router.replace(`?${params.toString()}`);
   };
@@ -465,6 +479,8 @@ const ListadoSanitariosComponent = ({
             data={filteredSanitarios}
             itemsPerPage={itemsPerPage}
             searchableKeys={["codigo_interno", "modelo", "estado"]}
+            searchValue={searchTerm}
+            onSearchClear={handleClearSearch}
             remotePagination
             totalItems={total}
             currentPage={page}

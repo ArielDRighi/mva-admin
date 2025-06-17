@@ -9,7 +9,7 @@ import {
 import { UpdateVehiculo, Vehiculo } from "@/types/types";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter, useSearchParams } from "next/navigation";
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState, useMemo } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -38,7 +38,8 @@ import {
   BadgeInfo,
   Calendar,
   Tag,
-  Info, // Agregar este icono
+  Info,
+  X, // Agregar este icono
 } from "lucide-react";
 import { useMaintenanceVehicleStore } from "@/store/maintenanceVehicleStore";
 
@@ -78,6 +79,7 @@ const ListadoVehiculosComponent = ({
   const [isFirstLoad, setIsFirstLoad] = useState(true);
   const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
   const [vehiculoToDelete, setVehiculoToDelete] = useState<number | null>(null);
+  const [searchTerm, setSearchTerm] = useState<string>(searchParams.get("search") || "");
 
   const vehiculoSchema = z.object({
     numeroInterno: z.string().nullable(),
@@ -124,8 +126,28 @@ const ListadoVehiculosComponent = ({
   };
 
   const handleSearchChange = (search: string) => {
+    // Solo actualizar el estado local, no la URL
+    // La URL se actualizará cuando el debounce del ListadoTabla termine
+    setSearchTerm(search);
+    
+    // Actualizar URL cuando llegue la llamada desde ListadoTabla (ya con debounce)
     const params = new URLSearchParams(searchParams.toString());
-    params.set("search", search);
+    
+    if (!search || search.trim() === "") {
+      params.delete("search");
+    } else {
+      params.set("search", search);
+    }
+    
+    params.set("page", "1");
+    router.replace(`?${params.toString()}`);
+  };
+
+  const handleClearSearch = () => {
+    setSearchTerm("");
+    
+    const params = new URLSearchParams(searchParams.toString());
+    params.delete("search");
     params.set("page", "1");
     router.replace(`?${params.toString()}`);
   };
@@ -436,6 +458,8 @@ const ListadoVehiculosComponent = ({
             itemsPerPage={itemsPerPage}
             searchableKeys={["placa", "marca", "modelo"]}
             searchPlaceholder="Buscar por placa, marca o modelo..."
+            searchValue={searchTerm}
+            onSearchClear={handleClearSearch}
             remotePagination
             totalItems={total}
             currentPage={page}

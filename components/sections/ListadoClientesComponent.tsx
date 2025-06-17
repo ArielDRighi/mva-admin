@@ -5,7 +5,7 @@ import { ListadoTabla } from "@/components/ui/local/ListadoTabla";
 import { Badge } from "@/components/ui/badge";
 import { Cliente, ClienteFormulario } from "@/types/types";
 import { TableCell } from "../ui/table";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { FormDialog } from "../ui/local/FormDialog";
@@ -29,6 +29,7 @@ import {
   CreditCard,
   MapPin,
   User2,
+  X,
 } from "lucide-react";
 import {
   Card,
@@ -85,6 +86,7 @@ export default function ListadoClientesComponent({
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
   const [selectedClientForView, setSelectedClientForView] =
     useState<Cliente | null>(null);
+  const [searchTerm, setSearchTerm] = useState<string>(searchParams.get("search") || "");
   const createClientSchema = z.object({
     nombre: z.string().min(1, "El nombre es obligatorio"),
 
@@ -141,17 +143,30 @@ export default function ListadoClientesComponent({
     params.set("page", String(page));
     router.replace(`?${params.toString()}`);
   };
-  const handleSearchChange = (search: string) => {
-    const params = new URLSearchParams(searchParams.toString());
 
-    // Si no hay término de búsqueda, eliminar el parámetro
+  const handleSearchChange = (search: string) => {
+    // Solo actualizar el estado local, no la URL
+    // La URL se actualizará cuando el debounce del ListadoTabla termine
+    setSearchTerm(search);
+    
+    // Actualizar URL cuando llegue la llamada desde ListadoTabla (ya con debounce)
+    const params = new URLSearchParams(searchParams.toString());
+    
     if (!search || search.trim() === "") {
       params.delete("search");
     } else {
       params.set("search", search);
     }
+    
+    params.set("page", "1");
+    router.replace(`?${params.toString()}`);
+  };
 
-    // Siempre volver a la primera página al buscar
+  const handleClearSearch = () => {
+    setSearchTerm("");
+    
+    const params = new URLSearchParams(searchParams.toString());
+    params.delete("search");
     params.set("page", "1");
     router.replace(`?${params.toString()}`);
   };
@@ -413,6 +428,8 @@ export default function ListadoClientesComponent({
               "contacto_principal",
               "direccion",
             ]}
+            searchValue={searchTerm}
+            onSearchClear={handleClearSearch}
             remotePagination
             totalItems={total}
             currentPage={page}
