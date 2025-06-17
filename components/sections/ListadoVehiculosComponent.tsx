@@ -79,7 +79,9 @@ const ListadoVehiculosComponent = ({
   const [isFirstLoad, setIsFirstLoad] = useState(true);
   const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
   const [vehiculoToDelete, setVehiculoToDelete] = useState<number | null>(null);
-  const [searchTerm, setSearchTerm] = useState<string>(searchParams.get("search") || "");
+  const [searchTerm, setSearchTerm] = useState<string>(
+    searchParams.get("search") || ""
+  );
 
   const vehiculoSchema = z.object({
     numeroInterno: z.string().nullable(),
@@ -129,23 +131,23 @@ const ListadoVehiculosComponent = ({
     // Solo actualizar el estado local, no la URL
     // La URL se actualizará cuando el debounce del ListadoTabla termine
     setSearchTerm(search);
-    
+
     // Actualizar URL cuando llegue la llamada desde ListadoTabla (ya con debounce)
     const params = new URLSearchParams(searchParams.toString());
-    
+
     if (!search || search.trim() === "") {
       params.delete("search");
     } else {
       params.set("search", search);
     }
-    
+
     params.set("page", "1");
     router.replace(`?${params.toString()}`);
   };
 
   const handleClearSearch = () => {
     setSearchTerm("");
-    
+
     const params = new URLSearchParams(searchParams.toString());
     params.delete("search");
     params.set("page", "1");
@@ -457,7 +459,7 @@ const ListadoVehiculosComponent = ({
             data={filteredVehiculos}
             itemsPerPage={itemsPerPage}
             searchableKeys={["placa", "marca", "modelo"]}
-            searchPlaceholder="Buscar por placa, marca o modelo..."
+            searchPlaceholder="Buscar por placa, marca o modelo... (presiona Enter)"
             searchValue={searchTerm}
             onSearchClear={handleClearSearch}
             remotePagination

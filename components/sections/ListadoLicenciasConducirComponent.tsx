@@ -71,14 +71,16 @@ export default function ListadoLicenciasConducirComponent({
   ): boolean => {
     try {
       if (!licencia.fecha_vencimiento) return false;
-      
+
       const fechaVencimiento = new Date(licencia.fecha_vencimiento);
       // Verificar que la fecha sea válida
       if (isNaN(fechaVencimiento.getTime())) {
-        console.warn(`Fecha de vencimiento inválida: ${licencia.fecha_vencimiento}`);
+        console.warn(
+          `Fecha de vencimiento inválida: ${licencia.fecha_vencimiento}`
+        );
         return false;
       }
-      
+
       const hoy = new Date();
       const diasRestantes = differenceInDays(fechaVencimiento, hoy);
 
@@ -115,9 +117,9 @@ export default function ListadoLicenciasConducirComponent({
         "vigente",
         "advertencia",
       ].includes(search.trim().toLowerCase());
-      
+
       let fetchedLicencias: LicenciasConducirResponse;
-      
+
       // Si estamos en la pestaña "por-vencer" o buscando por estado, debemos hacer una lógica especial
       if (activeTab === "por-vencer") {
         // Para la pestaña "por vencer", siempre usamos getLicenciasToExpire con filtrado de 60 días
@@ -125,14 +127,14 @@ export default function ListadoLicenciasConducirComponent({
           60,
           currentPage,
           itemsPerPage,
-          isStatusSearch ? search : ""  // Solo enviar término si es búsqueda por estado
+          isStatusSearch ? search : "" // Solo enviar término si es búsqueda por estado
         )) as LicenciasConducirResponse;
       } else {
         // Para la pestaña "todos", usamos la API normal
         fetchedLicencias = (await getLicenciasConducir(
           currentPage,
           itemsPerPage,
-          search  // Enviar el término completo al backend
+          search // Enviar el término completo al backend
         )) as LicenciasConducirResponse;
       }
 
@@ -141,12 +143,12 @@ export default function ListadoLicenciasConducirComponent({
         let licenciasConEmpleados = fetchedLicencias.data.filter(
           (licencia) => licencia.empleado
         );
-        
+
         // Aplicar filtrado local adicional solo para búsquedas por estado
         const searchTerm = search.trim().toLowerCase();
-        
+
         if (isStatusSearch && !activeTab.includes("por-vencer")) {
-          // Si estamos buscando por estado fuera de la pestaña "por-vencer", 
+          // Si estamos buscando por estado fuera de la pestaña "por-vencer",
           // aplicamos el filtro localmente
           licenciasConEmpleados = licenciasConEmpleados.filter((licencia) =>
             matchesStatusTerm(licencia, searchTerm)
@@ -155,9 +157,9 @@ export default function ListadoLicenciasConducirComponent({
 
         setLicencias(licenciasConEmpleados);
         setTotal(
-          isStatusSearch && !activeTab.includes("por-vencer") 
-            ? licenciasConEmpleados.length  // Si filtramos localmente, el total es el conteo de los filtrados
-            : fetchedLicencias.totalItems    // De lo contrario, usamos el total proporcionado por la API
+          isStatusSearch && !activeTab.includes("por-vencer")
+            ? licenciasConEmpleados.length // Si filtramos localmente, el total es el conteo de los filtrados
+            : fetchedLicencias.totalItems // De lo contrario, usamos el total proporcionado por la API
         );
         setPage(currentPage);
       } else {
@@ -198,40 +200,52 @@ export default function ListadoLicenciasConducirComponent({
     params.set("page", String(page));
     router.replace(`?${params.toString()}`);
   };
-  const handleSearchChange = useCallback((search: string) => {
-    const params = new URLSearchParams(searchParams.toString());
-    const searchTerm = search.trim();
-    
-    // Si el término está vacío, eliminar el parámetro en lugar de enviarlo vacío
-    if (!searchTerm) {
-      params.delete("search");
-    } else {
-      // Verificar si es un término de búsqueda especial para estado
-      const estadosEspeciales = ["vencida", "por vencer", "próxima", "vigente", "advertencia"];
-      
-      if (estadosEspeciales.includes(searchTerm.toLowerCase())) {
-        // Para términos de estado, enviamos el término tal cual al backend
-        params.set("search", searchTerm.toLowerCase());
+  const handleSearchChange = useCallback(
+    (search: string) => {
+      const params = new URLSearchParams(searchParams.toString());
+      const searchTerm = search.trim();
+
+      // Si el término está vacío, eliminar el parámetro en lugar de enviarlo vacío
+      if (!searchTerm) {
+        params.delete("search");
       } else {
-        // Para otros términos de búsqueda (nombre, apellido, etc.)
-        params.set("search", searchTerm);
+        // Verificar si es un término de búsqueda especial para estado
+        const estadosEspeciales = [
+          "vencida",
+          "por vencer",
+          "próxima",
+          "vigente",
+          "advertencia",
+        ];
+
+        if (estadosEspeciales.includes(searchTerm.toLowerCase())) {
+          // Para términos de estado, enviamos el término tal cual al backend
+          params.set("search", searchTerm.toLowerCase());
+        } else {
+          // Para otros términos de búsqueda (nombre, apellido, etc.)
+          params.set("search", searchTerm);
+        }
       }
-    }
-    
-    // Siempre volver a la primera página cuando se realiza una búsqueda
-    params.set("page", "1");
-    router.replace(`?${params.toString()}`);
-  }, [searchParams, router]);
-  const handleTabChange = useCallback((value: string) => {
-    setActiveTab(value);
-    
-    // Al cambiar de pestaña, reiniciar los parámetros de búsqueda para evitar conflictos
-    const params = new URLSearchParams();
-    params.set("page", "1"); // Reiniciar a la página 1
-    
-    // Eliminar cualquier búsqueda previa para evitar conflictos entre pestañas
-    router.replace(`?${params.toString()}`);
-  }, [router]);
+
+      // Siempre volver a la primera página cuando se realiza una búsqueda
+      params.set("page", "1");
+      router.replace(`?${params.toString()}`);
+    },
+    [searchParams, router]
+  );
+  const handleTabChange = useCallback(
+    (value: string) => {
+      setActiveTab(value);
+
+      // Al cambiar de pestaña, reiniciar los parámetros de búsqueda para evitar conflictos
+      const params = new URLSearchParams();
+      params.set("page", "1"); // Reiniciar a la página 1
+
+      // Eliminar cualquier búsqueda previa para evitar conflictos entre pestañas
+      router.replace(`?${params.toString()}`);
+    },
+    [router]
+  );
   // Efecto para manejar la carga inicial
   useEffect(() => {
     if (isFirstLoad) {
@@ -405,7 +419,7 @@ export default function ListadoLicenciasConducirComponent({
         empleado: licencia.empleado,
       };
     });
-  }, [filteredLicencias]);  // Define las claves buscables para optimizar la búsqueda
+  }, [filteredLicencias]); // Define las claves buscables para optimizar la búsqueda
   const searchableKeys = useMemo<SearchableKey[]>(
     () => [
       "nombre_empleado", // Nombre del empleado
@@ -462,7 +476,7 @@ export default function ListadoLicenciasConducirComponent({
               data={enhancedLicencias}
               itemsPerPage={itemsPerPage}
               searchableKeys={searchableKeys}
-              searchPlaceholder="Buscar por nombre, apellido o DNI..."
+              searchPlaceholder="Buscar por nombre, apellido o DNI... (presiona Enter)"
               remotePagination
               totalItems={total}
               currentPage={page}

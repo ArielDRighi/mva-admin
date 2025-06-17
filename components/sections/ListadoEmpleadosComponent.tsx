@@ -672,7 +672,7 @@ export default function ListadoEmpleadosComponent({
               "estado",
               "numero_legajo",
             ]}
-            searchPlaceholder="Buscar por nombre, apellido, documento..."
+            searchPlaceholder="Buscar por nombre, apellido, documento... (presiona Enter)"
             remotePagination
             totalItems={total}
             currentPage={page}

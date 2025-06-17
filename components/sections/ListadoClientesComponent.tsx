@@ -86,7 +86,9 @@ export default function ListadoClientesComponent({
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
   const [selectedClientForView, setSelectedClientForView] =
     useState<Cliente | null>(null);
-  const [searchTerm, setSearchTerm] = useState<string>(searchParams.get("search") || "");
+  const [searchTerm, setSearchTerm] = useState<string>(
+    searchParams.get("search") || ""
+  );
   const createClientSchema = z.object({
     nombre: z.string().min(1, "El nombre es obligatorio"),
 
@@ -148,23 +150,23 @@ export default function ListadoClientesComponent({
     // Solo actualizar el estado local, no la URL
     // La URL se actualizará cuando el debounce del ListadoTabla termine
     setSearchTerm(search);
-    
+
     // Actualizar URL cuando llegue la llamada desde ListadoTabla (ya con debounce)
     const params = new URLSearchParams(searchParams.toString());
-    
+
     if (!search || search.trim() === "") {
       params.delete("search");
     } else {
       params.set("search", search);
     }
-    
+
     params.set("page", "1");
     router.replace(`?${params.toString()}`);
   };
 
   const handleClearSearch = () => {
     setSearchTerm("");
-    
+
     const params = new URLSearchParams(searchParams.toString());
     params.delete("search");
     params.set("page", "1");
@@ -435,7 +437,7 @@ export default function ListadoClientesComponent({
             currentPage={page}
             onPageChange={handlePageChange}
             onSearchChange={handleSearchChange}
-            searchPlaceholder="Buscar por nombre, CUIT, email, contacto o dirección..."
+            searchPlaceholder="Buscar por nombre, CUIT, email, contacto o dirección... (presiona Enter)"
             columns={[
               { title: "Cliente", key: "cliente" },
               { title: "Contacto", key: "contacto" },

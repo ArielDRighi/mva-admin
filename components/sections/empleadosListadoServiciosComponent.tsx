@@ -84,7 +84,7 @@ const EmpleadosHistorialServiciosComponent = () => {
   // Estado para el modal de detalles
   const [servicioSeleccionado, setServicioSeleccionado] =
     useState<ServicioFormateado | null>(null);
-  const [modalAbierto, setModalAbierto] = useState(false);  // Obtener usuario desde cookie
+  const [modalAbierto, setModalAbierto] = useState(false); // Obtener usuario desde cookie
   useEffect(() => {
     const userCookie = getCookie("user");
 
@@ -108,24 +108,30 @@ const EmpleadosHistorialServiciosComponent = () => {
         if (userId === 0) return;
 
         setLoading(true);
-        
+
         // Usar type assertion para tipar correctamente la respuesta
-        const datosEmpleado = await getUserById(userId) as { empleadoId?: number };
-        
+        const datosEmpleado = (await getUserById(userId)) as {
+          empleadoId?: number;
+        };
+
         if (datosEmpleado && typeof datosEmpleado.empleadoId === "number") {
           setEmpleadoId(datosEmpleado.empleadoId);
         } else {
-          console.error("No se encontró el ID del empleado o no es válido:", datosEmpleado);
+          console.error(
+            "No se encontró el ID del empleado o no es válido:",
+            datosEmpleado
+          );
           toast.error("Error", {
-            description: "No se pudo obtener la información del empleado"
+            description: "No se pudo obtener la información del empleado",
           });
         }
       } catch (error) {
         console.error("Error al obtener datos del empleado:", error);
         toast.error("Error", {
-          description: error instanceof Error 
-            ? error.message 
-            : "No se pudo obtener la información del empleado"
+          description:
+            error instanceof Error
+              ? error.message
+              : "No se pudo obtener la información del empleado",
         });
       } finally {
         setLoading(false);
@@ -148,28 +154,30 @@ const EmpleadosHistorialServiciosComponent = () => {
           totalItems?: number;
           total?: number;
         }
-        
+
         // Tipar correctamente la respuesta
-        const respuesta = await getCompletedServicesByEmployee(
+        const respuesta = (await getCompletedServicesByEmployee(
           empleadoId,
           paginaActual,
           itemsPorPagina
-        ) as ServicioResponse;
+        )) as ServicioResponse;
 
         // Verificar que respuesta tenga la estructura adecuada
         if (respuesta && typeof respuesta === "object") {
           // Determinar qué propiedad contiene los datos (data o items)
           const serviciosData = respuesta.data || [];
-          
+
           if (serviciosData.length > 0) {
             // Transformar datos al formato requerido
-            const serviciosFormateados: ServicioFormateado[] = serviciosData.map(
-              (servicio: Servicio) => ({
+            const serviciosFormateados: ServicioFormateado[] =
+              serviciosData.map((servicio: Servicio) => ({
                 id: servicio.id ? servicio.id.toString() : "0",
                 cliente: servicio.cliente?.nombre || "Cliente sin nombre",
                 tipo: servicio.tipoServicio || "No especificado",
                 fecha: new Date(
-                  servicio.fechaProgramada || servicio.fechaCreacion || new Date()
+                  servicio.fechaProgramada ||
+                    servicio.fechaCreacion ||
+                    new Date()
                 ),
                 ubicacion: servicio.ubicacion || "No especificada",
                 estado:
@@ -178,8 +186,7 @@ const EmpleadosHistorialServiciosComponent = () => {
                     : servicio.estado?.toLowerCase() === "cancelado"
                     ? "cancelado"
                     : "en proceso",
-              })
-            );
+              }));
 
             setServicios(serviciosFormateados);
             setTotalItems(respuesta.totalItems || serviciosFormateados.length);
@@ -192,7 +199,7 @@ const EmpleadosHistorialServiciosComponent = () => {
         } else {
           console.error("Formato de respuesta no reconocido:", respuesta);
           toast.error("Error de formato", {
-            description: "El formato de los datos recibidos no es válido"
+            description: "El formato de los datos recibidos no es válido",
           });
           setServicios(serviciosMock);
           setTotalItems(serviciosMock.length);
@@ -200,9 +207,10 @@ const EmpleadosHistorialServiciosComponent = () => {
       } catch (error) {
         console.error("Error al cargar los servicios del empleado:", error);
         toast.error("Error", {
-          description: error instanceof Error 
-            ? error.message 
-            : "No se pudieron cargar los servicios del empleado"
+          description:
+            error instanceof Error
+              ? error.message
+              : "No se pudieron cargar los servicios del empleado",
         });
         // Usar datos de ejemplo en caso de error
         setServicios(serviciosMock);
@@ -306,7 +314,7 @@ const EmpleadosHistorialServiciosComponent = () => {
               <div className="flex items-center gap-2 flex-1">
                 <Search className="h-4 w-4 text-muted-foreground" />
                 <Input
-                  placeholder="Buscar por cliente, tipo o ID..."
+                  placeholder="Buscar por cliente, tipo o ID... (filtro en tiempo real)"
                   value={busqueda}
                   onChange={(e) => setBusqueda(e.target.value)}
                   className="flex-1"

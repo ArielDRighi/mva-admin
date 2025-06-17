@@ -189,7 +189,6 @@ export function ListadoServiciosComponent() {
     fetchServicios();
   }, [searchParams]); // Handle search
   const handleSearch = (value: string) => {
-    setSearchTerm(value);
     setCurrentPage(1); // Reset to first page
     const params = new URLSearchParams(searchParams);
     if (value) {
@@ -199,6 +198,15 @@ export function ListadoServiciosComponent() {
     }
     params.set("page", "1");
     router.push(`?${params.toString()}`);
+  };
+
+  const handleSearchInputChange = (value: string) => {
+    setSearchTerm(value);
+  };
+
+  const handleSearchSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    handleSearch(searchTerm);
   };
 
   // Handle service type filter
@@ -277,17 +285,18 @@ export function ListadoServiciosComponent() {
 
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle>Servicios</CardTitle>
+            <CardTitle>Servicios</CardTitle>{" "}
             <div className="flex flex-col sm:flex-row items-center space-x-0 sm:space-x-2 space-y-2 sm:space-y-0 pt-2">
-              <Input
-                placeholder="Buscar por cliente, ubicación..."
-                value={searchTerm}
-                onChange={(e) => handleSearch(e.target.value)}
-                className="max-w-sm w-full"
-              />
-              <Button onClick={() => handleSearch(searchTerm)}>Buscar</Button>
+              <form onSubmit={handleSearchSubmit} className="flex gap-2 w-full">
+                <Input
+                  placeholder="Buscar por cliente, ubicación... (presiona Enter)"
+                  value={searchTerm}
+                  onChange={(e) => handleSearchInputChange(e.target.value)}
+                  className="max-w-sm w-full"
+                />
+                <Button type="submit">Buscar</Button>
+              </form>
             </div>
-
             <div className="mt-4 space-y-4">
               {/* Filtro por tipo de servicio */}{" "}
               <div>
