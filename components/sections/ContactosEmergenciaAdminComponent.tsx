@@ -57,7 +57,8 @@ interface EmpleadosResponse {
   totalPages?: number;
 }
 
-const contactoEmergenciaSchema = z.object({  nombre: z.string().min(1, "El nombre es obligatorio"),
+const contactoEmergenciaSchema = z.object({
+  nombre: z.string().min(1, "El nombre es obligatorio"),
   apellido: z.string().min(1, "El apellido es obligatorio"),
   parentesco: z.string().min(1, "El parentesco es obligatorio"),
   telefono: z.string().min(1, "El teléfono es obligatorio"),
@@ -72,6 +73,7 @@ export default function ContactosEmergenciaAdminComponent() {
   const [employees, setEmployees] = useState<Empleado[]>([]);
   const [filteredEmployees, setFilteredEmployees] = useState<Empleado[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
+  const [shouldFilter, setShouldFilter] = useState(false); // Nuevo estado para controlar cuándo filtrar
   const [selectedEmployee, setSelectedEmployee] = useState<Empleado | null>(
     null
   );
@@ -199,8 +201,12 @@ export default function ContactosEmergenciaAdminComponent() {
 
     fetchContactos();
   }, [selectedEmployee]);
-
   useEffect(() => {
+    if (!shouldFilter) {
+      setFilteredEmployees(employees);
+      return;
+    }
+
     if (searchTerm.trim() === "") {
       setFilteredEmployees(employees);
     } else {
@@ -212,7 +218,20 @@ export default function ContactosEmergenciaAdminComponent() {
       );
       setFilteredEmployees(filtered);
     }
-  }, [searchTerm, employees]);
+    setShouldFilter(false); // Reset después de filtrar
+  }, [searchTerm, employees, shouldFilter]);
+
+  const handleSearchSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setShouldFilter(true);
+  };
+
+  const handleSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      setShouldFilter(true);
+    }
+  };
 
   const { handleSubmit, setValue, control, reset } = form;
 
@@ -424,16 +443,19 @@ export default function ContactosEmergenciaAdminComponent() {
             <CardTitle>Empleados</CardTitle>
             <CardDescription>
               Seleccione un empleado para ver sus contactos
-            </CardDescription>
+            </CardDescription>{" "}
             <div className="relative mt-2">
               <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input
-                type="search"
-                placeholder="Buscar por nombre o documento..."
-                className="pl-8"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
+              <form onSubmit={handleSearchSubmit}>
+                <Input
+                  type="search"
+                  placeholder="Buscar por nombre o documento... (presiona Enter)"
+                  className="pl-8"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  onKeyDown={handleSearchKeyDown}
+                />
+              </form>
             </div>
           </CardHeader>
           <CardContent>

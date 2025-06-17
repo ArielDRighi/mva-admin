@@ -73,7 +73,9 @@ const ListadoSanitariosComponent = ({
   const [sanitarioToDelete, setSanitarioToDelete] = useState<string | null>(
     null
   );
-  const [searchTerm, setSearchTerm] = useState<string>(searchParams.get("search") || "");
+  const [searchTerm, setSearchTerm] = useState<string>(
+    searchParams.get("search") || ""
+  );
 
   const createSanitarioSchema = z.object({
     codigo_interno: z.string().min(1, "El código interno es obligatorio"),
@@ -121,23 +123,23 @@ const ListadoSanitariosComponent = ({
     // Solo actualizar el estado local, no la URL
     // La URL se actualizará cuando el debounce del ListadoTabla termine
     setSearchTerm(search);
-    
+
     // Actualizar URL cuando llegue la llamada desde ListadoTabla (ya con debounce)
     const params = new URLSearchParams(searchParams.toString());
-    
+
     if (!search || search.trim() === "") {
       params.delete("search");
     } else {
       params.set("search", search);
     }
-    
+
     params.set("page", "1");
     router.replace(`?${params.toString()}`);
   };
 
   const handleClearSearch = () => {
     setSearchTerm("");
-    
+
     const params = new URLSearchParams(searchParams.toString());
     params.delete("search");
     params.set("page", "1");
@@ -486,7 +488,7 @@ const ListadoSanitariosComponent = ({
             currentPage={page}
             onPageChange={handlePageChange}
             onSearchChange={handleSearchChange}
-            searchPlaceholder="Buscar por modelo, código interno o estado..."
+            searchPlaceholder="Buscar por modelo, código interno o estado... (presiona Enter)"
             columns={[
               { title: "Código interno", key: "codigo_interno" },
               { title: "Modelo", key: "modelo" },

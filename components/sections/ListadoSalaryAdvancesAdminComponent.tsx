@@ -305,7 +305,7 @@ const ListadoSalaryAdvancesAdminComponent = ({
           itemsPerPage={itemsPerPage}
           onPageChange={handlePageChange}
           onSearchChange={handleSearchChange}
-          searchPlaceholder="Buscar por nombre de empleado..."
+          searchPlaceholder="Buscar por nombre de empleado... (presiona Enter)"
           columns={[
             { title: "Empleado", key: "employee" },
             { title: "Monto", key: "amount" },

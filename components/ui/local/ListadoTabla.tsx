@@ -47,7 +47,7 @@ export function ListadoTabla<T>({
   remotePagination = false,
   totalItems,
   currentPage: externalPage,
-  searchPlaceholder = "Buscar...",
+  searchPlaceholder = "Buscar... (presiona Enter)",
   searchValue,
   onPageChange,
   onSearchChange,
@@ -74,14 +74,19 @@ export function ListadoTabla<T>({
   }, []);
 
   const currentPage = remotePagination ? externalPage ?? 1 : internalPage;
-    /**
+  /**
    * Función para obtener el valor de una propiedad anidada usando notación de puntos
-   * Por ejemplo: "toilet.codigo_interno" obtendrá item.toilet.codigo_interno 
+   * Por ejemplo: "toilet.codigo_interno" obtendrá item.toilet.codigo_interno
    */
-  const getNestedValue = (obj: Record<string, unknown>, path: string): unknown => {
-    const keys = path.split('.');
+  const getNestedValue = (
+    obj: Record<string, unknown>,
+    path: string
+  ): unknown => {
+    const keys = path.split(".");
     return keys.reduce((acc: unknown, key: string) => {
-      return acc && typeof acc === 'object' ? (acc as Record<string, unknown>)[key] : undefined;
+      return acc && typeof acc === "object"
+        ? (acc as Record<string, unknown>)[key]
+        : undefined;
     }, obj);
   };
 
@@ -93,7 +98,7 @@ export function ListadoTabla<T>({
     if (searchableKeys.length === 0 || searchTerm.trim() === "") return data;
 
     // El término de búsqueda normalizado
-    const normalizedSearchTerm = searchTerm.toLowerCase().trim();    // Filtrar datos por el término de búsqueda
+    const normalizedSearchTerm = searchTerm.toLowerCase().trim(); // Filtrar datos por el término de búsqueda
     return data.filter((item) =>
       searchableKeys.some((key) => {
         // Obtener el valor para esta clave (soportando propiedades anidadas)
@@ -130,38 +135,46 @@ export function ListadoTabla<T>({
   };
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Cancelar cualquier timer pendiente
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current);
+      searchTimeoutRef.current = null;
+    }
+
+    // Ejecutar búsqueda inmediatamente cuando se presiona Enter
     if (onSearchChange) {
       onSearchChange(searchTerm);
     }
   };
-
   const handleSearchInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     setSearchTerm(value);
-    
-    // Para paginación remota, usar debounce antes de llamar onSearchChange
-    if (remotePagination && onSearchChange) {
-      // Cancelar timer anterior si existe
-      if (searchTimeoutRef.current) {
-        clearTimeout(searchTimeoutRef.current);
-      }
-      
-      // Crear nuevo timer con debounce
-      searchTimeoutRef.current = setTimeout(() => {
-        onSearchChange(value);
-      }, 500); // 500ms de debounce para dar tiempo al usuario
+
+    // Ya no ejecutamos búsqueda automática - solo al presionar Enter
+    // Cancelar cualquier timer pendiente si el usuario está escribiendo
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current);
+      searchTimeoutRef.current = null;
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      handleSearchSubmit(e as unknown as React.FormEvent);
     }
   };
 
   const handleClearSearch = () => {
     setSearchTerm("");
-    
+
     // Limpiar timeout pendiente
     if (searchTimeoutRef.current) {
       clearTimeout(searchTimeoutRef.current);
       searchTimeoutRef.current = null;
     }
-    
+
     if (onSearchClear) {
       onSearchClear();
     } else if (onSearchChange) {
@@ -222,11 +235,13 @@ export function ListadoTabla<T>({
           {searchableKeys.length > 0 && (
             <div className="flex items-center gap-2">
               <form onSubmit={handleSearchSubmit} className="relative">
+                {" "}
                 <Input
                   type="text"
                   placeholder={searchPlaceholder}
                   value={searchTerm}
                   onChange={handleSearchInputChange}
+                  onKeyDown={handleKeyDown}
                   className="w-80 max-w-sm pl-8 pr-10"
                 />
                 <span className="absolute left-2.5 top-2.5 text-muted-foreground">
