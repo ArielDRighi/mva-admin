@@ -22,7 +22,7 @@ module.exports = {
       cwd: "/root/mva-backend",
       env: {
         PORT: 3002,
-        NODE_ENV: "production"
+        NODE_ENV: "development"
       },
       watch: false,
       exec_mode: "fork",

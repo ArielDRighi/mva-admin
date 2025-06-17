@@ -48,10 +48,9 @@ export function NavMain({ items }: { items: NavMainItem[] }) {
               <SidebarMenuItem>
                 {" "}
                 <CollapsibleTrigger asChild>
-                  <SidebarMenuButton
-                    tooltip={item.title}
+                  <div
                     className={cn(
-                      "cursor-pointer transition-all duration-200 hover:bg-muted/80 min-h-[32px]",
+                      "flex items-center w-full h-10 px-2 py-1.5 gap-2 rounded-md cursor-pointer transition-all duration-200 hover:bg-muted/80 min-h-[32px]",
                       isActive && "bg-muted font-medium text-primary"
                     )}
                   >
@@ -77,7 +76,7 @@ export function NavMain({ items }: { items: NavMainItem[] }) {
                         isActive && "text-primary"
                       )}
                     />
-                  </SidebarMenuButton>
+                  </div>
                 </CollapsibleTrigger>{" "}
                 <CollapsibleContent>
                   <motion.div
