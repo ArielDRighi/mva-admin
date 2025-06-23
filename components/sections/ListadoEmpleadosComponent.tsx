@@ -139,8 +139,8 @@ export default function ListadoEmpleadosComponent({
       .max(20, "El CUIL debe tener entre 11 y 20 caracteres"),
     cbu: z
       .string()
-      .min(11, "El CBU debe tener entre 11 y 20 caracteres")
-      .max(20, "El CBU debe tener entre 11 y 20 caracteres"),
+      .min(22, "El CBU debe tener exactamente 22 dígitos")
+      .max(22, "El CBU debe tener exactamente 22 dígitos"),
   });
 
   const form = useForm<z.infer<typeof createEmployeeSchema>>({
@@ -979,7 +979,7 @@ export default function ListadoEmpleadosComponent({
                 value={field.value?.toString() || ""}
                 onChange={field.onChange}
                 error={fieldState.error?.message}
-                placeholder="Ingrese el CBU"
+                placeholder="Ej: 2212125212365254258555 (22 dígitos)"
               />
             )}
           />
