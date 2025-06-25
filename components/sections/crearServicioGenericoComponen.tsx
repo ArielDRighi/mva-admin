@@ -1090,7 +1090,7 @@ export function CrearServicioGenericoComponent() {
                     {/* Fecha Programada */}
                     <div className="space-y-2">
                       <label className="text-sm font-medium">
-                        Fecha Programada
+                        Fecha y Hora Programada
                       </label>
                       <Controller
                         name="fechaProgramada"
@@ -1101,8 +1101,9 @@ export function CrearServicioGenericoComponent() {
                               date={field.value}
                               onChange={(date) => field.onChange(date)}
                               format="dd/MM/yyyy"
-                              placeholder="Seleccione fecha"
+                              placeholder="Seleccione fecha y hora"
                               className="w-full"
+                              showTimeSelect={true}
                             />
                             {errors.fechaProgramada && (
                               <p className="text-red-500 text-sm mt-1">

@@ -32,6 +32,7 @@ export function CustomDatePicker({
 }: CustomDatePickerProps) {
   const [selected, setSelected] = useState<Date | undefined>(date || undefined);
   const [time, setTime] = useState<string>("00:00");
+  const [isOpen, setIsOpen] = useState(false);
 
   // Sincronizar el estado local con las props
   useEffect(() => {
@@ -49,18 +50,9 @@ export function CustomDatePicker({
   // Manejar cambios de fecha
   const handleDateChange = (newDate: Date | undefined) => {
     if (newDate) {
-      const dateWithTime = new Date(newDate);
-      
-      if (showTimeSelect) {
-        const [hours, minutes] = time.split(":").map(Number);
-        dateWithTime.setHours(hours, minutes);
-      }
-      
-      setSelected(dateWithTime);
-      if (onChange) onChange(dateWithTime);
+      setSelected(newDate);
     } else {
       setSelected(undefined);
-      if (onChange) onChange(null);
     }
   };
 
@@ -68,22 +60,39 @@ export function CustomDatePicker({
   const handleTimeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newTime = e.target.value;
     setTime(newTime);
-    
+  };
+
+  // Confirmar selección
+  const handleConfirm = () => {
     if (selected) {
-      const [hours, minutes] = newTime.split(":").map(Number);
-      const newDate = new Date(selected);
-      newDate.setHours(hours, minutes);
+      const dateWithTime = new Date(selected);
       
-      setSelected(newDate);
-      if (onChange) onChange(newDate);
+      if (showTimeSelect) {
+        const [hours, minutes] = time.split(":").map(Number);
+        dateWithTime.setHours(hours, minutes);
+      }
+      
+      if (onChange) onChange(dateWithTime);
+    } else {
+      if (onChange) onChange(null);
     }
+    setIsOpen(false);
+  };
+
+  // Cancelar selección
+  const handleCancel = () => {
+    setSelected(date || undefined);
+    if (date && showTimeSelect) {
+      setTime(`${date.getHours().toString().padStart(2, "0")}:${date.getMinutes().toString().padStart(2, "0")}`);
+    }
+    setIsOpen(false);
   };
 
   // Crear un array de fechas deshabilitadas antes de minDate
   const disabledDays = minDate ? [{ before: minDate }] : undefined;
 
   return (
-    <Popover>
+    <Popover open={isOpen} onOpenChange={setIsOpen}>
       <PopoverTrigger asChild>
         <Button
           variant="outline"
@@ -91,7 +100,7 @@ export function CustomDatePicker({
           disabled={disabled}
         >
           <CalendarIcon className="mr-2 h-4 w-4" />
-          {selected ? format(selected, dateFormat, { locale: es }) : placeholder}
+          {selected ? format(selected, showTimeSelect ? "yyyy-MM-dd HH:mm" : dateFormat, { locale: es }) : placeholder}
         </Button>
       </PopoverTrigger>
       <PopoverContent className="p-0 w-auto" align="center">
@@ -106,7 +115,7 @@ export function CustomDatePicker({
           />
           
           {showTimeSelect && (
-            <div className="px-3 pb-3">
+            <div className="px-3 pb-3 border-t pt-3">
               <label className="block text-sm font-medium mb-1">Hora</label>
               <input 
                 type="time" 
@@ -116,6 +125,25 @@ export function CustomDatePicker({
               />
             </div>
           )}
+          
+          <div className="flex gap-2 pt-3 border-t">
+            <Button
+              variant="outline"
+              size="sm"
+              className="flex-1"
+              onClick={handleCancel}
+            >
+              Cancelar
+            </Button>
+            <Button
+              size="sm"
+              className="flex-1"
+              onClick={handleConfirm}
+              disabled={!selected}
+            >
+              Confirmar
+            </Button>
+          </div>
         </div>
       </PopoverContent>
     </Popover>
