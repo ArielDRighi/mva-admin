@@ -332,6 +332,8 @@ export function CrearServicioGenericoComponent() {
           const vehiculosResponse = (await getVehicles()) as VehiculosResponse;
 
           // Procesar respuesta de empleados
+          // Permitir empleados tanto en estado DISPONIBLE como ASIGNADO 
+          // según la lógica del negocio que permite asignar recursos a múltiples servicios
           let empleadosDisp: Empleado[] = [];
           if (empleadosResponse && typeof empleadosResponse === "object") {
             if (
@@ -339,14 +341,14 @@ export function CrearServicioGenericoComponent() {
               Array.isArray(empleadosResponse.data)
             ) {
               empleadosDisp = empleadosResponse.data.filter(
-                (empleado) => empleado.estado === "DISPONIBLE"
+                (empleado) => empleado.estado === "DISPONIBLE" || empleado.estado === "ASIGNADO"
               );
             } else if (
               "items" in empleadosResponse &&
               Array.isArray(empleadosResponse.items)
             ) {
               empleadosDisp = empleadosResponse.items.filter(
-                (empleado) => empleado.estado === "DISPONIBLE"
+                (empleado) => empleado.estado === "DISPONIBLE" || empleado.estado === "ASIGNADO"
               );
             } else {
               console.error(
@@ -369,6 +371,8 @@ export function CrearServicioGenericoComponent() {
           }
 
           // Procesar respuesta de vehículos
+          // Permitir vehículos tanto en estado DISPONIBLE como ASIGNADO 
+          // según la lógica del negocio que permite asignar recursos a múltiples servicios
           let vehiculosDisp: Vehiculo[] = [];
           if (vehiculosResponse && typeof vehiculosResponse === "object") {
             if (
@@ -376,14 +380,14 @@ export function CrearServicioGenericoComponent() {
               Array.isArray(vehiculosResponse.data)
             ) {
               vehiculosDisp = vehiculosResponse.data.filter(
-                (vehiculo) => vehiculo.estado === "DISPONIBLE"
+                (vehiculo) => vehiculo.estado === "DISPONIBLE" || vehiculo.estado === "ASIGNADO"
               );
             } else if (
               "items" in vehiculosResponse &&
               Array.isArray(vehiculosResponse.items)
             ) {
               vehiculosDisp = vehiculosResponse.items.filter(
-                (vehiculo) => vehiculo.estado === "DISPONIBLE"
+                (vehiculo) => vehiculo.estado === "DISPONIBLE" || vehiculo.estado === "ASIGNADO"
               );
             } else {
               console.error(

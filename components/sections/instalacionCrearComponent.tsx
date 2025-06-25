@@ -333,6 +333,8 @@ export default function CrearInstalacionComponent() {
           ]);
 
           // Procesar respuesta de empleados con verificación de tipo
+          // Permitir empleados tanto en estado DISPONIBLE como ASIGNADO 
+          // según la lógica del negocio que permite asignar recursos a múltiples servicios
           const empleadosResponse = empleadosResponseRaw as EmpleadosResponse;
           let empleadosDisp: Empleado[] = [];
 
@@ -342,19 +344,21 @@ export default function CrearInstalacionComponent() {
               Array.isArray(empleadosResponse.data)
             ) {
               empleadosDisp = empleadosResponse.data.filter(
-                (empleado) => empleado.estado === "DISPONIBLE"
+                (empleado) => empleado.estado === "DISPONIBLE" || empleado.estado === "ASIGNADO"
               );
             } else if (
               "items" in empleadosResponse &&
               Array.isArray(empleadosResponse.items)
             ) {
               empleadosDisp = empleadosResponse.items.filter(
-                (empleado) => empleado.estado === "DISPONIBLE"
+                (empleado) => empleado.estado === "DISPONIBLE" || empleado.estado === "ASIGNADO"
               );
             }
           }
 
-          // Procesar respuesta de vehículos con verificación de tipo
+          // Procesar respuesta de vehículos con verificación de tipo  
+          // Permitir vehículos tanto en estado DISPONIBLE como ASIGNADO 
+          // según la lógica del negocio que permite asignar recursos a múltiples servicios
           const vehiculosResponse = vehiculosResponseRaw as VehiculosResponse;
           let vehiculosDisp: Vehiculo[] = [];
 
@@ -364,14 +368,14 @@ export default function CrearInstalacionComponent() {
               Array.isArray(vehiculosResponse.data)
             ) {
               vehiculosDisp = vehiculosResponse.data.filter(
-                (vehiculo) => vehiculo.estado === "DISPONIBLE"
+                (vehiculo) => vehiculo.estado === "DISPONIBLE" || vehiculo.estado === "ASIGNADO"
               );
             } else if (
               "items" in vehiculosResponse &&
               Array.isArray(vehiculosResponse.items)
             ) {
               vehiculosDisp = vehiculosResponse.items.filter(
-                (vehiculo) => vehiculo.estado === "DISPONIBLE"
+                (vehiculo) => vehiculo.estado === "DISPONIBLE" || vehiculo.estado === "ASIGNADO"
               );
             }
           }
