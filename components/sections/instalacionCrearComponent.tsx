@@ -562,16 +562,18 @@ export default function CrearInstalacionComponent() {
 
       // Crear las asignaciones manuales según el formato requerido para CreateInstalacionDto
       const asignacionesManual: [
-        { empleadoId?: number; vehiculoId: number; banosIds: number[] },
-        { empleadoId?: number }
+        { empleadoId?: number; vehiculoId: number; banosIds: number[]; rol: string },
+        { empleadoId?: number; rol: string }
       ] = [
         {
           empleadoId: empleadoA || undefined,
           vehiculoId: data.vehiculosIds.length > 0 ? data.vehiculosIds[0] : 0,
           banosIds: data.banosIds || [],
+          rol: 'A',
         },
         {
           empleadoId: empleadoB || undefined,
+          rol: 'B',
         },
       ]; // Construir objeto con datos del servicio
       const serviceData = {

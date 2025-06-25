@@ -697,17 +697,19 @@ export function CrearServicioGenericoComponent() {
 
       // Preparar las asignaciones manuales según el formato exacto requerido por CreateLimpiezaDto
       const asignacionesManual: [
-        { empleadoId: number; vehiculoId: number },
-        { empleadoId: number }
+        { empleadoId: number; vehiculoId: number; rol: string },
+        { empleadoId: number; rol: string }
       ] = [
         {
           // Rol A: Conductor principal con vehículo
           empleadoId: empleadoA,
           vehiculoId: data.vehiculosIds.length > 0 ? data.vehiculosIds[0] : 0,
+          rol: 'A',
         },
         {
           // Rol B: Empleado adicional/asistente
           empleadoId: empleadoB,
+          rol: 'B',
         },
       ];
 

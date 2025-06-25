@@ -410,9 +410,11 @@ export interface CreateInstalacionDto {
       empleadoId?: number;
       vehiculoId: number;
       banosIds: number[];
+      rol: string;
     },
     {
       empleadoId?: number;
+      rol: string;
     }
   ];
   notas?: string;
@@ -469,9 +471,11 @@ export interface CreateLimpiezaDto {
     {
       empleadoId: number;
       vehiculoId: number;
+      rol: string;
     },
     {
       empleadoId: number;
+      rol: string;
     }
   ];
   notas?: string;

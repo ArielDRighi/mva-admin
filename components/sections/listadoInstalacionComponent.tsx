@@ -83,6 +83,7 @@ interface Asignacion {
   vehiculo?: Vehiculo;
   banoId?: number;
   bano?: Bano;
+  rolEmpleado?: string | null;
   fechaAsignacion: string;
 }
 
@@ -635,6 +636,14 @@ export function ListadoServiciosComponent() {
                               <span>
                                 {asig.empleado?.nombre}{" "}
                                 {asig.empleado?.apellido}
+                                {asig.rolEmpleado && (
+                                  <Badge 
+                                    variant="outline" 
+                                    className={`ml-2 ${asig.rolEmpleado === 'A' ? 'bg-blue-100 text-blue-800' : 'bg-green-100 text-green-800'}`}
+                                  >
+                                    Rol {asig.rolEmpleado}
+                                  </Badge>
+                                )}
                               </span>
                             </div>
                           ))}
