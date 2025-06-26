@@ -603,13 +603,14 @@ export function CrearServicioGenericoComponent() {
       setIsSubmitting(true);
 
       // Validación manual de campos requeridos del paso 4
-      if (!data.banosInstalados || data.banosInstalados.length === 0) {
-        toast.error("Validación de formulario", {
-          description: "Debe seleccionar al menos un baño instalado.",
-        });
-        setIsSubmitting(false);
-        return;
-      }
+      // Para servicios de limpieza, los baños son opcionales (se pueden heredar del último servicio de instalación)
+      // if (!data.banosInstalados || data.banosInstalados.length === 0) {
+      //   toast.error("Validación de formulario", {
+      //     description: "Debe seleccionar al menos un baño instalado.",
+      //   });
+      //   setIsSubmitting(false);
+      //   return;
+      // }
 
       if (!data.empleadosIds || data.empleadosIds.length === 0) {
         toast.error("Validación de formulario", {

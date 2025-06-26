@@ -32,7 +32,7 @@ import { toast, Toaster } from 'sonner';
 import Link from 'next/link';
 
 const advanceFormSchema = z.object({
-  amount: z.number().min(1, 'El monto debe ser mayor a 0').max(1000000, 'El monto no puede ser mayor a $1,000,000'),
+  amount: z.number().min(1, 'El monto debe ser mayor a 0'),
   reason: z.string().min(10, 'El motivo debe tener al menos 10 caracteres').max(500, 'El motivo no puede tener más de 500 caracteres'),
 });
 
@@ -304,7 +304,6 @@ export default function CreateAdvanceForm() {
               <ul className="list-disc list-inside space-y-1">
                 <li>El adelanto será descontado de su próximo salario</li>
                 <li>Solo puede tener una solicitud pendiente a la vez</li>
-                <li>El monto máximo es de $1,000,000</li>
                 <li>La aprobación depende de la disponibilidad de fondos</li>
               </ul>
             </div>

@@ -7,6 +7,7 @@ import { es } from "date-fns/locale";
 import { toast } from "sonner";
 
 import { deleteService, getServices } from "@/app/actions/services";
+import { getSanitarios } from "@/app/actions/sanitarios";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Table,
@@ -36,6 +37,7 @@ import {
   Truck,
   User,
   Users,
+  Bath,
 } from "lucide-react";
 
 // Define interfaces for type safety
@@ -135,6 +137,7 @@ export function ListadoServiciosComponent() {
   );
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState<boolean>(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState<boolean>(false);
+  const [banosCompletos, setBanosCompletos] = useState<any[]>([]);
   console.log("Servicios:", servicios); // Load data
   useEffect(() => {
     const fetchServicios = async () => {
@@ -425,9 +428,73 @@ export function ListadoServiciosComponent() {
                             <Button
                               variant="outline"
                               size="sm"
-                              onClick={() => {
+                              onClick={async () => {
                                 setSelectedServicio(servicio);
                                 setIsDetailsModalOpen(true);
+                                
+                                // Cargar datos completos de los baños si hay banosInstalados
+                                if (servicio.banosInstalados && servicio.banosInstalados.length > 0) {
+                                  try {
+                                    // Si banosInstalados contiene solo números (IDs)
+                                    const containsOnlyNumbers = servicio.banosInstalados.every(
+                                      (bano: any) => typeof bano === 'number'
+                                    );
+                                    
+                                    if (containsOnlyNumbers) {
+                                      console.log('Cargando datos completos para los baños:', servicio.banosInstalados);
+                                      console.log('Tipo de servicio:', servicio.tipoServicio);
+                                      
+                                      // Obtener todos los sanitarios
+                                      const sanitariosResponse = await getSanitarios() as any;
+                                      let allSanitarios: any[] = [];
+                                      
+                                      // Manejar diferentes formatos de respuesta
+                                      if (Array.isArray(sanitariosResponse)) {
+                                        allSanitarios = sanitariosResponse;
+                                      } else if (sanitariosResponse?.items) {
+                                        allSanitarios = sanitariosResponse.items;
+                                      } else if (sanitariosResponse?.data) {
+                                        allSanitarios = sanitariosResponse.data;
+                                      }
+                                      
+                                      console.log('Todos los sanitarios obtenidos:', allSanitarios);
+                                      console.log('Primer sanitario estructura:', allSanitarios[0]);
+                                      
+                                      // Filtrar solo los baños que están en banosInstalados
+                                      const banosDelServicio = allSanitarios.filter((sanitario: any) => {
+                                        // Intentar hacer match con diferentes campos ID
+                                        const sanitarioId = sanitario.baño_id || sanitario.id || sanitario.banoId;
+                                        const sanitarioCodigoInterno = sanitario.codigo_interno;
+                                        
+                                        // Convertir ambos a string para comparación
+                                        const sanitarioIdStr = String(sanitarioId);
+                                        const sanitarioCodigoStr = String(sanitarioCodigoInterno);
+                                        
+                                        // Verificar si coincide con algún ID o código interno en banosInstalados
+                                        const isMatch = servicio.banosInstalados.some((banoId: any) => {
+                                          const banoIdStr = String(banoId);
+                                          // Comparar tanto por ID como por código interno
+                                          return banoIdStr === sanitarioIdStr || banoIdStr === sanitarioCodigoStr;
+                                        });
+                                        
+                                        console.log(`Comparando sanitario ID ${sanitarioIdStr} / código ${sanitarioCodigoStr} con IDs requeridos:`, servicio.banosInstalados, 'Match:', isMatch);
+                                        
+                                        return isMatch;
+                                      });
+                                      
+                                      console.log('Baños encontrados:', banosDelServicio);
+                                      setBanosCompletos(banosDelServicio);
+                                    } else {
+                                      // Si ya son objetos completos, usarlos directamente
+                                      setBanosCompletos(servicio.banosInstalados);
+                                    }
+                                  } catch (error) {
+                                    console.error('Error al cargar datos de baños:', error);
+                                    setBanosCompletos([]);
+                                  }
+                                } else {
+                                  setBanosCompletos([]);
+                                }
                               }}
                             >
                               Ver
@@ -664,7 +731,7 @@ export function ListadoServiciosComponent() {
                             </div>
                           ))}
 
-                        {/* Baños asignados */}
+                        {/* Baños asignados desde asignaciones */}
                         {selectedServicio.asignaciones
                           .filter((asig: Asignacion) => asig.bano)
                           .map((asig: Asignacion) => (
@@ -679,6 +746,89 @@ export function ListadoServiciosComponent() {
                               </span>
                             </div>
                           ))}
+
+                        {/* Baños instalados (especialmente para servicios de limpieza) */}
+                        {banosCompletos && banosCompletos.length > 0 ? (
+                          // Mostrar baños con datos completos
+                          banosCompletos.map((bano: any, index: number) => (
+                            <div
+                              key={`completo-${bano.baño_id || bano.id || index}`}
+                              className="flex items-center gap-2 p-2 rounded-md bg-blue-50"
+                            >
+                              <Bath className="h-4 w-4 text-blue-500" />
+                              <span>
+                                Baño #{bano.codigo_interno || bano.baño_id || bano.id} (Modelo: {bano.modelo || 'No especificado'})
+                                {selectedServicio?.tipoServicio === 'LIMPIEZA' && (
+                                  <Badge variant="outline" className="ml-2 bg-blue-100 text-blue-800">
+                                    Para Limpieza
+                                  </Badge>
+                                )}
+                              </span>
+                            </div>
+                          ))
+                        ) : (
+                          // Fallback: mostrar baños instalados básicos si no hay datos completos
+                          selectedServicio.banosInstalados && 
+                          selectedServicio.banosInstalados.length > 0 && 
+                          selectedServicio.banosInstalados.map((bano: any, index: number) => {
+                            // Log para debugging - ver qué estructura tienen los datos
+                            console.log('Estructura del baño instalado (fallback):', bano);
+                            
+                            // Si es solo un número (ID), mostrarlo directamente
+                            if (typeof bano === 'number') {
+                              return (
+                                <div
+                                  key={`instalado-${bano}`}
+                                  className="flex items-center gap-2 p-2 rounded-md bg-blue-50"
+                                >
+                                  <Bath className="h-4 w-4 text-blue-500" />
+                                  <span>
+                                    Baño ID: {bano}
+                                    {selectedServicio.tipoServicio === 'LIMPIEZA' && (
+                                      <Badge variant="outline" className="ml-2 bg-blue-100 text-blue-800">
+                                        Para Limpieza
+                                      </Badge>
+                                    )}
+                                  </span>
+                                </div>
+                              );
+                            }
+                            
+                            // Si es un objeto, intentar obtener los datos
+                            const codigoInterno = bano.codigo_interno || 
+                                                bano.codigoInterno || 
+                                                bano.sanitario?.codigo_interno ||
+                                                bano.sanitario?.codigoInterno ||
+                                                bano.Sanitario?.codigo_interno ||
+                                                bano.Sanitario?.codigoInterno ||
+                                                bano.baño_id ||
+                                                bano.bano_id ||
+                                                bano.id ||
+                                                `Sin código`;
+                            
+                            const modelo = bano.modelo || 
+                                          bano.sanitario?.modelo ||
+                                          bano.Sanitario?.modelo ||
+                                          'Modelo no disponible';
+                            
+                            return (
+                             <div
+                               key={`instalado-${bano.baño_id || bano.id || index}`}
+                               className="flex items-center gap-2 p-2 rounded-md bg-blue-50"
+                             >
+                               <Bath className="h-4 w-4 text-blue-500" />
+                               <span>
+                                 Baño #{codigoInterno} (Modelo: {modelo})
+                                 {selectedServicio.tipoServicio === 'LIMPIEZA' && (
+                                   <Badge variant="outline" className="ml-2 bg-blue-100 text-blue-800">
+                                     Para Limpieza
+                                   </Badge>
+                                 )}
+                               </span>
+                             </div>
+                            );
+                          })
+                        )}
                       </div>
                     </div>
                   )}
@@ -688,7 +838,10 @@ export function ListadoServiciosComponent() {
             <DialogFooter>
               <Button
                 variant="outline"
-                onClick={() => setIsDetailsModalOpen(false)}
+                onClick={() => {
+                  setIsDetailsModalOpen(false);
+                  setBanosCompletos([]);
+                }}
               >
                 Cerrar
               </Button>

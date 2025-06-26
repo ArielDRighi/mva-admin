@@ -195,6 +195,11 @@ export interface Asignacion {
 export interface BanoInstalado {
   // Definir propiedades de baños instalados según necesidad
   id: number;
+  baño_id?: string;
+  codigo_interno: string;
+  modelo: string;
+  fecha_adquisicion?: string;
+  estado?: string;
   // Otros campos relevantes
 }
 
