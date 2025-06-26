@@ -67,6 +67,8 @@ import {
   formatTime,
   getServiceTypeBadge,
   getLeaveStatusBadge,
+  getLeaveStatusText,
+  getTodayDate,
 } from "./utils/employeeUtils";
 
 // Import custom hooks
@@ -84,7 +86,13 @@ enum serviceStatus {
 
 const DashboardEmployeeComponent = () => {
   // Use custom hooks for state management and logic
-  const { user, employeeId, loading: userLoading } = useEmployeeData();
+  const {
+    user,
+    employeeData,
+    employeeId,
+    loading: userLoading,
+  } = useEmployeeData();
+
   const {
     proximosServicios,
     inProgressServices,
@@ -120,7 +128,18 @@ const DashboardEmployeeComponent = () => {
     handleLeaveRequest,
     openLeaveModal,
     closeLeaveModal,
-  } = useLeaveManagement(employeeId);
+    calculateDaysBetween,
+    availableVacationDays,
+  } = useLeaveManagement(
+    employeeId,
+    employeeData
+      ? {
+          diasVacacionesTotal: employeeData.diasVacacionesTotal,
+          diasVacacionesRestantes: employeeData.diasVacacionesRestantes,
+          diasVacacionesUsados: employeeData.diasVacacionesUsados,
+        }
+      : undefined
+  );
 
   const { handleLogoutClick } = useLogout();
 
@@ -521,110 +540,186 @@ const DashboardEmployeeComponent = () => {
             )}
         </CardContent>
       </Card>
-      {/* Leave management card - Moved to the bottom */}
-      <Card className="shadow-md hover:shadow-lg transition-shadow">
-        <CardHeader className="bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-950 dark:to-pink-950 border-b">
-          <div className="flex justify-between items-center">
-            <div>
-              <CardTitle className="text-purple-800 dark:text-purple-300">
-                Mis licencias
-              </CardTitle>
-              <CardDescription>Gestión de licencias y permisos</CardDescription>
+      {/* Vacation and Leave Management Card - Fusionada */}
+      {employeeData && (
+        <Card className="shadow-md hover:shadow-lg transition-shadow">
+          <CardHeader className="bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-950 dark:to-pink-950 border-b">
+            <div className="flex justify-between items-center">
+              <div>
+                <CardTitle className="text-purple-800 dark:text-purple-300 flex items-center gap-2">
+                  <Calendar className="h-5 w-5" />
+                  Vacaciones y Licencias
+                </CardTitle>
+                <CardDescription>
+                  Gestión de días de vacaciones, licencias y permisos
+                </CardDescription>
+              </div>
             </div>
-          </div>
-        </CardHeader>
-        <CardContent className="p-4 sm:p-6">
-          <Tabs defaultValue="active">
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="active">Activas</TabsTrigger>
-              <TabsTrigger value="request">Solicitar</TabsTrigger>
-            </TabsList>
+          </CardHeader>
+          <CardContent className="p-4 sm:p-6">
+            <Tabs defaultValue="vacation">
+              <TabsList className="grid w-full grid-cols-3">
+                <TabsTrigger value="vacation">Vacaciones</TabsTrigger>
+                <TabsTrigger value="active">Licencias activas</TabsTrigger>
+                <TabsTrigger value="request">Solicitar</TabsTrigger>
+              </TabsList>
 
-            <TabsContent value="active" className="mt-4 space-y-4">
-              {loading ? (
-                <div className="text-center py-8 text-muted-foreground">
-                  Cargando licencias...
-                </div>
-              ) : !licencias || licencias.length === 0 ? (
-                <div className="text-center py-8 text-muted-foreground">
-                  No tienes licencias activas o pendientes
-                </div>
-              ) : (
-                licencias.map((licencia) => (
-                  <div
-                    key={licencia.id}
-                    className="border rounded-lg p-3 hover:bg-purple-50 dark:hover:bg-purple-950 transition-colors"
-                  >
-                    <div className="flex justify-between items-start mb-2">
-                      <div className="flex items-center gap-2">
-                        <FileText className="h-4 w-4 text-purple-500" />
-                        <span className="font-medium">
-                          {licencia.tipoLicencia}
+              <TabsContent value="vacation" className="mt-4">
+                <div className="space-y-4">
+                  <div>
+                    <h3 className="text-sm font-medium text-muted-foreground mb-3">
+                      Estado actual de tus días de vacaciones
+                    </h3>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div className="text-center p-4 bg-blue-50 dark:bg-blue-950 rounded-lg">
+                        <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">
+                          {employeeData.diasVacacionesTotal}
+                        </div>
+                        <div className="text-sm text-muted-foreground">
+                          Total anual
+                        </div>
+                      </div>
+                      <div className="text-center p-4 bg-green-50 dark:bg-green-950 rounded-lg">
+                        <div className="text-2xl font-bold text-green-600 dark:text-green-400">
+                          {employeeData.diasVacacionesRestantes}
+                        </div>
+                        <div className="text-sm text-muted-foreground">
+                          Disponibles
+                        </div>
+                      </div>
+                      <div className="text-center p-4 bg-orange-50 dark:bg-orange-950 rounded-lg">
+                        <div className="text-2xl font-bold text-orange-600 dark:text-orange-400">
+                          {employeeData.diasVacacionesUsados}
+                        </div>
+                        <div className="text-sm text-muted-foreground">
+                          Utilizados
+                        </div>
+                      </div>
+                    </div>
+                    <div className="mt-4">
+                      <div className="flex justify-between text-sm mb-2">
+                        <span>Progreso de vacaciones</span>
+                        <span>
+                          {Math.round(
+                            (employeeData.diasVacacionesUsados /
+                              employeeData.diasVacacionesTotal) *
+                              100
+                          )}
+                          %
                         </span>
                       </div>
-                      <Badge
-                        className={getLeaveStatusBadge(
-                          licencia.aprobado ? "APROBADO" : "PENDIENTE"
-                        )}
-                      >
-                        {licencia.aprobado ? "APROBADO" : "PENDIENTE"}
-                      </Badge>
-                    </div>
-                    <div className="text-sm space-y-1">
-                      <div className="flex items-center gap-2">
-                        <Calendar className="h-4 w-4 text-purple-500" />
-                        <span>Desde: {formatDate(licencia.fechaInicio)}</span>
+                      <div className="w-full bg-gray-200 rounded-full h-2">
+                        <div
+                          className="bg-gradient-to-r from-blue-500 to-green-500 h-2 rounded-full transition-all duration-300"
+                          style={{
+                            width: `${Math.min(
+                              (employeeData.diasVacacionesUsados /
+                                employeeData.diasVacacionesTotal) *
+                                100,
+                              100
+                            )}%`,
+                          }}
+                        ></div>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <Calendar className="h-4 w-4 text-purple-500" />
-                        <span>Hasta: {formatDate(licencia.fechaFin)}</span>
-                      </div>
-                      {licencia.notas && (
-                        <div className="text-muted-foreground mt-1 italic">
-                          &quot;{licencia.notas}&quot;
-                        </div>
-                      )}
                     </div>
                   </div>
-                ))
-              )}
-              <Button variant="outline" size="sm" className="w-full" asChild>
-                <Link href="/empleado/licencias">Ver historial completo</Link>
-              </Button>
-            </TabsContent>
-
-            <TabsContent value="request" className="mt-4">
-              <div className="border rounded-lg p-4 hover:bg-purple-50 dark:hover:bg-purple-950 transition-colors">
-                <h3 className="font-medium mb-3">Solicitar nueva licencia</h3>
-                <p className="text-sm text-muted-foreground mb-4">
-                  Para solicitar una nueva licencia o permiso, selecciona el
-                  tipo y completa el formulario detallado.
-                </p>
-                <Button
-                  className="w-full bg-purple-600 hover:bg-purple-700"
-                  onClick={openLeaveModal}
-                >
-                  Solicitar licencia
-                </Button>
-              </div>
-
-              <div className="mt-4 space-y-2">
-                <h4 className="text-sm font-medium">
-                  Tipos de licencias disponibles:
-                </h4>
-                <div className="grid grid-cols-1 gap-2">
-                  {availableLeaveTypes.map((type) => (
-                    <div key={type.value} className="flex items-center text-sm">
-                      <FileText className="h-3.5 w-3.5 mr-2 text-purple-500" />
-                      {type.label}
-                    </div>
-                  ))}
                 </div>
-              </div>
-            </TabsContent>
-          </Tabs>
-        </CardContent>
-      </Card>
+              </TabsContent>
+
+              <TabsContent value="active" className="mt-4 space-y-4">
+                {loading ? (
+                  <div className="text-center py-8 text-muted-foreground">
+                    Cargando licencias...
+                  </div>
+                ) : !licencias || licencias.length === 0 ? (
+                  <div className="text-center py-8 text-muted-foreground">
+                    <FileText className="h-8 w-8 mx-auto mb-3 opacity-50" />
+                    <p className="font-medium">
+                      No tienes licencias registradas
+                    </p>
+                    <p className="text-sm">
+                      Puedes solicitar una nueva licencia usando la pestaña
+                      "Solicitar"
+                    </p>
+                  </div>
+                ) : (
+                  licencias.map((licencia) => (
+                    <div
+                      key={licencia.id}
+                      className="border rounded-lg p-3 hover:bg-purple-50 dark:hover:bg-purple-950 transition-colors"
+                    >
+                      <div className="flex justify-between items-start mb-2">
+                        <div className="flex items-center gap-2">
+                          <FileText className="h-4 w-4 text-purple-500" />
+                          <span className="font-medium">
+                            {licencia.tipoLicencia}
+                          </span>
+                        </div>
+                        <Badge
+                          className={getLeaveStatusBadge(licencia.aprobado)}
+                        >
+                          {getLeaveStatusText(licencia.aprobado)}
+                        </Badge>
+                      </div>
+                      <div className="text-sm space-y-1">
+                        <div className="flex items-center gap-2">
+                          <Calendar className="h-4 w-4 text-purple-500" />
+                          <span>Desde: {formatDate(licencia.fechaInicio)}</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Calendar className="h-4 w-4 text-purple-500" />
+                          <span>Hasta: {formatDate(licencia.fechaFin)}</span>
+                        </div>
+                        {licencia.notas && (
+                          <div className="text-muted-foreground mt-1 italic">
+                            &quot;{licencia.notas}&quot;
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ))
+                )}
+                <Button variant="outline" size="sm" className="w-full" asChild>
+                  <Link href="/empleado/licencias">Ver historial completo</Link>
+                </Button>
+              </TabsContent>
+
+              <TabsContent value="request" className="mt-4">
+                <div className="border rounded-lg p-4 hover:bg-purple-50 dark:hover:bg-purple-950 transition-colors">
+                  <h3 className="font-medium mb-3">Solicitar nueva licencia</h3>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    Para solicitar una nueva licencia o permiso, selecciona el
+                    tipo y completa el formulario detallado.
+                  </p>
+                  <Button
+                    className="w-full bg-purple-600 hover:bg-purple-700"
+                    onClick={openLeaveModal}
+                  >
+                    Solicitar licencia
+                  </Button>
+                </div>
+
+                <div className="mt-4 space-y-2">
+                  <h4 className="text-sm font-medium">
+                    Tipos de licencias disponibles:
+                  </h4>
+                  <div className="grid grid-cols-1 gap-2">
+                    {availableLeaveTypes.map((type) => (
+                      <div
+                        key={type.value}
+                        className="flex items-center text-sm"
+                      >
+                        <FileText className="h-3.5 w-3.5 mr-2 text-purple-500" />
+                        {type.label}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </TabsContent>
+            </Tabs>
+          </CardContent>
+        </Card>
+      )}
       {/* Service Detail Modal */}
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
         <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
@@ -962,6 +1057,40 @@ const DashboardEmployeeComponent = () => {
           </DialogHeader>
 
           <div className="space-y-4 py-2">
+            {/* Vacation info display */}
+            {employeeData && selectedLeaveType === "VACACIONES" && (
+              <div className="bg-yellow-50 dark:bg-yellow-950 border border-yellow-200 dark:border-yellow-800 rounded-lg p-3">
+                <div className="flex items-center gap-2 mb-2">
+                  <Calendar className="h-4 w-4 text-yellow-600" />
+                  <span className="font-medium text-yellow-800 dark:text-yellow-200">
+                    Días de vacaciones disponibles
+                  </span>
+                </div>
+                <div className="text-sm text-yellow-700 dark:text-yellow-300">
+                  Tienes <strong>{employeeData.diasVacacionesRestantes}</strong>{" "}
+                  días disponibles de un total de{" "}
+                  <strong>{employeeData.diasVacacionesTotal}</strong> días
+                  anuales.
+                </div>
+                {startDate && endDate && (
+                  <div className="mt-2 text-sm">
+                    <span className="text-yellow-700 dark:text-yellow-300">
+                      Días solicitados:{" "}
+                      <strong>
+                        {calculateDaysBetween(startDate, endDate)}
+                      </strong>
+                    </span>
+                    {calculateDaysBetween(startDate, endDate) >
+                      employeeData.diasVacacionesRestantes && (
+                      <div className="text-red-600 dark:text-red-400 mt-1">
+                        ⚠️ Excedes tus días disponibles
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* Type selection */}
             <div className="space-y-2">
               <label htmlFor="leaveType" className="block text-sm font-medium">
@@ -999,7 +1128,7 @@ const DashboardEmployeeComponent = () => {
                   className="w-full rounded-md border border-input bg-background px-3 py-2"
                   value={startDate}
                   onChange={(e) => setStartDate(e.target.value)}
-                  min={new Date().toISOString().split("T")[0]}
+                  min={getTodayDate()}
                 />
               </div>
               <div className="space-y-2">
@@ -1012,7 +1141,7 @@ const DashboardEmployeeComponent = () => {
                   className="w-full rounded-md border border-input bg-background px-3 py-2"
                   value={endDate}
                   onChange={(e) => setEndDate(e.target.value)}
-                  min={startDate || new Date().toISOString().split("T")[0]}
+                  min={startDate || getTodayDate()}
                 />
               </div>
             </div>
@@ -1044,7 +1173,13 @@ const DashboardEmployeeComponent = () => {
                 isSubmittingLeave ||
                 !selectedLeaveType ||
                 !startDate ||
-                !endDate
+                !endDate ||
+                (selectedLeaveType === "VACACIONES" &&
+                  employeeData !== null &&
+                  startDate !== "" &&
+                  endDate !== "" &&
+                  calculateDaysBetween(startDate, endDate) >
+                    employeeData.diasVacacionesRestantes)
               }
             >
               {isSubmittingLeave ? "Enviando solicitud..." : "Enviar solicitud"}

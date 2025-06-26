@@ -33,7 +33,6 @@ export const getUsers = createServerAction(
  */
 export const getUserById = createServerAction(async (id: number) => {
   const headers = await createAuthHeaders();
-
   const res = await fetch(
     `${process.env.NEXT_PUBLIC_API_URL}/api/users/${id}`,
     {

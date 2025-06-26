@@ -34,15 +34,32 @@ export const getServiceTypeBadge = (type: string) => {
 };
 
 // Function to get the badge style for leave status
-export const getLeaveStatusBadge = (status: string) => {
-  switch (status) {
-    case "APROBADO":
-      return "bg-green-100 text-green-800 hover:bg-green-200";
-    case "RECHAZADO":
-      return "bg-red-100 text-red-800 hover:bg-red-200";
-    case "PENDIENTE":
-      return "bg-yellow-100 text-yellow-800 hover:bg-yellow-200";
-    default:
-      return "bg-slate-100 text-slate-800 hover:bg-slate-100";
+export const getLeaveStatusBadge = (aprobado: boolean | null) => {
+  if (aprobado === null) {
+    return "bg-yellow-100 text-yellow-800 hover:bg-yellow-200";
+  } else if (aprobado === true) {
+    return "bg-green-100 text-green-800 hover:bg-green-200";
+  } else {
+    return "bg-red-100 text-red-800 hover:bg-red-200";
   }
+};
+
+// Function to get the leave status text
+export const getLeaveStatusText = (aprobado: boolean | null) => {
+  if (aprobado === null) {
+    return "PENDIENTE";
+  } else if (aprobado === true) {
+    return "APROBADO";
+  } else {
+    return "RECHAZADO";
+  }
+};
+
+// Function to get today's date in YYYY-MM-DD format
+export const getTodayDate = () => {
+  const today = new Date();
+  const year = today.getFullYear();
+  const month = String(today.getMonth() + 1).padStart(2, "0");
+  const day = String(today.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
 };

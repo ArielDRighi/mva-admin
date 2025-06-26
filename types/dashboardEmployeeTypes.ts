@@ -36,7 +36,7 @@ export interface Licencia {
   fechaFin: string;
   tipoLicencia: string;
   notas: string;
-  aprobado: boolean;
+  aprobado: boolean | null; // null = pendiente, true = aprobado, false = rechazado
   employee?: {
     id: number;
     nombre: string;
