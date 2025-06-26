@@ -330,12 +330,21 @@ const ListadoVehiculosComponent = ({
 
   const handleTabChange = (value: string) => {
     setActiveTab(value);
+    // Si cambiamos de filtro y estábamos usando paginación remota, resetear a página 1
+    if (value !== "todos" && activeTab === "todos") {
+      router.push(`?page=1&search=${searchTerm || ""}`);
+    }
   };
 
   const filteredVehiculos =
     activeTab === "todos"
       ? vehiculos
       : vehiculos.filter((veh) => veh.estado === activeTab.toUpperCase());
+
+  // Determinar si usar paginación remota o local
+  const useRemotePagination = activeTab === "todos";
+  const effectiveTotalItems = useRemotePagination ? total : filteredVehiculos.length;
+  const effectiveCurrentPage = useRemotePagination ? page : 1;
 
   useEffect(() => {
     if (isFirstLoad) {
@@ -462,10 +471,10 @@ const ListadoVehiculosComponent = ({
             searchPlaceholder="Buscar por placa, marca o modelo... (presiona Enter)"
             searchValue={searchTerm}
             onSearchClear={handleClearSearch}
-            remotePagination
-            totalItems={total}
-            currentPage={page}
-            onPageChange={handlePageChange}
+            remotePagination={useRemotePagination}
+            totalItems={effectiveTotalItems}
+            currentPage={effectiveCurrentPage}
+            onPageChange={useRemotePagination ? handlePageChange : undefined}
             onSearchChange={handleSearchChange}
             columns={[
               { title: "Vehículo", key: "vehiculo" },

@@ -513,12 +513,21 @@ export default function ListadoEmpleadosComponent({
 
   const handleTabChange = (value: string) => {
     setActiveTab(value);
+    // Si cambiamos de filtro y estábamos usando paginación remota, resetear a página 1
+    if (value !== "todos" && activeTab === "todos") {
+      router.push(`?page=1&search=${searchParam || ""}`);
+    }
   };
 
   const filteredEmployees =
     activeTab === "todos"
       ? employees
       : employees.filter((emp) => emp.estado === activeTab.toUpperCase());
+
+  // Determinar si usar paginación remota o local
+  const useRemotePagination = activeTab === "todos";
+  const effectiveTotalItems = useRemotePagination ? total : filteredEmployees.length;
+  const effectiveCurrentPage = useRemotePagination ? page : 1;
 
   // Separamos el efecto para el estado de "primera carga"
   useEffect(() => {
@@ -673,10 +682,10 @@ export default function ListadoEmpleadosComponent({
               "numero_legajo",
             ]}
             searchPlaceholder="Buscar por nombre, apellido, documento... (presiona Enter)"
-            remotePagination
-            totalItems={total}
-            currentPage={page}
-            onPageChange={handlePageChange}
+            remotePagination={useRemotePagination}
+            totalItems={effectiveTotalItems}
+            currentPage={effectiveCurrentPage}
+            onPageChange={useRemotePagination ? handlePageChange : undefined}
             onSearchChange={handleSearchChange}
             columns={[
               { title: "Empleado", key: "empleado" },
