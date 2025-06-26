@@ -297,13 +297,19 @@ const ListadoVehiculosComponent = ({
     const search = searchParams.get("search") || "";
     setLoading(true);
 
+    console.log(
+      `Buscando vehículos con término: "${search}" en página ${currentPage}, filtro activo: ${activeTab}`
+    );
+
     try {
       // Make sure itemsPerPage is always a number with a fallback value
       const perPage = itemsPerPage || 15;
 
+      // Si estamos en un filtro específico, traemos todos los datos de ese estado
+      const shouldLoadAll = activeTab !== "todos";
       const fetchedVehiculos = (await getVehicles(
-        currentPage,
-        perPage,
+        shouldLoadAll ? 1 : currentPage,
+        shouldLoadAll ? 999999 : perPage, // Número grande para traer todos
         search
       )) as VehicleResponse;
 
@@ -326,7 +332,7 @@ const ListadoVehiculosComponent = ({
     } finally {
       setLoading(false);
     }
-  }, [searchParams, itemsPerPage]);
+  }, [searchParams, itemsPerPage, activeTab]);
 
   const handleTabChange = (value: string) => {
     setActiveTab(value);
@@ -364,7 +370,7 @@ const ListadoVehiculosComponent = ({
     } else {
       fetchVehiculos();
     }
-  }, [fetchVehiculos, isFirstLoad]);
+  }, [fetchVehiculos, isFirstLoad, activeTab]);
 
   if (loading) {
     return (

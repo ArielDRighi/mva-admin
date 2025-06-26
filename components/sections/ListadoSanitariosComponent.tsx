@@ -274,8 +274,17 @@ const ListadoSanitariosComponent = ({
       const searchTerm = searchParams.get("search") || "";
       const pageNumber = Number(searchParams.get("page") || currentPage);
 
-      // Realizar la petición para obtener los sanitarios
-      const result = await getSanitarios(pageNumber, itemsPerPage, searchTerm);
+      console.log(
+        `Buscando sanitarios con término: "${searchTerm}" en página ${pageNumber}, filtro activo: ${activeTab}`
+      );
+
+      // Si estamos en un filtro específico, traemos todos los datos de ese estado
+      const shouldLoadAll = activeTab !== "todos";
+      const result = await getSanitarios(
+        shouldLoadAll ? 1 : pageNumber,
+        shouldLoadAll ? 999999 : itemsPerPage, // Número grande para traer todos
+        searchTerm
+      );
 
       // Utilizamos una aserción de tipo más específica
       type ApiResponse = {
@@ -304,7 +313,7 @@ const ListadoSanitariosComponent = ({
     } finally {
       setLoading(false);
     }
-  }, [searchParams, currentPage, itemsPerPage]);
+  }, [searchParams, currentPage, itemsPerPage, activeTab]);
 
   const handleTabChange = (value: string) => {
     setActiveTab(value);
@@ -351,7 +360,7 @@ const ListadoSanitariosComponent = ({
     } else {
       fetchSanitarios();
     }
-  }, [fetchSanitarios, isFirstLoad]);
+  }, [fetchSanitarios, isFirstLoad, activeTab]);
   // La verificación de autenticación ya se maneja en el AuthErrorHandler
 
   if (loading) {

@@ -425,13 +425,15 @@ export default function ListadoEmpleadosComponent({
     // Comenzar la carga
     setLoading(true);
     console.log(
-      `Buscando empleados con término: "${search}" en página ${currentPage}`
+      `Buscando empleados con término: "${search}" en página ${currentPage}, filtro activo: ${activeTab}`
     );
 
     try {
+      // Si estamos en un filtro específico, traemos todos los datos de ese estado
+      const shouldLoadAll = activeTab !== "todos";
       const fetchedEmployees = await getEmployees(
-        currentPage,
-        itemsPerPage,
+        shouldLoadAll ? 1 : currentPage,
+        shouldLoadAll ? 999999 : itemsPerPage, // Número grande para traer todos
         search
       );
 
@@ -509,7 +511,7 @@ export default function ListadoEmpleadosComponent({
     } finally {
       setLoading(false);
     }
-  }, [currentPageParam, searchParam, itemsPerPage]);
+  }, [currentPageParam, searchParam, itemsPerPage, activeTab]);
 
   const handleTabChange = (value: string) => {
     setActiveTab(value);
@@ -553,7 +555,7 @@ export default function ListadoEmpleadosComponent({
     if (!isFirstLoad) {
       fetchEmployees();
     }
-  }, [fetchEmployees, isFirstLoad, currentPageParam, searchParam]);
+  }, [fetchEmployees, isFirstLoad, currentPageParam, searchParam, activeTab]);
 
   if (loading) {
     return (
