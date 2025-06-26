@@ -266,7 +266,6 @@ const DashboardEmployeeComponent = () => {
           </div>
         </div>
       </div>{" "}
-
       {/* Main dashboard content */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 md:gap-6">
         {/* Upcoming services card - Now full width */}
@@ -576,19 +575,25 @@ const DashboardEmployeeComponent = () => {
                         <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">
                           {employeeData.diasVacacionesTotal}
                         </div>
-                        <div className="text-sm text-muted-foreground">Total anual</div>
+                        <div className="text-sm text-muted-foreground">
+                          Total anual
+                        </div>
                       </div>
                       <div className="text-center p-4 bg-green-50 dark:bg-green-950 rounded-lg">
                         <div className="text-2xl font-bold text-green-600 dark:text-green-400">
                           {employeeData.diasVacacionesRestantes}
                         </div>
-                        <div className="text-sm text-muted-foreground">Disponibles</div>
+                        <div className="text-sm text-muted-foreground">
+                          Disponibles
+                        </div>
                       </div>
                       <div className="text-center p-4 bg-orange-50 dark:bg-orange-950 rounded-lg">
                         <div className="text-2xl font-bold text-orange-600 dark:text-orange-400">
                           {employeeData.diasVacacionesUsados}
                         </div>
-                        <div className="text-sm text-muted-foreground">Utilizados</div>
+                        <div className="text-sm text-muted-foreground">
+                          Utilizados
+                        </div>
                       </div>
                     </div>
                     <div className="mt-4">
@@ -629,7 +634,9 @@ const DashboardEmployeeComponent = () => {
                 ) : !licencias || licencias.length === 0 ? (
                   <div className="text-center py-8 text-muted-foreground">
                     <FileText className="h-8 w-8 mx-auto mb-3 opacity-50" />
-                    <p className="font-medium">No tienes licencias registradas</p>
+                    <p className="font-medium">
+                      No tienes licencias registradas
+                    </p>
                     <p className="text-sm">
                       Puedes solicitar una nueva licencia usando la pestaña
                       "Solicitar"
@@ -648,7 +655,9 @@ const DashboardEmployeeComponent = () => {
                             {licencia.tipoLicencia}
                           </span>
                         </div>
-                        <Badge className={getLeaveStatusBadge(licencia.aprobado)}>
+                        <Badge
+                          className={getLeaveStatusBadge(licencia.aprobado)}
+                        >
                           {getLeaveStatusText(licencia.aprobado)}
                         </Badge>
                       </div>
@@ -696,7 +705,10 @@ const DashboardEmployeeComponent = () => {
                   </h4>
                   <div className="grid grid-cols-1 gap-2">
                     {availableLeaveTypes.map((type) => (
-                      <div key={type.value} className="flex items-center text-sm">
+                      <div
+                        key={type.value}
+                        className="flex items-center text-sm"
+                      >
                         <FileText className="h-3.5 w-3.5 mr-2 text-purple-500" />
                         {type.label}
                       </div>
