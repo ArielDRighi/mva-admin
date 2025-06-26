@@ -73,18 +73,19 @@ const detallesSchema = z.object({
     .optional(),
   periodicidad: z.enum(
     [
-      "Mensual",
       "Diaria",
+      "Dos veces por semana",
+      "Tres veces por semana",
+      "Cuatro veces por semana",
       "Semanal",
       "Quincenal",
-      "Trimestral",
-      "Semestral",
+      "Mensual",
       "Anual",
     ],
     {
       required_error: "La periodicidad es obligatoria",
     }
-  ),
+  ).optional(),
   estado: z.string().min(1, "El estado es obligatorio"),
 });
 
@@ -263,7 +264,8 @@ export default function CrearCondicionContractualComponent() {
         tarifa_alquiler: data.tarifa_alquiler || 0,
         tarifa_instalacion: data.tarifa_instalacion || 0,
         tarifa_limpieza: data.tarifa_limpieza || 0,
-        periodicidad: data.periodicidad,
+        // Solo incluir periodicidad si es tipo INSTALACION, sino usar valor por defecto
+        periodicidad: data.tipo_servicio === "INSTALACION" ? (data.periodicidad || "Mensual") : "Mensual",
         estado: data.estado,
       };
 
@@ -624,31 +626,35 @@ export default function CrearCondicionContractualComponent() {
               />
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
-              <Controller
-                name="periodicidad"
-                control={control}
-                render={({ field, fieldState }) => (
-                  <FormField
-                    label="Periodicidad"
-                    name="periodicidad"
-                    fieldType="select"
-                    value={field.value as string}
-                    onChange={(value: string) => field.onChange(value)}
-                    options={[
-                      { label: "Diaria", value: "Diaria" },
-                      { label: "Semanal", value: "Semanal" },
-                      { label: "Quincenal", value: "Quincenal" },
-                      { label: "Mensual", value: "Mensual" },
-                      { label: "Trimestral", value: "Trimestral" },
-                      { label: "Semestral", value: "Semestral" },
-                      { label: "Anual", value: "Anual" },
-                    ]}
-                    error={fieldState.error?.message}
-                  />
-                )}
-              />
-            </div>
+            {/* Periodicidad - Solo se muestra para tipo de servicio INSTALACION */}
+            {watch("tipo_servicio") === "INSTALACION" && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+                <Controller
+                  name="periodicidad"
+                  control={control}
+                  render={({ field, fieldState }) => (
+                    <FormField
+                      label="Periodicidad"
+                      name="periodicidad"
+                      fieldType="select"
+                      value={field.value as string}
+                      onChange={(value: string) => field.onChange(value)}
+                      options={[
+                        { label: "Diaria", value: "Diaria" },
+                        { label: "Dos veces por semana", value: "Dos veces por semana" },
+                        { label: "Tres veces por semana", value: "Tres veces por semana" },
+                        { label: "Cuatro veces por semana", value: "Cuatro veces por semana" },
+                        { label: "Semanal", value: "Semanal" },
+                        { label: "Quincenal", value: "Quincenal" },
+                        { label: "Mensual", value: "Mensual" },
+                        { label: "Anual", value: "Anual" },
+                      ]}
+                      error={fieldState.error?.message}
+                    />
+                  )}
+                />
+              </div>
+            )}
 
             <Controller
               name="estado"

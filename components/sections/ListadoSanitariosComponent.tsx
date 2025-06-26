@@ -308,6 +308,10 @@ const ListadoSanitariosComponent = ({
 
   const handleTabChange = (value: string) => {
     setActiveTab(value);
+    // Si cambiamos de filtro y estábamos usando paginación remota, resetear a página 1
+    if (value !== "todos" && activeTab === "todos") {
+      router.push(`?page=1&search=${searchTerm || ""}`);
+    }
   };
 
   const filteredSanitarios =
@@ -323,6 +327,11 @@ const ListadoSanitariosComponent = ({
           if (activeTab === "baja") return san.estado === "BAJA";
           return true;
         });
+
+  // Determinar si usar paginación remota o local
+  const useRemotePagination = activeTab === "todos";
+  const effectiveTotalItems = useRemotePagination ? total : filteredSanitarios.length;
+  const effectiveCurrentPage = useRemotePagination ? page : 1;
 
   useEffect(() => {
     if (isFirstLoad) {
@@ -483,10 +492,10 @@ const ListadoSanitariosComponent = ({
             searchableKeys={["codigo_interno", "modelo", "estado"]}
             searchValue={searchTerm}
             onSearchClear={handleClearSearch}
-            remotePagination
-            totalItems={total}
-            currentPage={page}
-            onPageChange={handlePageChange}
+            remotePagination={useRemotePagination}
+            totalItems={effectiveTotalItems}
+            currentPage={effectiveCurrentPage}
+            onPageChange={useRemotePagination ? handlePageChange : undefined}
             onSearchChange={handleSearchChange}
             searchPlaceholder="Buscar por modelo, código interno o estado... (presiona Enter)"
             columns={[

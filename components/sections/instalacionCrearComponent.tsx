@@ -40,6 +40,7 @@ import { getEmployees } from "@/app/actions/empleados";
 import { getVehicles } from "@/app/actions/vehiculos";
 import { getSanitarios } from "@/app/actions/sanitarios";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { PaginationLocal } from "@/components/ui/local/PaginationLocal";
 
 // Combined schema
 const formSchema = z.object({
@@ -119,6 +120,11 @@ export default function CrearInstalacionComponent() {
     []
   );
   const [banosDisponibles, setBanosDisponibles] = useState<Sanitario[]>([]);
+  // Estados para paginación de baños
+  const [banosPage, setBanosPage] = useState<number>(1);
+  const [banosTotalPages, setBanosTotalPages] = useState<number>(1);
+  const [banosTotal, setBanosTotal] = useState<number>(0);
+  const [isLoadingBanos, setIsLoadingBanos] = useState<boolean>(false);
 
   // Estado para asignación de roles A y B
   const [empleadoRolA, setEmpleadoRolA] = useState<number | null>(null);
@@ -325,11 +331,9 @@ export default function CrearInstalacionComponent() {
           const [
             empleadosResponseRaw,
             vehiculosResponseRaw,
-            sanitariosResponseRaw,
           ] = await Promise.all([
             getEmployees(),
             getVehicles(),
-            getSanitarios(),
           ]);
 
           // Procesar respuesta de empleados con verificación de tipo
@@ -380,38 +384,13 @@ export default function CrearInstalacionComponent() {
             }
           }
 
-          // Procesar respuesta de sanitarios con verificación de tipo
-          const sanitariosResponse =
-            sanitariosResponseRaw as SanitariosResponse;
-          let sanitariosDisp: Sanitario[] = [];
-
-          if (sanitariosResponse && typeof sanitariosResponse === "object") {
-            if (
-              "data" in sanitariosResponse &&
-              Array.isArray(sanitariosResponse.data)
-            ) {
-              sanitariosDisp = sanitariosResponse.data.filter(
-                (sanitario) => sanitario.estado === "DISPONIBLE"
-              );
-            } else if (
-              "items" in sanitariosResponse &&
-              Array.isArray(sanitariosResponse.items)
-            ) {
-              sanitariosDisp = sanitariosResponse.items.filter(
-                (sanitario) => sanitario.estado === "DISPONIBLE"
-              );
-            }
-          }
-
           // Actualizar estados con los datos procesados
           setEmpleadosDisponibles(empleadosDisp);
           setVehiculosDisponibles(vehiculosDisp);
-          setBanosDisponibles(sanitariosDisp);
 
-          // Resetear las selecciones
+          // Resetear las selecciones (no resetear banosIds aquí)
           setValue("empleadosIds", []);
           setValue("vehiculosIds", []);
-          setValue("banosIds", []);
         } catch (error) {
           console.error("Error al cargar recursos:", error);
           toast.error("Error al cargar recursos", {
@@ -427,6 +406,7 @@ export default function CrearInstalacionComponent() {
     };
 
     if (step >= 4) {
+      setBanosPage(1); // Resetear página de baños
       fetchResources();
     }
   }, [selectedFechaProgramada, step, setValue]);
@@ -691,6 +671,54 @@ export default function CrearInstalacionComponent() {
     }
     setEmpleadoRolB(empleadoId);
     setValue("empleadoBId", empleadoId);
+  };
+
+  // Función separada para cargar baños con paginación
+  const fetchBanos = async (page: number = 1) => {
+    try {
+      setIsLoadingBanos(true);
+      const sanitariosResponse = await getSanitarios(page, 15, "");
+      
+      if (sanitariosResponse && typeof sanitariosResponse === "object") {
+        let sanitariosDisp: Sanitario[] = [];
+        
+        if ("items" in sanitariosResponse && Array.isArray(sanitariosResponse.items)) {
+          sanitariosDisp = sanitariosResponse.items.filter(
+            (sanitario) => sanitario.estado === "DISPONIBLE"
+          );
+          const response = sanitariosResponse as any;
+          setBanosTotalPages(response.totalPages || 1);
+          setBanosTotal(response.total || 0);
+        } else if (Array.isArray(sanitariosResponse)) {
+          sanitariosDisp = sanitariosResponse.filter(
+            (sanitario) => sanitario.estado === "DISPONIBLE"
+          );
+          setBanosTotalPages(1);
+          setBanosTotal(sanitariosDisp.length);
+        }
+        
+        setBanosDisponibles(sanitariosDisp);
+      }
+    } catch (error) {
+      console.error("Error al cargar baños:", error);
+      toast.error("Error al cargar baños", {
+        description: error instanceof Error ? error.message : "Error desconocido",
+      });
+    } finally {
+      setIsLoadingBanos(false);
+    }
+  };
+
+  // useEffect para cargar baños cuando cambia la página o el paso
+  useEffect(() => {
+    if (step >= 4) {
+      fetchBanos(banosPage);
+    }
+  }, [banosPage, step]);
+
+  // Función para cambiar página de baños
+  const handleBanosPageChange = (page: number) => {
+    setBanosPage(page);
   };
 
   return (
@@ -1119,7 +1147,7 @@ export default function CrearInstalacionComponent() {
               </div>
 
               <p className="text-xs text-slate-500 mb-3">
-                Solo se muestran empleados con estado &quot;DISPONIBLE&quot;
+                Se muestran empleados con estado &quot;DISPONIBLE&quot; y &quot;ASIGNADO&quot;
               </p>
               {isLoading ? (
                 <div className="flex justify-center py-4">
@@ -1223,7 +1251,7 @@ export default function CrearInstalacionComponent() {
             <div>
               <h3 className="font-medium mb-1">Vehículos Disponibles</h3>
               <p className="text-xs text-slate-500 mb-3">
-                Solo se muestran vehículos con estado &quot;DISPONIBLE&quot;
+                Se muestran vehículos con estado &quot;DISPONIBLE&quot; y &quot;ASIGNADO&quot;
               </p>
               {isLoading ? (
                 <div className="flex justify-center py-4">
@@ -1299,7 +1327,7 @@ export default function CrearInstalacionComponent() {
               <p className="text-xs text-slate-500 mb-3">
                 Solo se muestran baños con estado &quot;DISPONIBLE&quot;
               </p>
-              {isLoading ? (
+              {isLoadingBanos ? (
                 <div className="flex justify-center py-4">
                   <Loader className="h-6 w-6 text-indigo-500" />
                 </div>
@@ -1368,6 +1396,17 @@ export default function CrearInstalacionComponent() {
               ) : (
                 <div className="p-4 text-center text-slate-500 border rounded-md">
                   No hay baños disponibles para la fecha seleccionada.
+                </div>
+              )}
+              
+              {/* Paginación de baños */}
+              {banosTotalPages > 1 && (
+                <div className="mt-4 flex justify-center">
+                  <PaginationLocal
+                    total={banosTotalPages}
+                    currentPage={banosPage}
+                    onChangePage={handleBanosPageChange}
+                  />
                 </div>
               )}
               {errors.banosIds && (
