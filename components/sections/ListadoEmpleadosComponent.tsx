@@ -513,10 +513,10 @@ export default function ListadoEmpleadosComponent({
 
   const handleTabChange = (value: string) => {
     setActiveTab(value);
-    // Si cambiamos de filtro y estábamos usando paginación remota, resetear a página 1
-    if (value !== "todos" && activeTab === "todos") {
-      router.push(`?page=1&search=${searchParam || ""}`);
-    }
+    // Siempre resetear a página 1 cuando cambiamos de filtro
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("page", "1");
+    router.replace(`?${params.toString()}`);
   };
 
   const filteredEmployees =
@@ -527,7 +527,19 @@ export default function ListadoEmpleadosComponent({
   // Determinar si usar paginación remota o local
   const useRemotePagination = activeTab === "todos";
   const effectiveTotalItems = useRemotePagination ? total : filteredEmployees.length;
-  const effectiveCurrentPage = useRemotePagination ? page : 1;
+  const effectiveCurrentPage = useRemotePagination ? page : currentPageParam;
+
+  // Manejador de página que funciona tanto para paginación remota como local
+  const handlePageChangeUnified = (page: number) => {
+    if (useRemotePagination) {
+      handlePageChange(page);
+    } else {
+      // Para paginación local, solo actualizamos la URL para mantener consistencia
+      const params = new URLSearchParams(searchParams.toString());
+      params.set("page", String(page));
+      router.replace(`?${params.toString()}`);
+    }
+  };
 
   // Separamos el efecto para el estado de "primera carga"
   useEffect(() => {
@@ -685,7 +697,7 @@ export default function ListadoEmpleadosComponent({
             remotePagination={useRemotePagination}
             totalItems={effectiveTotalItems}
             currentPage={effectiveCurrentPage}
-            onPageChange={useRemotePagination ? handlePageChange : undefined}
+            onPageChange={handlePageChangeUnified}
             onSearchChange={handleSearchChange}
             columns={[
               { title: "Empleado", key: "empleado" },
