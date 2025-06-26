@@ -1,22 +1,36 @@
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
-import { getUserById } from "@/app/actions/users";
+import { getEmployeeById } from "@/app/actions/empleados";
 import { User } from "@/components/sections/DashboardComponent";
 import { getCookie } from "cookies-next";
 import { useRouter } from "next/navigation";
 
-interface UserResponse {
-  empleadoId: number;
-  [key: string]: any;
+interface EmployeeData {
+  id: number;
+  nombre: string;
+  apellido: string;
+  documento: string;
+  telefono: string;
+  email: string;
+  direccion: string;
+  fecha_nacimiento: string;
+  fecha_contratacion: string;
+  cargo: string;
+  estado: string;
+  numero_legajo: string;
+  cuil: string;
+  cbu: string | null;
+  diasVacacionesTotal: number;
+  diasVacacionesRestantes: number;
+  diasVacacionesUsados: number;
 }
 
 export const useEmployeeData = () => {
   const [user, setUser] = useState<User | null>(null);
+  const [employeeData, setEmployeeData] = useState<EmployeeData | null>(null);
   const [employeeId, setEmployeeId] = useState(0);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
-
-  const userId = user?.id || 0;
 
   useEffect(() => {
     const userCookie = getCookie("user");
@@ -24,7 +38,17 @@ export const useEmployeeData = () => {
     if (userCookie) {
       try {
         const parsedUser = JSON.parse(userCookie as string);
+        console.log("Parsed user from cookie:", parsedUser);
         setUser(parsedUser);
+
+        // If user has empleadoId, set it directly
+        if (parsedUser.empleadoId) {
+          console.log(
+            "Setting employeeId from user cookie:",
+            parsedUser.empleadoId
+          );
+          setEmployeeId(parsedUser.empleadoId);
+        }
       } catch (error) {
         console.error("Error al parsear el usuario:", error);
         toast.error("Error de sesión", {
@@ -37,19 +61,24 @@ export const useEmployeeData = () => {
   }, [router]);
 
   useEffect(() => {
-    const fetchEmployee = async () => {
+    const fetchEmployeeData = async () => {
       try {
-        if (userId === 0) return;
+        if (employeeId === 0) {
+          return;
+        }
 
         setLoading(true);
 
-        const fetchEmployee = (await getUserById(userId)) as UserResponse;
+        const completeEmployeeData = await getEmployeeById(
+          employeeId.toString()
+        );
 
-        if (!fetchEmployee || !fetchEmployee.empleadoId) {
-          throw new Error("No se encontró la información del empleado");
+        if (completeEmployeeData) {
+          setEmployeeData(completeEmployeeData as EmployeeData);
+        } else {
+          console.warn("No employee data returned from getEmployeeById");
+          setEmployeeData(null);
         }
-
-        setEmployeeId(fetchEmployee.empleadoId);
       } catch (error) {
         console.error("Error al obtener información del empleado:", error);
         toast.error("Error de datos", {
@@ -58,20 +87,22 @@ export const useEmployeeData = () => {
               ? error.message
               : "No se pudo cargar la información del empleado. Por favor, refresque la página.",
         });
-        setEmployeeId(0);
+        setEmployeeData(null);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchEmployee();
-  }, [userId]);
+    fetchEmployeeData();
+  }, [employeeId]);
 
   return {
     user,
+    employeeData,
     employeeId,
     loading,
     setUser,
+    setEmployeeData,
     setEmployeeId,
     setLoading,
   };
