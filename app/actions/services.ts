@@ -704,3 +704,96 @@ export const deleteFutureCleaning = createServerAction(async (id: number) => {
 
   return handleApiResponse(res, "Error al eliminar la limpieza futura");
 }, "Error al eliminar la limpieza futura");
+
+export interface CreateRetiroDto {
+  clienteId: number;
+  fechaProgramada: string;
+  tipoServicio: "RETIRO";
+  cantidadBanos: number;
+  cantidadEmpleados: number;
+  cantidadVehiculos: number;
+  ubicacion: string;
+  notas?: string;
+  asignacionAutomatica: boolean;
+  banosInstalados: number[];
+  condicionContractualId: number;
+  asignacionesManual: [
+    {
+      empleadoId: number;
+      vehiculoId: number;
+    },
+    {
+      empleadoId: number;
+    }
+  ];
+}
+
+/**
+ * Crea un servicio de retiro
+ */
+export const createServicioRetiro = createServerAction(
+  async (data: CreateRetiroDto) => {
+    console.log("[createServicioRetiro] Starting with data:", data);
+    const headers = await createAuthHeaders();
+
+    console.log("[createServicioRetiro] Token found, making API request");
+    console.log(
+      "[createServicioRetiro] API URL:",
+      `${process.env.NEXT_PUBLIC_API_URL}/api/services/retiro`
+    );
+
+    try {
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/api/services/retiro`,
+        {
+          method: "POST",
+          headers,
+          body: JSON.stringify(data),
+          cache: "no-store",
+        }
+      );
+
+      console.log("[createServicioRetiro] Response status:", res.status);
+
+      if (!res.ok) {
+        const errorText = await res.text();
+        console.error("[createServicioRetiro] Error response:", errorText);
+        throw new Error(`Error al crear el servicio de retiro: ${errorText}`);
+      }
+
+      const responseData = await res.json();
+      console.log("[createServicioRetiro] Success response:", responseData);
+      return responseData;
+    } catch (error) {
+      console.error("[createServicioRetiro] Exception:", error);
+      throw error;
+    }
+  },
+  "Error al crear el servicio de retiro"
+);
+
+/**
+ * Obtiene los servicios de retiro con paginación
+ */
+export const getServiciosRetiro = createServerAction(
+  async (page: number = 1, limit: number = 10) => {
+    const headers = await createAuthHeaders();
+
+    const queryParams = new URLSearchParams();
+    queryParams.append("page", page.toString());
+    queryParams.append("limit", limit.toString());
+
+    const res = await fetch(
+      `${
+        process.env.NEXT_PUBLIC_API_URL
+      }/api/services/retiro?${queryParams.toString()}`,
+      {
+        headers,
+        cache: "no-store",
+      }
+    );
+
+    return handleApiResponse(res, "Error al obtener servicios de retiro");
+  },
+  "Error al obtener servicios de retiro"
+);

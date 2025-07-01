@@ -290,66 +290,98 @@ export function ListadoServiciosComponent() {
         <Card>
           <CardHeader className="pb-2">
             <CardTitle>Servicios</CardTitle>{" "}
-            <div className="flex flex-col sm:flex-row items-center space-x-0 sm:space-x-2 space-y-2 sm:space-y-0 pt-2">
-              <form onSubmit={handleSearchSubmit} className="flex gap-2 w-full">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 pt-2">
+              <form onSubmit={handleSearchSubmit} className="flex gap-2 flex-1">
                 <Input
                   placeholder="Buscar por cliente, ubicación... (presiona Enter)"
                   value={searchTerm}
                   onChange={(e) => handleSearchInputChange(e.target.value)}
-                  className="max-w-sm w-full"
+                  className="flex-1 min-w-0"
                 />
-                <Button type="submit">Buscar</Button>
+                <Button type="submit" className="shrink-0">Buscar</Button>
               </form>
             </div>
-            <div className="mt-4 space-y-4">
-              {/* Filtro por tipo de servicio */}{" "}
-              <div>
-                <label className="text-sm font-medium">Tipo de Servicio:</label>
-                <Tabs
-                  value={tipoServicioFilter}
-                  onValueChange={handleTipoServicioChange}
-                  className="w-full mt-2"
-                >
-                  <TabsList className="grid grid-cols-4 w-full max-w-lg">
-                    <TabsTrigger value="todos">Todos</TabsTrigger>
-                    <TabsTrigger value="instalacion">Instalación</TabsTrigger>
-                    <TabsTrigger value="limpieza">Limpieza</TabsTrigger>
-                    <TabsTrigger value="capacitacion">Capacitación</TabsTrigger>
-                  </TabsList>
-                </Tabs>
-              </div>
-              {/* Filtro por estado */}
-              <div>
-                <label className="text-sm font-medium">Estado:</label>
-                <Tabs
-                  value={activeTab}
-                  onValueChange={handleTabChange}
-                  className="w-full mt-2"
-                >
-                  <TabsList className="grid grid-cols-4 w-full max-w-md">
-                    <TabsTrigger value="todos" className="flex items-center">
-                      Todos
-                    </TabsTrigger>
-                    <TabsTrigger
-                      value="programado"
-                      className="flex items-center"
-                    >
-                      Programados
-                    </TabsTrigger>
-                    <TabsTrigger
-                      value="en_progreso"
-                      className="flex items-center"
-                    >
-                      En Progreso
-                    </TabsTrigger>
-                    <TabsTrigger
-                      value="completado"
-                      className="flex items-center"
-                    >
-                      Completados
-                    </TabsTrigger>
-                  </TabsList>
-                </Tabs>
+            <div className="mt-4 space-y-3">
+              {/* Filtros en contenedor responsive */}
+              <div className="flex flex-col gap-4 max-w-2xl">
+                {/* Filtro por tipo de servicio */}
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-gray-700">Tipo de Servicio:</label>
+                  <Tabs
+                    value={tipoServicioFilter}
+                    onValueChange={handleTipoServicioChange}
+                    className="w-full max-w-xl"
+                  >
+                    <TabsList className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 w-full h-auto p-1 bg-gray-100 rounded-lg gap-1">
+                      <TabsTrigger 
+                        value="todos" 
+                        className="text-xs py-1.5 px-2 data-[state=active]:bg-white data-[state=active]:shadow-sm"
+                      >
+                        Todos
+                      </TabsTrigger>
+                      <TabsTrigger 
+                        value="instalacion" 
+                        className="text-xs py-1.5 px-2 data-[state=active]:bg-white data-[state=active]:shadow-sm"
+                      >
+                        Instalación
+                      </TabsTrigger>
+                      <TabsTrigger 
+                        value="limpieza" 
+                        className="text-xs py-1.5 px-2 data-[state=active]:bg-white data-[state=active]:shadow-sm"
+                      >
+                        Limpieza
+                      </TabsTrigger>
+                      <TabsTrigger 
+                        value="retiro" 
+                        className="text-xs py-1.5 px-2 data-[state=active]:bg-white data-[state=active]:shadow-sm"
+                      >
+                        Retiro
+                      </TabsTrigger>
+                      <TabsTrigger 
+                        value="capacitacion" 
+                        className="text-xs py-1.5 px-2 data-[state=active]:bg-white data-[state=active]:shadow-sm col-span-2 sm:col-span-1"
+                      >
+                        Capacitación
+                      </TabsTrigger>
+                    </TabsList>
+                  </Tabs>
+                </div>
+                {/* Filtro por estado */}
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-gray-700">Estado:</label>
+                  <Tabs
+                    value={activeTab}
+                    onValueChange={handleTabChange}
+                    className="w-full max-w-md"
+                  >
+                    <TabsList className="grid grid-cols-2 sm:grid-cols-4 w-full h-auto p-1 bg-gray-100 rounded-lg">
+                      <TabsTrigger 
+                        value="todos" 
+                        className="text-xs py-1.5 px-2 data-[state=active]:bg-white data-[state=active]:shadow-sm"
+                      >
+                        Todos
+                      </TabsTrigger>
+                      <TabsTrigger
+                        value="programado"
+                        className="text-xs py-1.5 px-2 data-[state=active]:bg-white data-[state=active]:shadow-sm"
+                      >
+                        Programados
+                      </TabsTrigger>
+                      <TabsTrigger
+                        value="en_progreso"
+                        className="text-xs py-1.5 px-2 data-[state=active]:bg-white data-[state=active]:shadow-sm"
+                      >
+                        En Progreso
+                      </TabsTrigger>
+                      <TabsTrigger
+                        value="completado"
+                        className="text-xs py-1.5 px-2 data-[state=active]:bg-white data-[state=active]:shadow-sm"
+                      >
+                        Completados
+                      </TabsTrigger>
+                    </TabsList>
+                  </Tabs>
+                </div>
               </div>
             </div>
           </CardHeader>
@@ -364,19 +396,20 @@ export function ListadoServiciosComponent() {
               </div>
             ) : (
               <>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>ID</TableHead>
-                      <TableHead>Tipo</TableHead>
-                      <TableHead>Cliente</TableHead>
-                      <TableHead>Fecha Programada</TableHead>
-                      <TableHead>Estado</TableHead>
-                      <TableHead>Ubicación</TableHead>
-                      <TableHead>Recursos</TableHead>
-                      <TableHead>Acciones</TableHead>
-                    </TableRow>
-                  </TableHeader>
+                <div className="overflow-x-auto">
+                  <Table className="min-w-full">
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="w-16 min-w-[60px]">ID</TableHead>
+                        <TableHead className="w-24 min-w-[100px]">Tipo</TableHead>
+                        <TableHead className="w-32 min-w-[150px]">Cliente</TableHead>
+                        <TableHead className="w-32 min-w-[150px]">Fecha Programada</TableHead>
+                        <TableHead className="w-24 min-w-[100px]">Estado</TableHead>
+                        <TableHead className="w-32 min-w-[150px] hidden sm:table-cell">Ubicación</TableHead>
+                        <TableHead className="w-24 min-w-[100px] hidden md:table-cell">Recursos</TableHead>
+                        <TableHead className="w-32 min-w-[120px]">Acciones</TableHead>
+                      </TableRow>
+                    </TableHeader>
                   <TableBody>
                     {paginatedServicios.map((servicio: Servicio) => (
                       <TableRow key={servicio.id}>
@@ -409,7 +442,7 @@ export function ListadoServiciosComponent() {
                             {servicio.estado}
                           </Badge>
                         </TableCell>
-                        <TableCell>
+                        <TableCell className="hidden sm:table-cell">
                           <div className="flex items-center">
                             <MapPin className="h-4 w-4 mr-2 text-muted-foreground" />
                             <span className="truncate max-w-[180px]">
@@ -417,7 +450,7 @@ export function ListadoServiciosComponent() {
                             </span>
                           </div>
                         </TableCell>
-                        <TableCell>
+                        <TableCell className="hidden md:table-cell">
                           <div className="flex items-center">
                             <FileText className="h-4 w-4 mr-2 text-muted-foreground" />
                             <span>{servicio.cantidadBanos} baños</span>
@@ -539,7 +572,8 @@ export function ListadoServiciosComponent() {
                       </TableRow>
                     ))}
                   </TableBody>
-                </Table>{" "}
+                </Table>
+                </div>
                 {filteredServicios.length > itemsPerPage && (
                   <div className="flex items-center justify-end space-x-2 py-4">
                     <Button
@@ -754,7 +788,7 @@ export function ListadoServiciosComponent() {
                           ))}
 
                         {/* Baños asignados desde asignaciones (para servicios de instalación) */}
-                        {selectedServicio.tipoServicio !== 'LIMPIEZA' && selectedServicio.asignaciones
+                        {selectedServicio.tipoServicio !== 'LIMPIEZA' && selectedServicio.tipoServicio !== 'RETIRO' && selectedServicio.asignaciones
                           .filter((asig: Asignacion) => asig.bano)
                           .map((asig: Asignacion) => (
                             <div
@@ -769,25 +803,38 @@ export function ListadoServiciosComponent() {
                             </div>
                           ))}
 
-                        {/* 
-                          Baños instalados para servicios de LIMPIEZA:
+                        {                        /* 
+                          Baños instalados para servicios de LIMPIEZA y RETIRO:
                           - Para servicios de LIMPIEZA, el backend automáticamente asigna los baños 
                             del último servicio de INSTALACIÓN del cliente si no se especificaron baños
+                          - Para servicios de RETIRO, los baños instalados son los que se van a retirar
                           - Los códigos internos se guardan en el array banosInstalados como strings
                           - Para LIMPIEZA solo mostramos el código interno sin modelo ni badge
+                          - Para RETIRO mostramos el código interno con badge de "Para Retiro"
                         */}
                         {banosCompletos && banosCompletos.length > 0 ? (
                           // Mostrar baños con datos completos
                           banosCompletos.map((bano: any, index: number) => (
                             <div
                               key={`completo-${bano.baño_id || bano.id || index}`}
-                              className="flex items-center gap-2 p-2 rounded-md bg-blue-50"
+                              className={`flex items-center gap-2 p-2 rounded-md ${
+                                selectedServicio?.tipoServicio === 'RETIRO' 
+                                  ? 'bg-red-50' 
+                                  : 'bg-blue-50'
+                              }`}
                             >
-                              <Bath className="h-4 w-4 text-blue-500" />
+                              <Bath className={`h-4 w-4 ${
+                                selectedServicio?.tipoServicio === 'RETIRO' 
+                                  ? 'text-red-500' 
+                                  : 'text-blue-500'
+                              }`} />
                               <span>
                                 {selectedServicio?.tipoServicio === 'LIMPIEZA' ? (
                                   // Para servicios de LIMPIEZA, solo mostrar el código interno
                                   `Baño #${bano.codigo_interno || bano.baño_id || bano.id}`
+                                ) : selectedServicio?.tipoServicio === 'RETIRO' ? (
+                                  // Para servicios de RETIRO, mostrar con identificación especial
+                                  `Baño #${bano.codigo_interno || bano.baño_id || bano.id} (Para Retiro)`
                                 ) : (
                                   // Para otros servicios, mostrar información completa
                                   `Baño #${bano.codigo_interno || bano.baño_id || bano.id} (Modelo: ${bano.modelo || 'No especificado'})`
@@ -815,14 +862,27 @@ export function ListadoServiciosComponent() {
                               return (
                                 <div
                                   key={`instalado-string-${banoCodigoInterno}`}
-                                  className="flex items-center gap-2 p-2 rounded-md bg-blue-50"
+                                  className={`flex items-center gap-2 p-2 rounded-md ${
+                                    selectedServicio.tipoServicio === 'RETIRO' 
+                                      ? 'bg-red-50' 
+                                      : 'bg-blue-50'
+                                  }`}
                                 >
-                                  <Bath className="h-4 w-4 text-blue-500" />
+                                  <Bath className={`h-4 w-4 ${
+                                    selectedServicio.tipoServicio === 'RETIRO' 
+                                      ? 'text-red-500' 
+                                      : 'text-blue-500'
+                                  }`} />
                                   <span>
                                     Baño #{banoCodigoInterno} (Modelo: {modelo})
                                     {selectedServicio.tipoServicio === 'LIMPIEZA' && (
                                       <Badge variant="outline" className="ml-2 bg-blue-100 text-blue-800">
                                         Para Limpieza
+                                      </Badge>
+                                    )}
+                                    {selectedServicio.tipoServicio === 'RETIRO' && (
+                                      <Badge variant="outline" className="ml-2 bg-red-100 text-red-800">
+                                        Para Retiro
                                       </Badge>
                                     )}
                                   </span>
@@ -835,14 +895,27 @@ export function ListadoServiciosComponent() {
                               return (
                                 <div
                                   key={`instalado-${banoCodigoInterno}`}
-                                  className="flex items-center gap-2 p-2 rounded-md bg-blue-50"
+                                  className={`flex items-center gap-2 p-2 rounded-md ${
+                                    selectedServicio.tipoServicio === 'RETIRO' 
+                                      ? 'bg-red-50' 
+                                      : 'bg-blue-50'
+                                  }`}
                                 >
-                                  <Bath className="h-4 w-4 text-blue-500" />
+                                  <Bath className={`h-4 w-4 ${
+                                    selectedServicio.tipoServicio === 'RETIRO' 
+                                      ? 'text-red-500' 
+                                      : 'text-blue-500'
+                                  }`} />
                                   <span>
                                     Baño ID: {banoCodigoInterno}
                                     {selectedServicio.tipoServicio === 'LIMPIEZA' && (
                                       <Badge variant="outline" className="ml-2 bg-blue-100 text-blue-800">
                                         Para Limpieza
+                                      </Badge>
+                                    )}
+                                    {selectedServicio.tipoServicio === 'RETIRO' && (
+                                      <Badge variant="outline" className="ml-2 bg-red-100 text-red-800">
+                                        Para Retiro
                                       </Badge>
                                     )}
                                   </span>
@@ -870,14 +943,27 @@ export function ListadoServiciosComponent() {
                             return (
                              <div
                                key={`instalado-${banoCodigoInterno.baño_id || banoCodigoInterno.id || index}`}
-                               className="flex items-center gap-2 p-2 rounded-md bg-blue-50"
+                               className={`flex items-center gap-2 p-2 rounded-md ${
+                                 selectedServicio.tipoServicio === 'RETIRO' 
+                                   ? 'bg-red-50' 
+                                   : 'bg-blue-50'
+                               }`}
                              >
-                               <Bath className="h-4 w-4 text-blue-500" />
+                               <Bath className={`h-4 w-4 ${
+                                 selectedServicio.tipoServicio === 'RETIRO' 
+                                   ? 'text-red-500' 
+                                   : 'text-blue-500'
+                               }`} />
                                <span>
                                  Baño #{codigoInterno} (Modelo: {modelo})
                                  {selectedServicio.tipoServicio === 'LIMPIEZA' && (
                                    <Badge variant="outline" className="ml-2 bg-blue-100 text-blue-800">
                                      Para Limpieza
+                                   </Badge>
+                                 )}
+                                 {selectedServicio.tipoServicio === 'RETIRO' && (
+                                   <Badge variant="outline" className="ml-2 bg-red-100 text-red-800">
+                                     Para Retiro
                                    </Badge>
                                  )}
                                </span>

@@ -85,8 +85,12 @@ const dataSideBar = {
           url: "/admin/dashboard/servicios/instalacion/crear",
         },
         {
-          title: "Crear Servicio Generico",
+          title: "Crear Servicio de Limpieza",
           url: "/admin/dashboard/servicios/genericos/crear",
+        },
+        {
+          title: "Crear Servicio de Retiro",
+          url: "/admin/dashboard/servicios/retiro/crear",
         },
         {
           title: "Listado Servicios",
