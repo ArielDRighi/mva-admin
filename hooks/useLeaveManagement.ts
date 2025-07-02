@@ -14,11 +14,20 @@ interface LicenciaResponse {
   fechaFin: string;
   tipoLicencia: string;
   notas: string;
-  aprobado: boolean;
+  aprobado: boolean | null; // null = pendiente, true = aprobado, false = rechazado
   [key: string]: any;
 }
 
-export const useLeaveManagement = (employeeId: number) => {
+interface EmployeeVacationData {
+  diasVacacionesTotal: number;
+  diasVacacionesRestantes: number;
+  diasVacacionesUsados: number;
+}
+
+export const useLeaveManagement = (
+  employeeId: number,
+  employeeVacationData?: EmployeeVacationData
+) => {
   const [licencias, setLicencias] = useState<Licencia[]>([]);
   const [selectedLeaveType, setSelectedLeaveType] = useState<LeaveType | "">(
     ""
@@ -52,6 +61,15 @@ export const useLeaveManagement = (employeeId: number) => {
     fetchLicencias();
   }, [employeeId]);
 
+  // Function to calculate days between two dates (inclusive)
+  const calculateDaysBetween = (startDate: string, endDate: string): number => {
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    const diffTime = Math.abs(end.getTime() - start.getTime());
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1; // +1 to include both start and end date
+    return diffDays;
+  };
+
   const handleLeaveRequest = async () => {
     if (!selectedLeaveType || !startDate || !endDate || !employeeId) {
       toast.error("Datos incompletos", {
@@ -60,12 +78,45 @@ export const useLeaveManagement = (employeeId: number) => {
       return;
     }
 
-    if (new Date(endDate) < new Date(startDate)) {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0); // Reset time to start of day for accurate comparison
+
+    const startDateObj = new Date(startDate);
+    const endDateObj = new Date(endDate);
+
+    if (startDateObj < today) {
+      toast.error("Fecha inválida", {
+        description: "La fecha de inicio no puede ser anterior al día de hoy.",
+      });
+      return;
+    }
+
+    if (endDateObj < today) {
+      toast.error("Fecha inválida", {
+        description: "La fecha de fin no puede ser anterior al día de hoy.",
+      });
+      return;
+    }
+
+    if (endDateObj < startDateObj) {
       toast.error("Fechas inválidas", {
         description:
           "La fecha de fin no puede ser anterior a la fecha de inicio.",
       });
       return;
+    }
+
+    // Validate vacation days for "VACACIONES" leave type
+    if (selectedLeaveType === "VACACIONES" && employeeVacationData) {
+      const requestedDays = calculateDaysBetween(startDate, endDate);
+      const availableDays = employeeVacationData.diasVacacionesRestantes;
+
+      if (requestedDays > availableDays) {
+        toast.error("Días de vacaciones insuficientes", {
+          description: `Solo tienes ${availableDays} días de vacaciones disponibles, pero solicitas ${requestedDays} días.`,
+        });
+        return;
+      }
     }
 
     setIsSubmittingLeave(true);
@@ -144,5 +195,7 @@ export const useLeaveManagement = (employeeId: number) => {
     openLeaveModal,
     closeLeaveModal,
     refreshLicencias: fetchLicencias,
+    calculateDaysBetween,
+    availableVacationDays: employeeVacationData?.diasVacacionesRestantes || 0,
   };
 };
