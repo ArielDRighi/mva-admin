@@ -45,7 +45,7 @@ const condicionesSchema = z
     fecha_inicio: z.string().min(1, "La fecha de inicio es obligatoria"),
     fecha_fin: z.string().optional(),
     tipo_servicio: z
-      .enum(["INSTALACION", "LIMPIEZA", "MANTENIMIENTO", "ALQUILER"], {
+      .enum(["INSTALACION", "LIMPIEZA", "MANTENIMIENTO", "ALQUILER", "RETIRO"], {
         required_error: "El tipo de servicio es obligatorio",
       })
       .optional(),
@@ -94,7 +94,7 @@ const baseCondicionesSchema = z.object({
   fecha_inicio: z.string().min(1, "La fecha de inicio es obligatoria"),
   fecha_fin: z.string().optional(),
   tipo_servicio: z
-    .enum(["INSTALACION", "LIMPIEZA", "MANTENIMIENTO", "ALQUILER"], {
+    .enum(["INSTALACION", "LIMPIEZA", "MANTENIMIENTO", "ALQUILER", "RETIRO"], {
       required_error: "El tipo de servicio es obligatorio",
     })
     .optional(),
@@ -442,6 +442,7 @@ export default function CrearCondicionContractualComponent() {
                     { label: "Limpieza", value: "LIMPIEZA" },
                     { label: "Mantenimiento", value: "MANTENIMIENTO" },
                     { label: "Alquiler", value: "ALQUILER" },
+                    { label: "Retiro", value: "RETIRO" },
                   ]}
                   error={fieldState.error?.message}
                 />

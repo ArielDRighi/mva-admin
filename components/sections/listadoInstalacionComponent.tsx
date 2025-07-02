@@ -303,14 +303,14 @@ export function ListadoServiciosComponent() {
             </div>
             <div className="mt-4 space-y-3">
               {/* Filtros en contenedor responsive */}
-              <div className="flex flex-col gap-4 max-w-2xl">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                 {/* Filtro por tipo de servicio */}
                 <div className="space-y-2">
                   <label className="text-sm font-medium text-gray-700">Tipo de Servicio:</label>
                   <Tabs
                     value={tipoServicioFilter}
                     onValueChange={handleTipoServicioChange}
-                    className="w-full max-w-xl"
+                    className="w-full"
                   >
                     <TabsList className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 w-full h-auto p-1 bg-gray-100 rounded-lg gap-1">
                       <TabsTrigger 
@@ -352,7 +352,7 @@ export function ListadoServiciosComponent() {
                   <Tabs
                     value={activeTab}
                     onValueChange={handleTabChange}
-                    className="w-full max-w-md"
+                    className="w-full"
                   >
                     <TabsList className="grid grid-cols-2 sm:grid-cols-4 w-full h-auto p-1 bg-gray-100 rounded-lg">
                       <TabsTrigger 

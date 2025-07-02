@@ -15,7 +15,7 @@ export type ContractualCondition = {
     cuit: string;
   };
   clientId?: number;
-  tipo_servicio?: "INSTALACION" | "LIMPIEZA" | "MANTENIMIENTO" | string; // Agregando tipo de servicio
+  tipo_servicio?: "INSTALACION" | "LIMPIEZA" | "MANTENIMIENTO" | "ALQUILER" | "RETIRO" | string; // Agregando tipo de servicio
   fecha_inicio: string;
   fecha_fin: string;
   condiciones_especificas?: string;
@@ -26,7 +26,7 @@ export type ContractualCondition = {
 
 export type CreateContractualCondition = {
   clientId: number;
-  tipo_servicio?: "INSTALACION" | "LIMPIEZA" | "MANTENIMIENTO" | string; // Agregando tipo de servicio
+  tipo_servicio?: "INSTALACION" | "LIMPIEZA" | "MANTENIMIENTO" | "ALQUILER" | "RETIRO" | string; // Agregando tipo de servicio
   fecha_inicio: string;
   fecha_fin: string;
   condiciones_especificas?: string;
