@@ -710,7 +710,6 @@ export interface CreateRetiroDto {
   fechaProgramada: string;
   tipoServicio: "RETIRO";
   cantidadBanos: number;
-  cantidadEmpleados: number;
   cantidadVehiculos: number;
   ubicacion: string;
   notas?: string;
@@ -733,18 +732,11 @@ export interface CreateRetiroDto {
  */
 export const createServicioRetiro = createServerAction(
   async (data: CreateRetiroDto) => {
-    console.log("[createServicioRetiro] Starting with data:", data);
     const headers = await createAuthHeaders();
-
-    console.log("[createServicioRetiro] Token found, making API request");
-    console.log(
-      "[createServicioRetiro] API URL:",
-      `${process.env.NEXT_PUBLIC_API_URL}/api/services/retiro`
-    );
 
     try {
       const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/services/retiro`,
+        `${process.env.NEXT_PUBLIC_API_URL}/api/services/generico`,
         {
           method: "POST",
           headers,

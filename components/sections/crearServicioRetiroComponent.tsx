@@ -15,10 +15,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { getClients } from "@/app/actions/clientes";
 import { getContractualConditionsByClient } from "@/app/actions/contractualConditions";
-import {
-  CreateRetiroDto,
-  createServicioRetiro,
-} from "@/app/actions/services";
+import { CreateRetiroDto, createServicioRetiro } from "@/app/actions/services";
 import { Badge } from "@/components/ui/badge";
 import Loader from "@/components/ui/local/Loader";
 import { Cliente, Empleado, Sanitario, Vehiculo } from "@/types/types";
@@ -54,8 +51,6 @@ const formSchema = z.object({
     required_error: "La fecha programada es obligatoria",
   }),
   cantidadVehiculos: z.number().min(1, "Debe especificar al menos 1 vehículo"),
-  cantidadEmpleados: z.number().min(1, "Debe especificar al menos 1 empleado"),
-  cantidadBanos: z.number().min(0, "La cantidad de baños no puede ser negativa"),
   ubicacion: z.string().min(3, "La ubicación debe tener al menos 3 caracteres"),
   notas: z.string().optional(),
   banosInstalados: z.array(z.number()),
@@ -106,6 +101,7 @@ export function CrearServicioRetiroComponent() {
   >([]);
 
   const [banosInstalados, setBanosInstalados] = useState<Sanitario[]>([]);
+  console.log("banos instalados", banosInstalados);
   const [empleadosDisponibles, setEmpleadosDisponibles] = useState<Empleado[]>(
     []
   );
@@ -116,6 +112,10 @@ export function CrearServicioRetiroComponent() {
   const [selectedVehiculos, setSelectedVehiculos] = useState<number[]>([]);
   const [selectedBanos, setSelectedBanos] = useState<number[]>([]);
 
+  // Estado para asignación de roles A y B
+  const [empleadoRolA, setEmpleadoRolA] = useState<number | null>(null);
+  const [empleadoRolB, setEmpleadoRolB] = useState<number | null>(null);
+
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
@@ -125,8 +125,6 @@ export function CrearServicioRetiroComponent() {
       condicionContractualId: 0,
       fechaProgramada: undefined,
       cantidadVehiculos: 1,
-      cantidadEmpleados: 2,
-      cantidadBanos: 0,
       ubicacion: "",
       notas: "",
       banosInstalados: [],
@@ -180,7 +178,10 @@ export function CrearServicioRetiroComponent() {
           if ("items" in clientesData && Array.isArray(clientesData.items)) {
             setClientes(clientesData.items);
             setFilteredClientes(clientesData.items);
-          } else if ("data" in clientesData && Array.isArray(clientesData.data)) {
+          } else if (
+            "data" in clientesData &&
+            Array.isArray(clientesData.data)
+          ) {
             setClientes(clientesData.data);
             setFilteredClientes(clientesData.data);
           } else if (Array.isArray(clientesData)) {
@@ -331,14 +332,18 @@ export function CrearServicioRetiroComponent() {
               Array.isArray(empleadosResponse.data)
             ) {
               empleadosDisp = empleadosResponse.data.filter(
-                (empleado) => empleado.estado === "DISPONIBLE" || empleado.estado === "ASIGNADO"
+                (empleado) =>
+                  empleado.estado === "DISPONIBLE" ||
+                  empleado.estado === "ASIGNADO"
               );
             } else if (
               "items" in empleadosResponse &&
               Array.isArray(empleadosResponse.items)
             ) {
               empleadosDisp = empleadosResponse.items.filter(
-                (empleado) => empleado.estado === "DISPONIBLE" || empleado.estado === "ASIGNADO"
+                (empleado) =>
+                  empleado.estado === "DISPONIBLE" ||
+                  empleado.estado === "ASIGNADO"
               );
             } else {
               console.error(
@@ -368,14 +373,18 @@ export function CrearServicioRetiroComponent() {
               Array.isArray(vehiculosResponse.data)
             ) {
               vehiculosDisp = vehiculosResponse.data.filter(
-                (vehiculo) => vehiculo.estado === "DISPONIBLE" || vehiculo.estado === "ASIGNADO"
+                (vehiculo) =>
+                  vehiculo.estado === "DISPONIBLE" ||
+                  vehiculo.estado === "ASIGNADO"
               );
             } else if (
               "items" in vehiculosResponse &&
               Array.isArray(vehiculosResponse.items)
             ) {
               vehiculosDisp = vehiculosResponse.items.filter(
-                (vehiculo) => vehiculo.estado === "DISPONIBLE" || vehiculo.estado === "ASIGNADO"
+                (vehiculo) =>
+                  vehiculo.estado === "DISPONIBLE" ||
+                  vehiculo.estado === "ASIGNADO"
               );
             } else {
               console.error(
@@ -416,12 +425,13 @@ export function CrearServicioRetiroComponent() {
               (bano) => bano.estado === "ASIGNADO"
             );
             setBanosInstalados(banosAsignados);
-            setValue("cantidadBanos", banosAsignados.length);
-            
+
             // Preseleccionar todos los baños instalados para retiro urgente si se especifica en las notas
             const notasValue = getValues("notas") || "";
             if (notasValue.toLowerCase().includes("urgente")) {
-              const todosLosBanos = banosAsignados.map(bano => parseInt(bano.baño_id || "0"));
+              const todosLosBanos = banosAsignados.map((bano) =>
+                parseInt(bano.baño_id || "0")
+              );
               setSelectedBanos(todosLosBanos);
               setValue("banosInstalados", todosLosBanos);
             }
@@ -437,7 +447,6 @@ export function CrearServicioRetiroComponent() {
                 (bano) => bano.estado === "ASIGNADO"
               );
               setBanosInstalados(banosAsignados);
-              setValue("cantidadBanos", banosAsignados.length);
             } else if (
               "items" in banosClienteResponse &&
               Array.isArray(banosClienteResponse.items)
@@ -446,14 +455,12 @@ export function CrearServicioRetiroComponent() {
                 (bano) => bano.estado === "ASIGNADO"
               );
               setBanosInstalados(banosAsignados);
-              setValue("cantidadBanos", banosAsignados.length);
             } else {
               console.error(
                 "Formato de respuesta de baños no reconocido:",
                 banosClienteResponse
               );
               setBanosInstalados([]);
-              setValue("cantidadBanos", 0);
               toast.error("Error al cargar baños", {
                 description:
                   "El servidor devolvió datos en un formato inesperado",
@@ -465,7 +472,6 @@ export function CrearServicioRetiroComponent() {
               banosClienteResponse
             );
             setBanosInstalados([]);
-            setValue("cantidadBanos", 0);
             toast.error("Error al cargar baños", {
               description: "No se recibió una respuesta válida del servidor",
             });
@@ -498,6 +504,16 @@ export function CrearServicioRetiroComponent() {
 
     setSelectedEmpleados(updatedSelection);
     setValue("empleadosIds", updatedSelection);
+
+    // Si se deselecciona un empleado, quitar sus roles asignados
+    if (!updatedSelection.includes(empleadoId)) {
+      if (empleadoRolA === empleadoId) {
+        setEmpleadoRolA(null);
+      }
+      if (empleadoRolB === empleadoId) {
+        setEmpleadoRolB(null);
+      }
+    }
   };
 
   // Manejar selección de vehículo
@@ -549,7 +565,6 @@ export function CrearServicioRetiroComponent() {
         isStepValid = await trigger([
           "fechaProgramada",
           "cantidadVehiculos",
-          "cantidadEmpleados",
           "ubicacion",
         ] as const);
         break;
@@ -579,13 +594,7 @@ export function CrearServicioRetiroComponent() {
       setIsSubmitting(true);
 
       // Validaciones específicas para servicio de retiro
-      if (!data.banosInstalados || data.banosInstalados.length === 0) {
-        toast.error("Validación de formulario", {
-          description: "Debe seleccionar al menos un baño para retirar.",
-        });
-        setIsSubmitting(false);
-        return;
-      }
+      // Nota: banosInstalados debe contener los IDs de baños a retirar
 
       if (!data.empleadosIds || data.empleadosIds.length === 0) {
         toast.error("Validación de formulario", {
@@ -603,33 +612,72 @@ export function CrearServicioRetiroComponent() {
         return;
       }
 
-      // Preparar las asignaciones manuales según el formato requerido
-      const asignacionesManual: [
-        { empleadoId: number; vehiculoId: number },
-        { empleadoId: number }
-      ] = [
-        {
-          empleadoId: data.empleadosIds[0],
-          vehiculoId: data.vehiculosIds[0],
-        },
-        {
-          empleadoId: data.empleadosIds.length > 1 ? data.empleadosIds[1] : data.empleadosIds[0],
-        },
-      ];
+      if (!data.banosInstalados || data.banosInstalados.length === 0) {
+        toast.error("Validación de formulario", {
+          description: "Debe seleccionar al menos un baño para retirar.",
+        });
+        setIsSubmitting(false);
+        return;
+      }
+
+      // Validar que haya al menos un empleado seleccionado para el rol A si hay vehículos seleccionados
+      if (
+        data.vehiculosIds &&
+        data.vehiculosIds.length > 0 &&
+        empleadoRolA === null &&
+        data.empleadosIds.length > 0
+      ) {
+        toast.error("Validación de formulario", {
+          description:
+            "Debe seleccionar al menos un empleado para el rol de conductor (Rol A) cuando hay vehículos asignados.",
+        });
+        setIsSubmitting(false);
+        return;
+      }
+
+      // Si hay vehículos y empleados pero no se asignó el rol A, asignar automáticamente
+      if (
+        data.vehiculosIds &&
+        data.vehiculosIds.length > 0 &&
+        empleadoRolA === null &&
+        data.empleadosIds.length > 0
+      ) {
+        setEmpleadoRolA(data.empleadosIds[0]);
+      }
+
+      // Preparar las asignaciones manuales según el formato requerido usando roles A y B
+      const asignacionesManual = prepareAsignacionesManual(
+        data.empleadosIds,
+        data.vehiculosIds,
+        empleadoRolA !== null
+          ? empleadoRolA
+          : data.empleadosIds.length > 0
+          ? data.empleadosIds[0]
+          : 0,
+        empleadoRolB !== null
+          ? empleadoRolB
+          : data.empleadosIds.length > 1
+          ? data.empleadosIds[1]
+          : empleadoRolA !== null
+          ? empleadoRolA
+          : data.empleadosIds.length > 0
+          ? data.empleadosIds[0]
+          : 0
+      );
 
       // Objeto para enviar a la API
       const servicioRequest: CreateRetiroDto = {
         clienteId: selectedClientId,
-        tipoServicio: "RETIRO",
-        condicionContractualId: selectedCondicionId || data.condicionContractualId,
-        cantidadVehiculos: data.cantidadVehiculos,
-        cantidadEmpleados: data.cantidadEmpleados,
-        cantidadBanos: data.cantidadBanos,
         fechaProgramada: data.fechaProgramada.toISOString(),
+        tipoServicio: "RETIRO",
+        cantidadBanos: 0, // Para servicios de retiro siempre es 0
+        cantidadVehiculos: data.cantidadVehiculos,
         ubicacion: data.ubicacion,
+        banosInstalados: data.banosInstalados, // Array con IDs de baños a retirar
         asignacionAutomatica: false,
-        banosInstalados: data.banosInstalados,
         asignacionesManual: asignacionesManual,
+        condicionContractualId:
+          selectedCondicionId || data.condicionContractualId,
         notas: data.notas || "Retiro de sanitarios según contrato",
       };
 
@@ -653,6 +701,7 @@ export function CrearServicioRetiroComponent() {
         [key: string]: any;
       };
 
+      console.log("Servicio Request:", servicioRequest);
       const response = (await createServicioRetiro(
         servicioRequest
       )) as ServicioResponse;
@@ -695,6 +744,33 @@ export function CrearServicioRetiroComponent() {
     }
   };
 
+  // Función auxiliar para preparar asignaciones con roles A y B
+  const prepareAsignacionesManual = (
+    empleadosIds: number[],
+    vehiculosIds: number[],
+    rolA: number | null = empleadoRolA,
+    rolB: number | null = empleadoRolB
+  ): [{ empleadoId: number; vehiculoId: number }, { empleadoId: number }] => {
+    const empleadoA =
+      rolA !== null ? rolA : empleadosIds.length > 0 ? empleadosIds[0] : 0;
+    const empleadoB =
+      rolB !== null
+        ? rolB
+        : empleadosIds.length > 1
+        ? empleadosIds[1]
+        : empleadoA;
+
+    return [
+      {
+        empleadoId: empleadoA,
+        vehiculoId: vehiculosIds.length > 0 ? vehiculosIds[0] : 0,
+      },
+      {
+        empleadoId: empleadoB,
+      },
+    ];
+  };
+
   if (isLoading && step === 1) {
     return (
       <div className="flex flex-1 flex-col gap-4 p-4 pt-0 items-center justify-center">
@@ -710,7 +786,8 @@ export function CrearServicioRetiroComponent() {
           <div>
             <h1 className="text-2xl font-bold">Crear Servicio de Retiro</h1>
             <p className="text-gray-600">
-              Complete el formulario para crear un nuevo servicio de retiro de sanitarios
+              Complete el formulario para crear un nuevo servicio de retiro de
+              sanitarios
             </p>
           </div>
 
@@ -1016,25 +1093,6 @@ export function CrearServicioRetiroComponent() {
                       />
                     </div>
 
-                    {/* Cantidad de Empleados */}
-                    <Controller
-                      name="cantidadEmpleados"
-                      control={control}
-                      render={({ field, fieldState }) => (
-                        <FormField
-                          label="Cantidad de Empleados"
-                          name="cantidadEmpleados"
-                          type="number"
-                          value={field.value?.toString() || "2"}
-                          onChange={(value) =>
-                            field.onChange(parseInt(value, 10))
-                          }
-                          error={fieldState.error?.message}
-                          min={1}
-                        />
-                      )}
-                    />
-
                     {/* Cantidad de Vehículos */}
                     <Controller
                       name="cantidadVehiculos"
@@ -1050,27 +1108,6 @@ export function CrearServicioRetiroComponent() {
                           }
                           error={fieldState.error?.message}
                           min={1}
-                        />
-                      )}
-                    />
-
-                    {/* Cantidad de Baños (read-only) */}
-                    <Controller
-                      name="cantidadBanos"
-                      control={control}
-                      render={({ field, fieldState }) => (
-                        <FormField
-                          label="Cantidad de Baños a Retirar"
-                          name="cantidadBanos"
-                          type="number"
-                          value={field.value?.toString() || "0"}
-                          onChange={(value) =>
-                            field.onChange(parseInt(value, 10))
-                          }
-                          error={fieldState.error?.message}
-                          min={0}
-                          readOnly
-                          helperText="Se actualiza automáticamente según los baños instalados del cliente"
                         />
                       )}
                     />
@@ -1091,7 +1128,6 @@ export function CrearServicioRetiroComponent() {
                         />
                       )}
                     />
-
                     {/* Notas */}
                     <div className="space-y-2 md:col-span-2">
                       <label className="text-sm font-medium">
@@ -1130,16 +1166,28 @@ export function CrearServicioRetiroComponent() {
                       {/* Selección de Baños Instalados */}
                       <div>
                         <h3 className="text-lg font-medium mb-3 flex items-center justify-between">
-                          Seleccionar Baños Instalados para Retirar
+                          Baños a Retirar (Selección Obligatoria)
                           <Badge variant="outline" className="bg-red-50">
                             {selectedBanos.length} seleccionados
                           </Badge>
                         </h3>
 
+                        <div className="mb-3 p-3 bg-red-50 border border-red-200 rounded-md">
+                          <p className="text-sm text-red-700">
+                            <strong>Importante:</strong> Debe seleccionar al
+                            menos un baño para retirar. Estos son los baños
+                            instalados que serán retirados durante el servicio.
+                          </p>
+                        </div>
+
                         {banosInstalados.length === 0 ? (
-                          <div className="text-center py-8 border rounded-md">
-                            <p className="text-gray-500">
+                          <div className="text-center py-8 border border-red-200 bg-red-50 rounded-md">
+                            <p className="text-red-600 font-medium">
                               No hay baños instalados para este cliente.
+                            </p>
+                            <p className="text-red-500 text-sm mt-1">
+                              No se puede crear un servicio de retiro sin baños
+                              instalados.
                             </p>
                           </div>
                         ) : (
@@ -1174,6 +1222,13 @@ export function CrearServicioRetiroComponent() {
                                         bano.fecha_adquisicion
                                       ).toLocaleDateString()}
                                     </p>
+                                    {selectedBanos.includes(
+                                      parseInt(bano.baño_id || "0")
+                                    ) && (
+                                      <p className="text-xs text-red-600 font-medium mt-1">
+                                        ✓ Seleccionado para retiro
+                                      </p>
+                                    )}
                                   </div>
                                   <Badge
                                     className={
@@ -1189,12 +1244,6 @@ export function CrearServicioRetiroComponent() {
                             ))}
                           </div>
                         )}
-
-                        {errors.banosInstalados && (
-                          <p className="text-red-500 text-sm mt-2">
-                            {errors.banosInstalados.message}
-                          </p>
-                        )}
                       </div>
 
                       {/* Selección de Empleados */}
@@ -1205,6 +1254,72 @@ export function CrearServicioRetiroComponent() {
                             {selectedEmpleados.length} seleccionados
                           </Badge>
                         </h3>
+
+                        <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-md">
+                          <p className="text-sm font-medium mb-2">
+                            Asignación de roles:
+                          </p>
+                          <p>
+                            <span className="font-medium">Rol A (azul):</span>{" "}
+                            Conductor principal con vehículo asignado
+                          </p>
+                          <p>
+                            <span className="font-medium">Rol B (verde):</span>{" "}
+                            Asistente/s de retiro
+                          </p>
+                          <p className="mt-1 text-xs text-gray-500">
+                            Después de seleccionar un empleado, puede asignarle
+                            un rol haciendo clic en los botones de &quot;Rol
+                            A&quot; o &quot;Rol B&quot;
+                          </p>
+
+                          {/* Resumen de asignaciones actuales */}
+                          {(empleadoRolA !== null || empleadoRolB !== null) && (
+                            <div className="mt-3 pt-2 border-t border-blue-200">
+                              <p className="font-medium mb-1">
+                                Asignaciones actuales:
+                              </p>
+                              {empleadoRolA !== null &&
+                                empleadosDisponibles && (
+                                  <div className="flex items-center gap-2">
+                                    <Badge className="bg-blue-600">Rol A</Badge>
+                                    <span>
+                                      {
+                                        empleadosDisponibles.find(
+                                          (e: Empleado) => e.id === empleadoRolA
+                                        )?.nombre
+                                      }{" "}
+                                      {
+                                        empleadosDisponibles.find(
+                                          (e: Empleado) => e.id === empleadoRolA
+                                        )?.apellido
+                                      }
+                                    </span>
+                                  </div>
+                                )}
+                              {empleadoRolB !== null &&
+                                empleadosDisponibles && (
+                                  <div className="flex items-center gap-2 mt-1">
+                                    <Badge className="bg-green-600">
+                                      Rol B
+                                    </Badge>
+                                    <span>
+                                      {
+                                        empleadosDisponibles.find(
+                                          (e: Empleado) => e.id === empleadoRolB
+                                        )?.nombre
+                                      }{" "}
+                                      {
+                                        empleadosDisponibles.find(
+                                          (e: Empleado) => e.id === empleadoRolB
+                                        )?.apellido
+                                      }
+                                    </span>
+                                  </div>
+                                )}
+                            </div>
+                          )}
+                        </div>
 
                         {empleadosDisponibles.length === 0 ? (
                           <div className="text-center py-8 border rounded-md">
@@ -1243,12 +1358,57 @@ export function CrearServicioRetiroComponent() {
                                     <p className="font-medium">{`${empleado.apellido}, ${empleado.nombre}`}</p>
                                     <p className="text-xs text-gray-500">{`DNI: ${empleado.documento}`}</p>
                                     <p className="text-xs text-gray-500">{`Cargo: ${empleado.cargo}`}</p>
-                                    <Badge
-                                      variant="outline"
-                                      className="bg-green-100 text-green-800 hover:bg-green-100 mt-1"
-                                    >
-                                      {empleado.estado}
-                                    </Badge>
+                                    <div className="flex flex-wrap gap-2 mt-1">
+                                      <Badge
+                                        variant="outline"
+                                        className="bg-green-100 text-green-800 hover:bg-green-100"
+                                      >
+                                        {empleado.estado}
+                                      </Badge>
+
+                                      {selectedEmpleados.includes(
+                                        empleado.id
+                                      ) && (
+                                        <div className="flex gap-1 mt-1">
+                                          <Badge
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              setEmpleadoRolA(empleado.id);
+                                              if (
+                                                empleadoRolB === empleado.id
+                                              ) {
+                                                setEmpleadoRolB(null);
+                                              }
+                                            }}
+                                            className={`cursor-pointer ${
+                                              empleadoRolA === empleado.id
+                                                ? "bg-blue-600 hover:bg-blue-700"
+                                                : "bg-gray-300 hover:bg-gray-400"
+                                            }`}
+                                          >
+                                            Rol A
+                                          </Badge>
+                                          <Badge
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              setEmpleadoRolB(empleado.id);
+                                              if (
+                                                empleadoRolA === empleado.id
+                                              ) {
+                                                setEmpleadoRolA(null);
+                                              }
+                                            }}
+                                            className={`cursor-pointer ${
+                                              empleadoRolB === empleado.id
+                                                ? "bg-green-600 hover:bg-green-700"
+                                                : "bg-gray-300 hover:bg-gray-400"
+                                            }`}
+                                          >
+                                            Rol B
+                                          </Badge>
+                                        </div>
+                                      )}
+                                    </div>
                                   </div>
                                 </div>
                               </div>
