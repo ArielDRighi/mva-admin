@@ -8,7 +8,7 @@ module.exports = {
       env: {
         PORT: 3001,
         NODE_ENV: "production",
-        NEXT_PUBLIC_API_URL: "https://mvasrl.com:3002"
+        NEXT_PUBLIC_API_URL: "https://mvasrl.com/api"
       },
       watch: false,
       exec_mode: "fork",
@@ -24,7 +24,7 @@ module.exports = {
       env: {
         PORT: 3000,
         NODE_ENV: "production",
-        NEXT_PUBLIC_API_URL: "https://mvasrl.com:3002"
+        NEXT_PUBLIC_API_URL: "https://mvasrl.com/api"
       },
       watch: false,
       exec_mode: "fork",
