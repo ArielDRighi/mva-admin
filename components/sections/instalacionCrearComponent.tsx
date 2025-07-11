@@ -183,7 +183,7 @@ export default function CrearInstalacionComponent() {
         const condicionesData = await getContractualConditionsByClient(
           selectedClientId,
           1,
-          100,
+          15,
           term
         );
         let condicionesList: CondicionContractual[] = [];
@@ -251,8 +251,20 @@ export default function CrearInstalacionComponent() {
           (empleado) =>
             empleado.estado === "DISPONIBLE" || empleado.estado === "ASIGNADO"
         );
-        setEmpleadosDisponibles(empleados);
-        setFilteredEmpleados(empleados);
+
+        // Mezclar empleados seleccionados que no estén en el resultado actual
+        const empleadosSeleccionadosIds = getValues("empleadosIds") || [];
+        const empleadosSeleccionados = empleadosDisponibles.filter((emp) =>
+          empleadosSeleccionadosIds.includes(emp.id)
+        );
+        // Agregar empleados seleccionados que no estén en la búsqueda actual
+        const empleadosNoIncluidos = empleadosSeleccionados.filter(
+          (empSel) => !empleados.some((emp) => emp.id === empSel.id)
+        );
+        const empleadosFinal = [...empleadosNoIncluidos, ...empleados];
+
+        setEmpleadosDisponibles(empleadosFinal);
+        setFilteredEmpleados(empleadosFinal);
       } catch (error) {
         toast.error("Error al buscar empleados", {
           description:
@@ -1005,7 +1017,7 @@ export default function CrearInstalacionComponent() {
                           (async () => {
                             setIsLoading(true);
                             try {
-                              const clientesData = await getClients(1, 100, "");
+                              const clientesData = await getClients(1, 15, "");
                               let clientesList: Cliente[] = [];
                               if (
                                 clientesData &&
@@ -1360,7 +1372,7 @@ export default function CrearInstalacionComponent() {
                         try {
                           const empleadosResponseRaw = await getEmployees(
                             1,
-                            100,
+                            15,
                             ""
                           );
                           let empleados: Empleado[] = [];
@@ -1582,113 +1594,138 @@ export default function CrearInstalacionComponent() {
                   className="pl-10"
                   placeholder="Buscar por marca, modelo o placa..."
                   value={searchTermVehiculo}
-                  onChange={async (e) => {
-                    const value = e.target.value;
-                    setSearchTermVehiculo(value);
-                    setIsLoading(true);
-                    try {
-                      const vehiculosResponse = await getVehicles(
-                        1,
-                        100,
-                        value
-                      );
-                      let vehiculos: Vehiculo[] = [];
-                      if (
-                        vehiculosResponse &&
-                        typeof vehiculosResponse === "object"
-                      ) {
-                        if (Array.isArray(vehiculosResponse)) {
-                          vehiculos = vehiculosResponse;
-                        } else if (
-                          "items" in vehiculosResponse &&
-                          Array.isArray(vehiculosResponse.items)
+                  onChange={(e) => {
+                    setSearchTermVehiculo(e.target.value);
+                  }}
+                  onKeyDown={async (e) => {
+                    if (e.key === "Enter") {
+                      setIsLoading(true);
+                      try {
+                        const vehiculosResponse = await getVehicles(
+                          1,
+                          15,
+                          searchTermVehiculo
+                        );
+                        let vehiculos: Vehiculo[] = [];
+                        if (
+                          vehiculosResponse &&
+                          typeof vehiculosResponse === "object"
                         ) {
-                          vehiculos = vehiculosResponse.items;
-                        } else if (
-                          "data" in vehiculosResponse &&
-                          Array.isArray(vehiculosResponse.data)
-                        ) {
-                          vehiculos = vehiculosResponse.data;
+                          if (Array.isArray(vehiculosResponse)) {
+                            vehiculos = vehiculosResponse;
+                          } else if (
+                            "items" in vehiculosResponse &&
+                            Array.isArray(vehiculosResponse.items)
+                          ) {
+                            vehiculos = vehiculosResponse.items;
+                          } else if (
+                            "data" in vehiculosResponse &&
+                            Array.isArray(vehiculosResponse.data)
+                          ) {
+                            vehiculos = vehiculosResponse.data;
+                          }
                         }
+                        vehiculos = vehiculos.filter(
+                          (vehiculo) =>
+                            vehiculo.estado === "DISPONIBLE" ||
+                            vehiculo.estado === "ASIGNADO"
+                        );
+                        setVehiculosDisponibles(vehiculos);
+                        setFilteredVehiculos(vehiculos);
+                      } catch (error) {
+                        toast.error("Error al buscar vehículos", {
+                          description:
+                            error instanceof Error
+                              ? error.message
+                              : "No se pudieron buscar vehículos.",
+                        });
+                      } finally {
+                        setIsLoading(false);
                       }
-                      vehiculos = vehiculos.filter(
-                        (vehiculo) =>
-                          vehiculo.estado === "DISPONIBLE" ||
-                          vehiculo.estado === "ASIGNADO"
-                      );
-                      setVehiculosDisponibles(vehiculos);
-                      setFilteredVehiculos(vehiculos);
-                    } catch (error) {
-                      toast.error("Error al buscar vehículos", {
-                        description:
-                          error instanceof Error
-                            ? error.message
-                            : "No se pudieron buscar vehículos.",
-                      });
-                    } finally {
-                      setIsLoading(false);
                     }
                   }}
-                  // Búsqueda en tiempo real con llamada a la API
                 />
               </div>
               {isLoading ? (
                 <div className="flex justify-center py-4">
                   <Loader className="h-6 w-6 text-indigo-500" />
                 </div>
-              ) : filteredVehiculos.length > 0 ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
-                  {filteredVehiculos.map((vehiculo) => {
-                    const isSelected = watch("vehiculosIds").includes(
-                      vehiculo.id
-                    );
+              ) : (
+                (() => {
+                  // Unir vehículos seleccionados y filtrados, sin duplicados
+                  const vehiculosIdsSeleccionados = watch("vehiculosIds") || [];
+                  const vehiculosSeleccionados = vehiculosDisponibles.filter(
+                    (v) => vehiculosIdsSeleccionados.includes(v.id)
+                  );
+                  const vehiculosNoSeleccionados = filteredVehiculos.filter(
+                    (v) => !vehiculosIdsSeleccionados.includes(v.id)
+                  );
+                  const vehiculosParaMostrar = [
+                    ...vehiculosSeleccionados,
+                    ...vehiculosNoSeleccionados,
+                  ];
+                  if (vehiculosParaMostrar.length > 0) {
                     return (
-                      <div
-                        key={vehiculo.id}
-                        className={`border rounded-md p-2 cursor-pointer ${
-                          isSelected
-                            ? "bg-indigo-50 border-indigo-300"
-                            : "hover:bg-slate-50"
-                        }`}
-                        onClick={() =>
-                          toggleResourceSelection("vehiculosIds", vehiculo.id)
-                        }
-                      >
-                        <div className="flex items-center">
-                          <div
-                            className={`w-4 h-4 mr-2 rounded-full border flex items-center justify-center ${
-                              isSelected
-                                ? "border-indigo-500 bg-indigo-500"
-                                : "border-gray-300"
-                            }`}
-                          >
-                            {isSelected && (
-                              <Check className="h-3 w-3 text-white" />
-                            )}
-                          </div>
-                          <div>
-                            <div className="font-medium">{`${vehiculo.marca} ${vehiculo.modelo}`}</div>
-                            <div className="text-xs flex items-center gap-2">
-                              <span className="text-slate-500">
-                                Placa: {vehiculo.placa}
-                              </span>
-                              <Badge
-                                variant="outline"
-                                className="bg-green-50 text-green-700 text-xs"
-                              >
-                                {vehiculo.estado}
-                              </Badge>
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
+                        {vehiculosParaMostrar.map((vehiculo) => {
+                          const isSelected = vehiculosIdsSeleccionados.includes(
+                            vehiculo.id
+                          );
+                          return (
+                            <div
+                              key={vehiculo.id}
+                              className={`border rounded-md p-2 cursor-pointer ${
+                                isSelected
+                                  ? "bg-indigo-50 border-indigo-300"
+                                  : "hover:bg-slate-50"
+                              }`}
+                              onClick={() =>
+                                toggleResourceSelection(
+                                  "vehiculosIds",
+                                  vehiculo.id
+                                )
+                              }
+                            >
+                              <div className="flex items-center">
+                                <div
+                                  className={`w-4 h-4 mr-2 rounded-full border flex items-center justify-center ${
+                                    isSelected
+                                      ? "border-indigo-500 bg-indigo-500"
+                                      : "border-gray-300"
+                                  }`}
+                                >
+                                  {isSelected && (
+                                    <Check className="h-3 w-3 text-white" />
+                                  )}
+                                </div>
+                                <div>
+                                  <div className="font-medium">{`${vehiculo.marca} ${vehiculo.modelo}`}</div>
+                                  <div className="text-xs flex items-center gap-2">
+                                    <span className="text-slate-500">
+                                      Placa: {vehiculo.placa}
+                                    </span>
+                                    <Badge
+                                      variant="outline"
+                                      className="bg-green-50 text-green-700 text-xs"
+                                    >
+                                      {vehiculo.estado}
+                                    </Badge>
+                                  </div>
+                                </div>
+                              </div>
                             </div>
-                          </div>
-                        </div>
+                          );
+                        })}
                       </div>
                     );
-                  })}
-                </div>
-              ) : (
-                <div className="p-4 text-center text-slate-500 border rounded-md">
-                  No hay vehículos disponibles para la fecha seleccionada.
-                </div>
+                  } else {
+                    return (
+                      <div className="p-4 text-center text-slate-500 border rounded-md">
+                        No hay vehículos disponibles para la fecha seleccionada.
+                      </div>
+                    );
+                  }
+                })()
               )}
               {errors.vehiculosIds && (
                 <p className="text-sm text-red-500 mt-1">
@@ -1806,72 +1843,94 @@ export default function CrearInstalacionComponent() {
                 <div className="flex justify-center py-4">
                   <Loader className="h-6 w-6 text-indigo-500" />
                 </div>
-              ) : filteredBanos.length > 0 ? (
-                <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-2">
-                  {filteredBanos.map((bano) => {
-                    const banosIds = watch("banosIds") || [];
-                    const isSelected = banosIds.includes(Number(bano.baño_id));
-                    const isSelectable =
-                      isSelected ||
-                      banosIds.length < cantidadBanosRequired ||
-                      cantidadBanosRequired === 0;
+              ) : (
+                (() => {
+                  // Unir baños seleccionados y filtrados, sin duplicados
+                  const banosIdsSeleccionados = watch("banosIds") || [];
+                  const banosSeleccionados = banosDisponibles.filter((b) =>
+                    banosIdsSeleccionados.includes(Number(b.baño_id))
+                  );
+                  const banosNoSeleccionados = filteredBanos.filter(
+                    (b) => !banosIdsSeleccionados.includes(Number(b.baño_id))
+                  );
+                  const banosParaMostrar = [
+                    ...banosSeleccionados,
+                    ...banosNoSeleccionados,
+                  ];
+                  if (banosParaMostrar.length > 0) {
                     return (
-                      <div
-                        key={bano.baño_id}
-                        className={`border rounded-md p-2 ${
-                          isSelectable
-                            ? "cursor-pointer"
-                            : "opacity-50 cursor-not-allowed"
-                        } ${
-                          isSelected
-                            ? "bg-indigo-50 border-indigo-300"
-                            : "hover:bg-slate-50"
-                        }`}
-                        onClick={() =>
-                          isSelectable &&
-                          toggleResourceSelection(
-                            "banosIds",
+                      <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-2">
+                        {banosParaMostrar.map((bano) => {
+                          const banosIds = banosIdsSeleccionados;
+                          const isSelected = banosIds.includes(
                             Number(bano.baño_id)
-                          )
-                        }
-                      >
-                        <div className="flex items-center">
-                          <div
-                            className={`w-4 h-4 mr-2 rounded-full border flex items-center justify-center ${
-                              isSelected
-                                ? "border-indigo-500 bg-indigo-500"
-                                : "border-gray-300"
-                            }`}
-                          >
-                            {isSelected && (
-                              <Check className="h-3 w-3 text-white" />
-                            )}
-                          </div>
-                          <div>
-                            <div className="font-medium">
-                              {bano.codigo_interno}
+                          );
+                          const isSelectable =
+                            isSelected ||
+                            banosIds.length < cantidadBanosRequired ||
+                            cantidadBanosRequired === 0;
+                          return (
+                            <div
+                              key={bano.baño_id}
+                              className={`border rounded-md p-2 ${
+                                isSelectable
+                                  ? "cursor-pointer"
+                                  : "opacity-50 cursor-not-allowed"
+                              } ${
+                                isSelected
+                                  ? "bg-indigo-50 border-indigo-300"
+                                  : "hover:bg-slate-50"
+                              }`}
+                              onClick={() =>
+                                isSelectable &&
+                                toggleResourceSelection(
+                                  "banosIds",
+                                  Number(bano.baño_id)
+                                )
+                              }
+                            >
+                              <div className="flex items-center">
+                                <div
+                                  className={`w-4 h-4 mr-2 rounded-full border flex items-center justify-center ${
+                                    isSelected
+                                      ? "border-indigo-500 bg-indigo-500"
+                                      : "border-gray-300"
+                                  }`}
+                                >
+                                  {isSelected && (
+                                    <Check className="h-3 w-3 text-white" />
+                                  )}
+                                </div>
+                                <div>
+                                  <div className="font-medium">
+                                    {bano.codigo_interno}
+                                  </div>
+                                  <div className="text-xs flex items-center gap-2">
+                                    <span className="text-slate-500">
+                                      {bano.modelo}
+                                    </span>
+                                    <Badge
+                                      variant="outline"
+                                      className="bg-green-50 text-green-700 text-xs"
+                                    >
+                                      {bano.estado}
+                                    </Badge>
+                                  </div>
+                                </div>
+                              </div>
                             </div>
-                            <div className="text-xs flex items-center gap-2">
-                              <span className="text-slate-500">
-                                {bano.modelo}
-                              </span>
-                              <Badge
-                                variant="outline"
-                                className="bg-green-50 text-green-700 text-xs"
-                              >
-                                {bano.estado}
-                              </Badge>
-                            </div>
-                          </div>
-                        </div>
+                          );
+                        })}
                       </div>
                     );
-                  })}
-                </div>
-              ) : (
-                <div className="p-4 text-center text-slate-500 border rounded-md">
-                  No hay baños disponibles para la fecha seleccionada.
-                </div>
+                  } else {
+                    return (
+                      <div className="p-4 text-center text-slate-500 border rounded-md">
+                        No hay baños disponibles para la fecha seleccionada.
+                      </div>
+                    );
+                  }
+                })()
               )}
 
               {/* Paginación de baños eliminada */}

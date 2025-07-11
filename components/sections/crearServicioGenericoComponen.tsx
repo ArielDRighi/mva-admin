@@ -67,7 +67,8 @@ const formSchema = z.object({
 
 type FormData = z.infer<typeof formSchema>;
 
-type CondicionContractual = {  condicionContractualId: number;
+type CondicionContractual = {
+  condicionContractualId: number;
   clientId: number;
   tipo_servicio?: string; // Agregando tipo de servicio
   fecha_inicio: string;
@@ -97,6 +98,7 @@ export function CrearServicioGenericoComponent() {
   const [clientes, setClientes] = useState<Cliente[]>([]);
   const [filteredClientes, setFilteredClientes] = useState<Cliente[]>([]);
   const [searchTermCliente, setSearchTermCliente] = useState<string>("");
+  const [searchInputValue, setSearchInputValue] = useState<string>("");
 
   const [condicionesContractuales, setCondicionesContractuales] = useState<
     CondicionContractual[]
@@ -116,8 +118,73 @@ export function CrearServicioGenericoComponent() {
   // Estado para asignación de roles A y B
   const [empleadoRolA, setEmpleadoRolA] = useState<number | null>(null);
   const [empleadoRolB, setEmpleadoRolB] = useState<number | null>(null);
+  const [searchTermCondicion, setSearchTermCondicion] = useState<string>("");
+  const [filteredCondiciones, setFilteredCondiciones] = useState<
+    CondicionContractual[]
+  >([]);
+  const [searchTermEmpleado, setSearchTermEmpleado] = useState<string>("");
+  const [filteredEmpleados, setFilteredEmpleados] = useState<Empleado[]>([]);
+  const [searchTermVehiculo, setSearchTermVehiculo] = useState<string>("");
+  const [filteredVehiculos, setFilteredVehiculos] = useState<Vehiculo[]>([]);
 
   const [isLoading, setIsLoading] = useState<boolean>(true);
+
+  const handleEmpleadoSearch = async (
+    e: React.KeyboardEvent<HTMLInputElement>
+  ) => {
+    if (e.key === "Enter") {
+      const term = searchTermEmpleado.trim();
+      setIsLoading(true);
+      try {
+        // getEmployees puede aceptar un parámetro de búsqueda
+        const empleadosResponseRaw = await getEmployees(1, 15, term);
+        let empleados: Empleado[] = [];
+        if (empleadosResponseRaw && typeof empleadosResponseRaw === "object") {
+          if (Array.isArray(empleadosResponseRaw)) {
+            empleados = empleadosResponseRaw;
+          } else if (
+            "items" in empleadosResponseRaw &&
+            Array.isArray(empleadosResponseRaw.items)
+          ) {
+            empleados = empleadosResponseRaw.items;
+          } else if (
+            "data" in empleadosResponseRaw &&
+            Array.isArray(empleadosResponseRaw.data)
+          ) {
+            empleados = empleadosResponseRaw.data;
+          }
+        }
+        // Filtrar por estado DISPONIBLE o ASIGNADO
+        empleados = empleados.filter(
+          (empleado) =>
+            empleado.estado === "DISPONIBLE" || empleado.estado === "ASIGNADO"
+        );
+
+        // Mantener empleados seleccionados aunque no estén en la búsqueda
+        const empleadosSeleccionados = empleadosDisponibles.filter(
+          (e) =>
+            selectedEmpleados.includes(e.id) &&
+            !empleados.some((emp) => emp.id === e.id)
+        );
+        const empleadosParaRenderizar = [
+          ...empleados,
+          ...empleadosSeleccionados,
+        ];
+        setEmpleadosDisponibles(empleadosParaRenderizar);
+        setFilteredEmpleados(empleadosParaRenderizar);
+      } catch (error) {
+        toast.error("Error al buscar empleados", {
+          description:
+            error instanceof Error
+              ? error.message
+              : "No se pudieron buscar empleados.",
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    }
+  };
+
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
     mode: "onSubmit", // Solo validar cuando se envía el formulario
@@ -231,21 +298,93 @@ export function CrearServicioGenericoComponent() {
     fetchClientes();
   }, []);
 
-  // Filtrar clientes por término de búsqueda
+  // Buscar clientes en la API solo cuando se presiona Enter (searchTermCliente cambia)
   useEffect(() => {
-    if (searchTermCliente.trim() === "") {
-      setFilteredClientes(clientes);
-    } else {
-      const searchTermLower = searchTermCliente.toLowerCase();
-      const filtered = clientes.filter(
-        (cliente) =>
-          cliente.nombre.toLowerCase().includes(searchTermLower) ||
-          cliente.cuit.toLowerCase().includes(searchTermLower) ||
-          cliente.email.toLowerCase().includes(searchTermLower)
-      );
-      setFilteredClientes(filtered);
+    const fetchFilteredClientes = async () => {
+      if (searchTermCliente.trim() === "") {
+        setFilteredClientes(clientes);
+        return;
+      }
+      setIsLoading(true);
+      try {
+        // getClients puede aceptar un parámetro de búsqueda
+        const clientesData = await getClients(1, 100, searchTermCliente.trim());
+        let clientesList: Cliente[] = [];
+        if (clientesData && typeof clientesData === "object") {
+          if (Array.isArray(clientesData)) {
+            clientesList = clientesData;
+          } else if (
+            "items" in clientesData &&
+            Array.isArray(clientesData.items)
+          ) {
+            clientesList = clientesData.items;
+          } else if (
+            "data" in clientesData &&
+            Array.isArray(clientesData.data)
+          ) {
+            clientesList = clientesData.data;
+          }
+        }
+        setFilteredClientes(clientesList);
+      } catch (error) {
+        toast.error("Error al buscar clientes", {
+          description:
+            error instanceof Error
+              ? error.message
+              : "No se pudieron buscar clientes.",
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchFilteredClientes();
+  }, [searchTermCliente, clientes]);
+
+  const handleCondicionSearch = async (
+    e: React.KeyboardEvent<HTMLInputElement>
+  ) => {
+    if (e.key === "Enter") {
+      const term = searchTermCondicion.trim();
+      // Agregar logs para depuración
+      console.log("[CondicionSearch] selectedClientId:", selectedClientId);
+      console.log("[CondicionSearch] term:", term);
+      setIsLoading(true);
+      try {
+        const condicionesData = await getContractualConditionsByClient(
+          selectedClientId,
+          1,
+          100,
+          term
+        );
+        let condicionesList: CondicionContractual[] = [];
+        if (condicionesData && typeof condicionesData === "object") {
+          if (Array.isArray(condicionesData)) {
+            condicionesList = condicionesData;
+          } else if (
+            "items" in condicionesData &&
+            Array.isArray(condicionesData.items)
+          ) {
+            condicionesList = condicionesData.items;
+          } else if (
+            "data" in condicionesData &&
+            Array.isArray(condicionesData.data)
+          ) {
+            condicionesList = condicionesData.data;
+          }
+        }
+        setFilteredCondiciones(condicionesList);
+      } catch (error) {
+        toast.error("Error al buscar condiciones contractuales", {
+          description:
+            error instanceof Error
+              ? error.message
+              : "No se pudieron buscar condiciones contractuales.",
+        });
+      } finally {
+        setIsLoading(false);
+      }
     }
-  }, [searchTermCliente, clientes]); // Cargar condiciones contractuales cuando se selecciona un cliente
+  };
 
   useEffect(() => {
     const fetchCondicionesContractuales = async () => {
@@ -294,6 +433,7 @@ export function CrearServicioGenericoComponent() {
           }
 
           setCondicionesContractuales(procesadas);
+          setFilteredCondiciones(procesadas); // Mostrar todas por defecto
 
           // Solo resetear el valor si estamos cambiando de cliente
           // No lo resetea si ya se ha seleccionado una condición
@@ -309,6 +449,7 @@ export function CrearServicioGenericoComponent() {
                 : "No se pudieron cargar las condiciones contractuales. Por favor, intente nuevamente.",
           });
           setCondicionesContractuales([]);
+          setFilteredCondiciones([]);
         } finally {
           setIsLoading(false);
         }
@@ -332,7 +473,7 @@ export function CrearServicioGenericoComponent() {
           const vehiculosResponse = (await getVehicles()) as VehiculosResponse;
 
           // Procesar respuesta de empleados
-          // Permitir empleados tanto en estado DISPONIBLE como ASIGNADO 
+          // Permitir empleados tanto en estado DISPONIBLE como ASIGNADO
           // según la lógica del negocio que permite asignar recursos a múltiples servicios
           let empleadosDisp: Empleado[] = [];
           if (empleadosResponse && typeof empleadosResponse === "object") {
@@ -341,14 +482,18 @@ export function CrearServicioGenericoComponent() {
               Array.isArray(empleadosResponse.data)
             ) {
               empleadosDisp = empleadosResponse.data.filter(
-                (empleado) => empleado.estado === "DISPONIBLE" || empleado.estado === "ASIGNADO"
+                (empleado) =>
+                  empleado.estado === "DISPONIBLE" ||
+                  empleado.estado === "ASIGNADO"
               );
             } else if (
               "items" in empleadosResponse &&
               Array.isArray(empleadosResponse.items)
             ) {
               empleadosDisp = empleadosResponse.items.filter(
-                (empleado) => empleado.estado === "DISPONIBLE" || empleado.estado === "ASIGNADO"
+                (empleado) =>
+                  empleado.estado === "DISPONIBLE" ||
+                  empleado.estado === "ASIGNADO"
               );
             } else {
               console.error(
@@ -371,7 +516,7 @@ export function CrearServicioGenericoComponent() {
           }
 
           // Procesar respuesta de vehículos
-          // Permitir vehículos tanto en estado DISPONIBLE como ASIGNADO 
+          // Permitir vehículos tanto en estado DISPONIBLE como ASIGNADO
           // según la lógica del negocio que permite asignar recursos a múltiples servicios
           let vehiculosDisp: Vehiculo[] = [];
           if (vehiculosResponse && typeof vehiculosResponse === "object") {
@@ -380,14 +525,18 @@ export function CrearServicioGenericoComponent() {
               Array.isArray(vehiculosResponse.data)
             ) {
               vehiculosDisp = vehiculosResponse.data.filter(
-                (vehiculo) => vehiculo.estado === "DISPONIBLE" || vehiculo.estado === "ASIGNADO"
+                (vehiculo) =>
+                  vehiculo.estado === "DISPONIBLE" ||
+                  vehiculo.estado === "ASIGNADO"
               );
             } else if (
               "items" in vehiculosResponse &&
               Array.isArray(vehiculosResponse.items)
             ) {
               vehiculosDisp = vehiculosResponse.items.filter(
-                (vehiculo) => vehiculo.estado === "DISPONIBLE" || vehiculo.estado === "ASIGNADO"
+                (vehiculo) =>
+                  vehiculo.estado === "DISPONIBLE" ||
+                  vehiculo.estado === "ASIGNADO"
               );
             } else {
               console.error(
@@ -411,6 +560,7 @@ export function CrearServicioGenericoComponent() {
 
           setEmpleadosDisponibles(empleadosDisp);
           setVehiculosDisponibles(vehiculosDisp);
+          setFilteredVehiculos(vehiculosDisp); // Mostrar todos por defecto
 
           // Cargar baños instalados para el cliente con manejo adecuado de tipos
           interface SanitariosResponse {
@@ -705,12 +855,12 @@ export function CrearServicioGenericoComponent() {
           // Rol A: Conductor principal con vehículo
           empleadoId: empleadoA,
           vehiculoId: data.vehiculosIds.length > 0 ? data.vehiculosIds[0] : 0,
-          rol: 'A',
+          rol: "A",
         },
         {
           // Rol B: Empleado adicional/asistente
           empleadoId: empleadoB,
-          rol: 'B',
+          rol: "B",
         },
       ];
 
@@ -871,8 +1021,14 @@ export function CrearServicioGenericoComponent() {
                       <Input
                         placeholder="Buscar cliente por nombre, CUIT o email..."
                         className="pl-10"
-                        value={searchTermCliente}
-                        onChange={(e) => setSearchTermCliente(e.target.value)}
+                        value={searchInputValue}
+                        onChange={(e) => setSearchInputValue(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") {
+                            e.preventDefault();
+                            setSearchTermCliente(searchInputValue);
+                          }
+                        }}
                       />
                     </div>
                   </div>
@@ -985,6 +1141,19 @@ export function CrearServicioGenericoComponent() {
                     <FileText className="h-5 w-5" />
                     Selección de Condición Contractual
                   </h2>{" "}
+                  <Input
+                    className="pl-10"
+                    placeholder="Buscar por tipo de servicio, periodicidad, etc..."
+                    value={searchTermCondicion}
+                    onChange={(e) => {
+                      setSearchTermCondicion(e.target.value);
+                      if (e.target.value.trim() === "") {
+                        setFilteredCondiciones(condicionesContractuales);
+                      }
+                    }}
+                    onKeyDown={handleCondicionSearch}
+                    disabled={isLoading}
+                  />
                   {isLoading ? (
                     <div className="flex justify-center py-8">
                       <Loader />
@@ -1010,7 +1179,7 @@ export function CrearServicioGenericoComponent() {
                     </div>
                   ) : (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-                      {condicionesContractuales.map((condicion) => (
+                      {filteredCondiciones.map((condicion) => (
                         <div
                           key={condicion.condicionContractualId}
                           className={`border rounded-md p-4 cursor-pointer transition-colors ${
@@ -1029,7 +1198,8 @@ export function CrearServicioGenericoComponent() {
                             setSelectedCondicionId(
                               condicion.condicionContractualId
                             );
-                          }}                        >
+                          }}
+                        >
                           <div className="font-medium">
                             {condicion.tipo_servicio}
                           </div>
@@ -1039,7 +1209,8 @@ export function CrearServicioGenericoComponent() {
                               condicion.fecha_inicio
                             ).toLocaleDateString()}{" "}
                             -{" "}
-                            {new Date(condicion.fecha_fin).toLocaleDateString()}                          </div>
+                            {new Date(condicion.fecha_fin).toLocaleDateString()}{" "}
+                          </div>
                           {isAdmin && (
                             <div className="text-sm text-gray-500">
                               Tarifa: ${condicion.tarifa} (
@@ -1258,11 +1429,64 @@ export function CrearServicioGenericoComponent() {
                       </div>{" "}
                       {/* Selección de Empleados */}
                       <div>
-                        {" "}
+                        <Input
+                          className="pl-10"
+                          placeholder="Buscar por nombre, apellido o cargo..."
+                          value={searchTermEmpleado}
+                          onChange={(e) => {
+                            setSearchTermEmpleado(e.target.value);
+                            if (e.target.value.trim() === "") {
+                              // Si se borra el input, recargar empleados sin filtro
+                              (async () => {
+                                setIsLoading(true);
+                                try {
+                                  const empleadosResponseRaw =
+                                    await getEmployees(1, 15, "");
+                                  let empleados: Empleado[] = [];
+                                  if (
+                                    empleadosResponseRaw &&
+                                    typeof empleadosResponseRaw === "object"
+                                  ) {
+                                    if (Array.isArray(empleadosResponseRaw)) {
+                                      empleados = empleadosResponseRaw;
+                                    } else if (
+                                      "items" in empleadosResponseRaw &&
+                                      Array.isArray(empleadosResponseRaw.items)
+                                    ) {
+                                      empleados = empleadosResponseRaw.items;
+                                    } else if (
+                                      "data" in empleadosResponseRaw &&
+                                      Array.isArray(empleadosResponseRaw.data)
+                                    ) {
+                                      empleados = empleadosResponseRaw.data;
+                                    }
+                                  }
+                                  empleados = empleados.filter(
+                                    (empleado) =>
+                                      empleado.estado === "DISPONIBLE" ||
+                                      empleado.estado === "ASIGNADO"
+                                  );
+                                  setEmpleadosDisponibles(empleados);
+                                  setFilteredEmpleados(empleados);
+                                } catch (error) {
+                                  toast.error("Error al cargar empleados", {
+                                    description:
+                                      error instanceof Error
+                                        ? error.message
+                                        : "No se pudieron cargar empleados.",
+                                  });
+                                } finally {
+                                  setIsLoading(false);
+                                }
+                              })();
+                            }
+                          }}
+                          onKeyDown={handleEmpleadoSearch}
+                        />{" "}
                         <h3 className="text-lg font-medium mb-3 flex items-center justify-between">
                           Seleccionar Empleados
                           <Badge variant="outline" className="bg-blue-50">
-                            {selectedEmpleados.length} seleccionados
+                            {filteredEmpleados.length} seleccionados
                           </Badge>
                         </h3>{" "}
                         <div className="bg-blue-50 p-3 rounded-md mb-3 text-sm">
@@ -1432,6 +1656,65 @@ export function CrearServicioGenericoComponent() {
                       </div>
                       {/* Selección de Vehículos */}
                       <div>
+                        <Input
+                          className="pl-10"
+                          placeholder="Buscar por marca, modelo o placa..."
+                          value={searchTermVehiculo}
+                          onChange={(e) => {
+                            setSearchTermVehiculo(e.target.value);
+                            if (e.target.value.trim() === "") {
+                              setFilteredVehiculos(vehiculosDisponibles);
+                            }
+                          }}
+                          onKeyDown={async (e) => {
+                            if (e.key === "Enter") {
+                              const term = searchTermVehiculo.trim();
+                              setIsLoading(true);
+                              try {
+                                const vehiculosResponse = await getVehicles(
+                                  1,
+                                  100,
+                                  term
+                                );
+                                let vehiculos: Vehiculo[] = [];
+                                if (
+                                  vehiculosResponse &&
+                                  typeof vehiculosResponse === "object"
+                                ) {
+                                  if (Array.isArray(vehiculosResponse)) {
+                                    vehiculos = vehiculosResponse;
+                                  } else if (
+                                    "items" in vehiculosResponse &&
+                                    Array.isArray(vehiculosResponse.items)
+                                  ) {
+                                    vehiculos = vehiculosResponse.items;
+                                  } else if (
+                                    "data" in vehiculosResponse &&
+                                    Array.isArray(vehiculosResponse.data)
+                                  ) {
+                                    vehiculos = vehiculosResponse.data;
+                                  }
+                                }
+                                vehiculos = vehiculos.filter(
+                                  (vehiculo) =>
+                                    vehiculo.estado === "DISPONIBLE" ||
+                                    vehiculo.estado === "ASIGNADO"
+                                );
+                                setVehiculosDisponibles(vehiculos);
+                                setFilteredVehiculos(vehiculos);
+                              } catch (error) {
+                                toast.error("Error al buscar vehículos", {
+                                  description:
+                                    error instanceof Error
+                                      ? error.message
+                                      : "No se pudieron buscar vehículos.",
+                                });
+                              } finally {
+                                setIsLoading(false);
+                              }
+                            }
+                          }}
+                        />
                         <h3 className="text-lg font-medium mb-3 flex items-center justify-between">
                           Seleccionar Vehículos
                           <Badge variant="outline" className="bg-blue-50">
@@ -1439,7 +1722,7 @@ export function CrearServicioGenericoComponent() {
                           </Badge>
                         </h3>
 
-                        {vehiculosDisponibles.length === 0 ? (
+                        {filteredVehiculos.length === 0 ? (
                           <div className="text-center py-8 border rounded-md">
                             <p className="text-gray-500">
                               No hay vehículos disponibles.
