@@ -524,7 +524,8 @@ export default function ListadoCondicionesContractualesComponent() {
                     onClick={() => handleViewDetails(condicion)}
                   >
                     <div className="font-medium">
-                      Contrato #{condicion.condicionContractualId}
+                      {condicion.tipo_servicio} #
+                      {condicion.condicionContractualId}
                     </div>
                     <div className="text-sm text-muted-foreground line-clamp-2">
                       {condicion.condiciones_especificas}
