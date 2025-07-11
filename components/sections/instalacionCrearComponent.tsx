@@ -1847,23 +1847,25 @@ export default function CrearInstalacionComponent() {
                 (() => {
                   // Unir baños seleccionados y filtrados, sin duplicados
                   const banosIdsSeleccionados = watch("banosIds") || [];
-                  const banosSeleccionados = banosDisponibles.filter((b) =>
-                    banosIdsSeleccionados.includes(Number(b.baño_id))
-                  );
+                  // Buscar los objetos de baños seleccionados en todas las fuentes posibles
+                  const banosSeleccionados = banosIdsSeleccionados
+                    .map((idSel) =>
+                      banosDisponibles.find((b) => Number(b.baño_id) === idSel) ||
+                      filteredBanos.find((b) => Number(b.baño_id) === idSel)
+                    )
+                    .filter(Boolean);
+                  // Agregar los seleccionados que no estén en los resultados actuales
                   const banosNoSeleccionados = filteredBanos.filter(
                     (b) => !banosIdsSeleccionados.includes(Number(b.baño_id))
                   );
-                  const banosParaMostrar = [
-                    ...banosSeleccionados,
-                    ...banosNoSeleccionados,
-                  ];
+                  const banosParaMostrar = [...banosSeleccionados, ...banosNoSeleccionados];
                   if (banosParaMostrar.length > 0) {
                     return (
                       <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-2">
                         {banosParaMostrar.map((bano) => {
                           const banosIds = banosIdsSeleccionados;
                           const isSelected = banosIds.includes(
-                            Number(bano.baño_id)
+                            Number(bano?.baño_id)
                           );
                           const isSelectable =
                             isSelected ||
@@ -1871,7 +1873,7 @@ export default function CrearInstalacionComponent() {
                             cantidadBanosRequired === 0;
                           return (
                             <div
-                              key={bano.baño_id}
+                              key={bano?.baño_id}
                               className={`border rounded-md p-2 ${
                                 isSelectable
                                   ? "cursor-pointer"
@@ -1885,7 +1887,7 @@ export default function CrearInstalacionComponent() {
                                 isSelectable &&
                                 toggleResourceSelection(
                                   "banosIds",
-                                  Number(bano.baño_id)
+                                  Number(bano?.baño_id)
                                 )
                               }
                             >
@@ -1903,17 +1905,17 @@ export default function CrearInstalacionComponent() {
                                 </div>
                                 <div>
                                   <div className="font-medium">
-                                    {bano.codigo_interno}
+                                    {bano?.codigo_interno}
                                   </div>
                                   <div className="text-xs flex items-center gap-2">
                                     <span className="text-slate-500">
-                                      {bano.modelo}
+                                      {bano?.modelo}
                                     </span>
                                     <Badge
                                       variant="outline"
                                       className="bg-green-50 text-green-700 text-xs"
                                     >
-                                      {bano.estado}
+                                      {bano?.estado}
                                     </Badge>
                                   </div>
                                 </div>

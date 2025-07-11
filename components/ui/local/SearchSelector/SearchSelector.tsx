@@ -105,7 +105,14 @@ export function SearchSelector<T extends Selectable>({
     const term = e.target.value;
     setSearchTerm(term);
     setIsOpen(true);
-    searchItems(term);
+    // No buscar aquí, solo actualiza el término
+  };
+
+  const handleSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      searchItems(searchTerm);
+    }
   };
 
   const handleSelectItem = (item: T) => {
@@ -153,6 +160,7 @@ export function SearchSelector<T extends Selectable>({
               name={name}
               value={searchTerm}
               onChange={handleSearchChange}
+              onKeyDown={handleSearchKeyDown}
               onFocus={() => setIsOpen(true)}
               placeholder={placeholder}
               className="pl-9"

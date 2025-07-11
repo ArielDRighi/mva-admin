@@ -103,8 +103,8 @@ export function CustomDatePicker({
           {selected ? format(selected, showTimeSelect ? "yyyy-MM-dd HH:mm" : dateFormat, { locale: es }) : placeholder}
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="p-0 w-auto" align="center">
-        <div className="p-3">
+      <PopoverContent className="p-0 w-auto z-[9999] max-w-full sm:w-auto" align="center">
+        <div className="p-3 max-h-[70vh] overflow-y-auto">
           <DayPicker
             mode="single"
             selected={selected}
