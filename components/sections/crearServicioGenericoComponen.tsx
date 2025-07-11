@@ -10,9 +10,14 @@ import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { FormField } from "@/components/ui/local/FormField";
-import { Card, CardContent } from "@/components/ui/card";
+import { 
+  Card, 
+  CardContent, 
+  CardHeader, 
+  CardTitle, 
+  CardDescription 
+} from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { getClients } from "@/app/actions/clientes";
 import { getContractualConditionsByClient } from "@/app/actions/contractualConditions";
 import {
@@ -32,6 +37,7 @@ import {
   Save,
   Clipboard,
   Bath,
+  Check,
 } from "lucide-react";
 import { SimpleDatePicker } from "@/components/ui/simple-date-picker";
 import { getEmployees } from "@/app/actions/empleados";
@@ -82,11 +88,37 @@ type CondicionContractual = {
 interface EmpleadosResponse {
   data?: Empleado[];
   items?: Empleado[];
+  page?: number;
+  totalPages?: number;
+  total?: number;
+  limit?: number;
 }
 
 interface VehiculosResponse {
   data?: Vehiculo[];
   items?: Vehiculo[];
+  page?: number;
+  totalPages?: number;
+  total?: number;
+  limit?: number;
+}
+
+interface ClientesResponse {
+  data?: Cliente[];
+  items?: Cliente[];
+  page?: number;
+  totalPages?: number;
+  total?: number;
+  limit?: number;
+}
+
+interface CondicionesResponse {
+  data?: CondicionContractual[];
+  items?: CondicionContractual[];
+  page?: number;
+  totalPages?: number;
+  total?: number;
+  limit?: number;
 }
 
 export function CrearServicioGenericoComponent() {
@@ -127,33 +159,71 @@ export function CrearServicioGenericoComponent() {
   const [searchTermVehiculo, setSearchTermVehiculo] = useState<string>("");
   const [filteredVehiculos, setFilteredVehiculos] = useState<Vehiculo[]>([]);
 
+  // Estados para paginado
+  const [empleadosPagination, setEmpleadosPagination] = useState({
+    page: 1,
+    totalPages: 1,
+    total: 0,
+    limit: 15,
+  });
+  const [vehiculosPagination, setVehiculosPagination] = useState({
+    page: 1,
+    totalPages: 1,
+    total: 0,
+    limit: 15,
+  });
+  const [clientesPagination, setClientesPagination] = useState({
+    page: 1,
+    totalPages: 1,
+    total: 0,
+    limit: 15,
+  });
+  const [condicionesPagination, setCondicionesPagination] = useState({
+    page: 1,
+    totalPages: 1,
+    total: 0,
+    limit: 15,
+  });
+
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
   const handleEmpleadoSearch = async (
-    e: React.KeyboardEvent<HTMLInputElement>
+    e: React.KeyboardEvent<HTMLInputElement>,
+    page: number = 1
   ) => {
-    if (e.key === "Enter") {
+    if (e.key === "Enter" || typeof page === "number") {
       const term = searchTermEmpleado.trim();
       setIsLoading(true);
       try {
-        // getEmployees puede aceptar un parámetro de búsqueda
-        const empleadosResponseRaw = await getEmployees(1, 15, term);
+        // getEmployees puede aceptar un parámetro de búsqueda con paginación
+        const empleadosResponseRaw = await getEmployees(page, empleadosPagination.limit, term) as EmpleadosResponse;
         let empleados: Empleado[] = [];
+        let pagination = { page: 1, totalPages: 1, total: 0, limit: empleadosPagination.limit };
+        
         if (empleadosResponseRaw && typeof empleadosResponseRaw === "object") {
           if (Array.isArray(empleadosResponseRaw)) {
             empleados = empleadosResponseRaw;
-          } else if (
-            "items" in empleadosResponseRaw &&
-            Array.isArray(empleadosResponseRaw.items)
-          ) {
+          } else if (empleadosResponseRaw.items && Array.isArray(empleadosResponseRaw.items)) {
             empleados = empleadosResponseRaw.items;
-          } else if (
-            "data" in empleadosResponseRaw &&
-            Array.isArray(empleadosResponseRaw.data)
-          ) {
+            // Actualizar información de paginación si está disponible
+            pagination = {
+              page: empleadosResponseRaw.page || page,
+              totalPages: empleadosResponseRaw.totalPages || 1,
+              total: empleadosResponseRaw.total || empleados.length,
+              limit: empleadosResponseRaw.limit || empleadosPagination.limit,
+            };
+          } else if (empleadosResponseRaw.data && Array.isArray(empleadosResponseRaw.data)) {
             empleados = empleadosResponseRaw.data;
+            // Actualizar información de paginación si está disponible
+            pagination = {
+              page: empleadosResponseRaw.page || page,
+              totalPages: empleadosResponseRaw.totalPages || 1,
+              total: empleadosResponseRaw.total || empleados.length,
+              limit: empleadosResponseRaw.limit || empleadosPagination.limit,
+            };
           }
         }
+        
         // Filtrar por estado DISPONIBLE o ASIGNADO
         empleados = empleados.filter(
           (empleado) =>
@@ -170,8 +240,10 @@ export function CrearServicioGenericoComponent() {
           ...empleados,
           ...empleadosSeleccionados,
         ];
+        
         setEmpleadosDisponibles(empleadosParaRenderizar);
         setFilteredEmpleados(empleadosParaRenderizar);
+        setEmpleadosPagination(pagination);
       } catch (error) {
         toast.error("Error al buscar empleados", {
           description:
@@ -183,6 +255,12 @@ export function CrearServicioGenericoComponent() {
         setIsLoading(false);
       }
     }
+  };
+
+  // Función para manejar cambio de página de empleados
+  const handleEmpleadosPageChange = (newPage: number) => {
+    const fakeEvent = { key: "Enter" } as React.KeyboardEvent<HTMLInputElement>;
+    handleEmpleadoSearch(fakeEvent, newPage);
   };
 
   const form = useForm<FormData>({
@@ -229,46 +307,53 @@ export function CrearServicioGenericoComponent() {
 
   // Cargar clientes al inicio
   useEffect(() => {
-    const fetchClientes = async () => {
+    const fetchClientes = async (page: number = 1) => {
       try {
         setIsLoading(true);
 
-        // Definimos una interfaz para la respuesta esperada
-        interface ClientesResponse {
-          items?: Cliente[];
-          data?: Cliente[];
-          total?: number;
-          page?: number;
-        }
-
-        const clientesData = (await getClients()) as ClientesResponse;
+        const clientesData = await getClients(page, clientesPagination.limit) as ClientesResponse;
 
         if (clientesData && typeof clientesData === "object") {
+          let clientesList: Cliente[] = [];
+          let pagination = { page: 1, totalPages: 1, total: 0, limit: clientesPagination.limit };
+
           // Si tiene la propiedad items, usarla
-          if ("items" in clientesData && Array.isArray(clientesData.items)) {
-            setClientes(clientesData.items);
-            setFilteredClientes(clientesData.items);
+          if (clientesData.items && Array.isArray(clientesData.items)) {
+            clientesList = clientesData.items;
+            pagination = {
+              page: clientesData.page || page,
+              totalPages: clientesData.totalPages || 1,
+              total: clientesData.total || clientesList.length,
+              limit: clientesData.limit || clientesPagination.limit,
+            };
           }
           // Si tiene la propiedad data, usarla como alternativa
-          else if ("data" in clientesData && Array.isArray(clientesData.data)) {
-            setClientes(clientesData.data);
-            setFilteredClientes(clientesData.data);
+          else if (clientesData.data && Array.isArray(clientesData.data)) {
+            clientesList = clientesData.data;
+            pagination = {
+              page: clientesData.page || page,
+              totalPages: clientesData.totalPages || 1,
+              total: clientesData.total || clientesList.length,
+              limit: clientesData.limit || clientesPagination.limit,
+            };
           }
           // Si es directamente un array
           else if (Array.isArray(clientesData)) {
-            setClientes(clientesData);
-            setFilteredClientes(clientesData);
+            clientesList = clientesData;
           }
           // Si no coincide con ninguno de los formatos esperados
           else {
             console.error("Formato de respuesta no reconocido:", clientesData);
-            setClientes([]);
-            setFilteredClientes([]);
+            clientesList = [];
             toast.error("Error en el formato de datos", {
               description:
                 "El servidor devolvió datos en un formato inesperado",
             });
           }
+
+          setClientes(clientesList);
+          setFilteredClientes(clientesList);
+          setClientesPagination(pagination);
         } else {
           console.error(
             "La respuesta de getClients no es un objeto:",
@@ -296,11 +381,56 @@ export function CrearServicioGenericoComponent() {
     };
 
     fetchClientes();
-  }, []);
+  }, [clientesPagination.limit]);
+
+  // Función para manejar cambio de página de clientes
+  const handleClientesPageChange = async (newPage: number) => {
+    setIsLoading(true);
+    try {
+      const clientesData = await getClients(newPage, clientesPagination.limit, searchTermCliente) as ClientesResponse;
+      
+      if (clientesData && typeof clientesData === "object") {
+        let clientesList: Cliente[] = [];
+        let pagination = { page: newPage, totalPages: 1, total: 0, limit: clientesPagination.limit };
+
+        if (clientesData.items && Array.isArray(clientesData.items)) {
+          clientesList = clientesData.items;
+          pagination = {
+            page: clientesData.page || newPage,
+            totalPages: clientesData.totalPages || 1,
+            total: clientesData.total || clientesList.length,
+            limit: clientesData.limit || clientesPagination.limit,
+          };
+        } else if (clientesData.data && Array.isArray(clientesData.data)) {
+          clientesList = clientesData.data;
+          pagination = {
+            page: clientesData.page || newPage,
+            totalPages: clientesData.totalPages || 1,
+            total: clientesData.total || clientesList.length,
+            limit: clientesData.limit || clientesPagination.limit,
+          };
+        } else if (Array.isArray(clientesData)) {
+          clientesList = clientesData;
+        }
+
+        setFilteredClientes(clientesList);
+        setClientesPagination(pagination);
+      }
+    } catch (error) {
+      toast.error("Error al cargar clientes", {
+        description:
+          error instanceof Error
+            ? error.message
+            : "No se pudieron cargar los clientes.",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   // Buscar clientes en la API solo cuando se presiona Enter (searchTermCliente cambia)
   useEffect(() => {
-    const fetchFilteredClientes = async () => {
+    const fetchFilteredClientes = async (page: number = 1) => {
       if (searchTermCliente.trim() === "") {
         setFilteredClientes(clientes);
         return;
@@ -308,24 +438,33 @@ export function CrearServicioGenericoComponent() {
       setIsLoading(true);
       try {
         // getClients puede aceptar un parámetro de búsqueda
-        const clientesData = await getClients(1, 100, searchTermCliente.trim());
+        const clientesData = await getClients(page, clientesPagination.limit, searchTermCliente.trim()) as ClientesResponse;
         let clientesList: Cliente[] = [];
+        let pagination = { page: 1, totalPages: 1, total: 0, limit: clientesPagination.limit };
+
         if (clientesData && typeof clientesData === "object") {
-          if (Array.isArray(clientesData)) {
-            clientesList = clientesData;
-          } else if (
-            "items" in clientesData &&
-            Array.isArray(clientesData.items)
-          ) {
+          if (clientesData.items && Array.isArray(clientesData.items)) {
             clientesList = clientesData.items;
-          } else if (
-            "data" in clientesData &&
-            Array.isArray(clientesData.data)
-          ) {
+            pagination = {
+              page: clientesData.page || page,
+              totalPages: clientesData.totalPages || 1,
+              total: clientesData.total || clientesList.length,
+              limit: clientesData.limit || clientesPagination.limit,
+            };
+          } else if (clientesData.data && Array.isArray(clientesData.data)) {
             clientesList = clientesData.data;
+            pagination = {
+              page: clientesData.page || page,
+              totalPages: clientesData.totalPages || 1,
+              total: clientesData.total || clientesList.length,
+              limit: clientesData.limit || clientesPagination.limit,
+            };
+          } else if (Array.isArray(clientesData)) {
+            clientesList = clientesData;
           }
         }
         setFilteredClientes(clientesList);
+        setClientesPagination(pagination);
       } catch (error) {
         toast.error("Error al buscar clientes", {
           description:
@@ -338,7 +477,7 @@ export function CrearServicioGenericoComponent() {
       }
     };
     fetchFilteredClientes();
-  }, [searchTermCliente, clientes]);
+  }, [searchTermCliente, clientes, clientesPagination.limit]);
 
   const handleCondicionSearch = async (
     e: React.KeyboardEvent<HTMLInputElement>
@@ -469,32 +608,40 @@ export function CrearServicioGenericoComponent() {
           setIsLoading(true);
 
           // Cargar empleados y vehículos disponibles con tipos correctos
-          const empleadosResponse = (await getEmployees()) as EmpleadosResponse;
-          const vehiculosResponse = (await getVehicles()) as VehiculosResponse;
+          const empleadosResponse = (await getEmployees(1, empleadosPagination.limit)) as EmpleadosResponse;
+          const vehiculosResponse = (await getVehicles(1, vehiculosPagination.limit)) as VehiculosResponse;
 
           // Procesar respuesta de empleados
           // Permitir empleados tanto en estado DISPONIBLE como ASIGNADO
           // según la lógica del negocio que permite asignar recursos a múltiples servicios
           let empleadosDisp: Empleado[] = [];
+          let empleadosPag = { page: 1, totalPages: 1, total: 0, limit: empleadosPagination.limit };
+          
           if (empleadosResponse && typeof empleadosResponse === "object") {
-            if (
-              "data" in empleadosResponse &&
-              Array.isArray(empleadosResponse.data)
-            ) {
+            if (empleadosResponse.data && Array.isArray(empleadosResponse.data)) {
               empleadosDisp = empleadosResponse.data.filter(
                 (empleado) =>
                   empleado.estado === "DISPONIBLE" ||
                   empleado.estado === "ASIGNADO"
               );
-            } else if (
-              "items" in empleadosResponse &&
-              Array.isArray(empleadosResponse.items)
-            ) {
+              empleadosPag = {
+                page: empleadosResponse.page || 1,
+                totalPages: empleadosResponse.totalPages || 1,
+                total: empleadosResponse.total || empleadosDisp.length,
+                limit: empleadosResponse.limit || empleadosPagination.limit,
+              };
+            } else if (empleadosResponse.items && Array.isArray(empleadosResponse.items)) {
               empleadosDisp = empleadosResponse.items.filter(
                 (empleado) =>
                   empleado.estado === "DISPONIBLE" ||
                   empleado.estado === "ASIGNADO"
               );
+              empleadosPag = {
+                page: empleadosResponse.page || 1,
+                totalPages: empleadosResponse.totalPages || 1,
+                total: empleadosResponse.total || empleadosDisp.length,
+                limit: empleadosResponse.limit || empleadosPagination.limit,
+              };
             } else {
               console.error(
                 "Formato de respuesta de empleados no reconocido:",
@@ -519,25 +666,33 @@ export function CrearServicioGenericoComponent() {
           // Permitir vehículos tanto en estado DISPONIBLE como ASIGNADO
           // según la lógica del negocio que permite asignar recursos a múltiples servicios
           let vehiculosDisp: Vehiculo[] = [];
+          let vehiculosPag = { page: 1, totalPages: 1, total: 0, limit: vehiculosPagination.limit };
+          
           if (vehiculosResponse && typeof vehiculosResponse === "object") {
-            if (
-              "data" in vehiculosResponse &&
-              Array.isArray(vehiculosResponse.data)
-            ) {
+            if (vehiculosResponse.data && Array.isArray(vehiculosResponse.data)) {
               vehiculosDisp = vehiculosResponse.data.filter(
                 (vehiculo) =>
                   vehiculo.estado === "DISPONIBLE" ||
                   vehiculo.estado === "ASIGNADO"
               );
-            } else if (
-              "items" in vehiculosResponse &&
-              Array.isArray(vehiculosResponse.items)
-            ) {
+              vehiculosPag = {
+                page: vehiculosResponse.page || 1,
+                totalPages: vehiculosResponse.totalPages || 1,
+                total: vehiculosResponse.total || vehiculosDisp.length,
+                limit: vehiculosResponse.limit || vehiculosPagination.limit,
+              };
+            } else if (vehiculosResponse.items && Array.isArray(vehiculosResponse.items)) {
               vehiculosDisp = vehiculosResponse.items.filter(
                 (vehiculo) =>
                   vehiculo.estado === "DISPONIBLE" ||
                   vehiculo.estado === "ASIGNADO"
               );
+              vehiculosPag = {
+                page: vehiculosResponse.page || 1,
+                totalPages: vehiculosResponse.totalPages || 1,
+                total: vehiculosResponse.total || vehiculosDisp.length,
+                limit: vehiculosResponse.limit || vehiculosPagination.limit,
+              };
             } else {
               console.error(
                 "Formato de respuesta de vehículos no reconocido:",
@@ -561,6 +716,8 @@ export function CrearServicioGenericoComponent() {
           setEmpleadosDisponibles(empleadosDisp);
           setVehiculosDisponibles(vehiculosDisp);
           setFilteredVehiculos(vehiculosDisp); // Mostrar todos por defecto
+          setEmpleadosPagination(empleadosPag);
+          setVehiculosPagination(vehiculosPag);
 
           // Cargar baños instalados para el cliente con manejo adecuado de tipos
           interface SanitariosResponse {
@@ -628,7 +785,7 @@ export function CrearServicioGenericoComponent() {
     };
 
     fetchResources();
-  }, [selectedClientId, selectedFechaProgramada, step]);
+  }, [selectedClientId, selectedFechaProgramada, step, empleadosPagination.limit, vehiculosPagination.limit]);
   // Manejar selección de empleado
   const handleEmpleadoSelection = (empleadoId: number) => {
     const updatedSelection = selectedEmpleados.includes(empleadoId)
@@ -692,6 +849,74 @@ export function CrearServicioGenericoComponent() {
 
     setSelectedBanos(updatedSelection);
     setValue("banosInstalados", updatedSelection);
+  };
+
+  // Función para manejar búsqueda de vehículos con paginado
+  const handleVehiculoSearch = async (
+    e: React.KeyboardEvent<HTMLInputElement>,
+    page: number = 1
+  ) => {
+    if (e.key === "Enter" || typeof page === "number") {
+      const term = searchTermVehiculo.trim();
+      setIsLoading(true);
+      try {
+        const vehiculosResponse = await getVehicles(
+          page,
+          vehiculosPagination.limit,
+          term
+        ) as VehiculosResponse;
+        
+        let vehiculos: Vehiculo[] = [];
+        let pagination = { page: 1, totalPages: 1, total: 0, limit: vehiculosPagination.limit };
+        
+        if (vehiculosResponse && typeof vehiculosResponse === "object") {
+          if (Array.isArray(vehiculosResponse)) {
+            vehiculos = vehiculosResponse;
+          } else if (vehiculosResponse.items && Array.isArray(vehiculosResponse.items)) {
+            vehiculos = vehiculosResponse.items;
+            pagination = {
+              page: vehiculosResponse.page || page,
+              totalPages: vehiculosResponse.totalPages || 1,
+              total: vehiculosResponse.total || vehiculos.length,
+              limit: vehiculosResponse.limit || vehiculosPagination.limit,
+            };
+          } else if (vehiculosResponse.data && Array.isArray(vehiculosResponse.data)) {
+            vehiculos = vehiculosResponse.data;
+            pagination = {
+              page: vehiculosResponse.page || page,
+              totalPages: vehiculosResponse.totalPages || 1,
+              total: vehiculosResponse.total || vehiculos.length,
+              limit: vehiculosResponse.limit || vehiculosPagination.limit,
+            };
+          }
+        }
+        
+        vehiculos = vehiculos.filter(
+          (vehiculo) =>
+            vehiculo.estado === "DISPONIBLE" ||
+            vehiculo.estado === "ASIGNADO"
+        );
+        
+        setVehiculosDisponibles(vehiculos);
+        setFilteredVehiculos(vehiculos);
+        setVehiculosPagination(pagination);
+      } catch (error) {
+        toast.error("Error al buscar vehículos", {
+          description:
+            error instanceof Error
+              ? error.message
+              : "No se pudieron buscar vehículos.",
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    }
+  };
+
+  // Función para manejar cambio de página de vehículos
+  const handleVehiculosPageChange = (newPage: number) => {
+    const fakeEvent = { key: "Enter" } as React.KeyboardEvent<HTMLInputElement>;
+    handleVehiculoSearch(fakeEvent, newPage);
   }; // Avanzar al siguiente paso
   const handleNextStep = async () => {
     // Validar campos según el paso actual
@@ -952,51 +1177,30 @@ export function CrearServicioGenericoComponent() {
   }
 
   return (
-    <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
-      <div className="grid auto-rows-min gap-4 grid-cols-1">
+    <Card className="w-full shadow-md">
+      <CardHeader className="bg-slate-50 dark:bg-slate-900 border-b">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold">Crear Servicio de Limpieza</h1>
-            <p className="text-gray-600">
-              Complete el formulario para crear un nuevo servicio de limpieza
-            </p>
+            <CardTitle className="text-2xl font-bold flex items-center gap-2">
+              <Bath className="h-6 w-6" />
+              Crear Servicio de Limpieza
+            </CardTitle>
+            <CardDescription className="text-muted-foreground mt-1">
+              {step === 1 && "Seleccione el cliente para el nuevo servicio de limpieza"}
+              {step === 2 && "Seleccione la condición contractual aplicable"}
+              {step === 3 && "Defina la fecha y detalles del servicio de limpieza"}
+              {step === 4 && "Asigne los recursos necesarios para el servicio"}
+            </CardDescription>
           </div>
-
-          {/* Indicador de pasos */}
-          <div className="flex items-center gap-2">
-            <Badge
-              className={`px-3 py-1 ${
-                step >= 1 ? "bg-blue-500" : "bg-gray-300"
-              }`}
-            >
-              1. Cliente
-            </Badge>
-            <Badge
-              className={`px-3 py-1 ${
-                step >= 2 ? "bg-blue-500" : "bg-gray-300"
-              }`}
-            >
-              2. Condición Contractual
-            </Badge>
-            <Badge
-              className={`px-3 py-1 ${
-                step >= 3 ? "bg-blue-500" : "bg-gray-300"
-              }`}
-            >
-              3. Detalles de Limpieza
-            </Badge>
-            <Badge
-              className={`px-3 py-1 ${
-                step >= 4 ? "bg-blue-500" : "bg-gray-300"
-              }`}
-            >
-              4. Asignación de Recursos
-            </Badge>
-          </div>
+          <Badge
+            variant="outline"
+            className="bg-slate-100 text-slate-700 text-base px-3 py-1"
+          >
+            Paso {step} de 4
+          </Badge>
         </div>
-
-        <Card>
-          <CardContent className="p-6">
+      </CardHeader>
+      <CardContent>
             <form
               onSubmit={handleSubmit(
                 (data) => {
@@ -1010,37 +1214,43 @@ export function CrearServicioGenericoComponent() {
             >
               {/* Paso 1: Selección de Cliente */}
               {step === 1 && (
-                <div>
-                  <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
-                    <Users className="h-5 w-5" />
-                    Selección de Cliente
-                  </h2>
-                  <div className="mb-4">
-                    <div className="relative">
-                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-                      <Input
-                        placeholder="Buscar cliente por nombre, CUIT o email..."
-                        className="pl-10"
-                        value={searchInputValue}
-                        onChange={(e) => setSearchInputValue(e.target.value)}
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter") {
-                            e.preventDefault();
-                            setSearchTermCliente(searchInputValue);
-                          }
-                        }}
-                      />
-                    </div>
+                <div className="space-y-4">
+                  <div>
+                    <h3 className="text-lg font-medium mb-2 flex items-center gap-2">
+                      <Users className="h-5 w-5" />
+                      Selección de Cliente
+                    </h3>
+                    <p className="text-sm text-gray-600 mb-4">
+                      Seleccione el cliente para el cual se realizará el servicio de limpieza
+                    </p>
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-4">
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                      <Search className="h-4 w-4 text-gray-400" />
+                    </div>
+                    <Input
+                      placeholder="Buscar cliente por nombre, CUIT o email..."
+                      className="pl-10"
+                      value={searchInputValue}
+                      onChange={(e) => setSearchInputValue(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          e.preventDefault();
+                          setSearchTermCliente(searchInputValue);
+                        }
+                      }}
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                     {filteredClientes.map((cliente) => (
                       <div
                         key={cliente.clienteId}
-                        className={`border rounded-md p-4 cursor-pointer transition-colors ${
+                        className={`border rounded-lg p-4 cursor-pointer transition-all hover:shadow-md ${
                           selectedClientId === cliente.clienteId
-                            ? "border-blue-500 bg-blue-50"
-                            : "hover:border-blue-300 hover:bg-blue-50/50"
+                            ? "border-indigo-500 bg-indigo-50 shadow-md"
+                            : "border-gray-200 hover:border-indigo-300"
                         }`}
                         onClick={async () => {
                           if (cliente.clienteId !== undefined) {
@@ -1109,18 +1319,32 @@ export function CrearServicioGenericoComponent() {
                           }
                         }}
                       >
-                        {" "}
-                        <div className="font-medium text-lg">
-                          {cliente.nombre}
-                        </div>
-                        <div className="text-sm text-gray-500">
-                          CUIT: {cliente.cuit}
-                        </div>
-                        <div className="text-sm text-gray-500">
-                          Email: {cliente.email}
-                        </div>
-                        <div className="text-sm text-gray-500">
-                          Dirección: {cliente.direccion}
+                        <div className="flex items-start">
+                          <div
+                            className={`w-4 h-4 mt-1 mr-3 rounded-full border flex items-center justify-center ${
+                              selectedClientId === cliente.clienteId
+                                ? "border-indigo-500 bg-indigo-500"
+                                : "border-gray-300"
+                            }`}
+                          >
+                            {selectedClientId === cliente.clienteId && (
+                              <div className="w-2 h-2 bg-white rounded-full" />
+                            )}
+                          </div>
+                          <div className="flex-1">
+                            <div className="font-medium text-gray-900">
+                              {cliente.nombre}
+                            </div>
+                            <div className="text-sm text-gray-500">
+                              CUIT: {cliente.cuit}
+                            </div>
+                            <div className="text-sm text-gray-500">
+                              {cliente.email}
+                            </div>
+                            <div className="text-sm text-gray-500 mt-1">
+                              {cliente.direccion}
+                            </div>
+                          </div>
                         </div>
                       </div>
                     ))}
@@ -1131,117 +1355,160 @@ export function CrearServicioGenericoComponent() {
                       {errors.clienteId.message}
                     </p>
                   )}
+                  
+                  {/* Paginación de clientes */}
+                  {clientesPagination.totalPages > 1 && (
+                    <div className="flex items-center justify-between pt-4 border-t">
+                      <div className="text-sm text-gray-500">
+                        Mostrando {filteredClientes.length} de {clientesPagination.total} clientes
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleClientesPageChange(clientesPagination.page - 1)}
+                          disabled={clientesPagination.page <= 1}
+                        >
+                          Anterior
+                        </Button>
+                        
+                        <span className="text-sm text-gray-600">
+                          Página {clientesPagination.page} de {clientesPagination.totalPages}
+                        </span>
+                        
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleClientesPageChange(clientesPagination.page + 1)}
+                          disabled={clientesPagination.page >= clientesPagination.totalPages}
+                        >
+                          Siguiente
+                        </Button>
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
 
               {/* Paso 2: Condición Contractual */}
               {step === 2 && (
-                <div>
-                  <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
-                    <FileText className="h-5 w-5" />
-                    Selección de Condición Contractual
-                  </h2>{" "}
-                  <Input
-                    className="pl-10"
-                    placeholder="Buscar por tipo de servicio, periodicidad, etc..."
-                    value={searchTermCondicion}
-                    onChange={(e) => {
-                      setSearchTermCondicion(e.target.value);
-                      if (e.target.value.trim() === "") {
-                        setFilteredCondiciones(condicionesContractuales);
-                      }
-                    }}
-                    onKeyDown={handleCondicionSearch}
-                    disabled={isLoading}
-                  />
+                <div className="space-y-4">
+                  <div>
+                    <h3 className="text-lg font-medium mb-2 flex items-center gap-2">
+                      <FileText className="h-5 w-5" />
+                      Selección de Condición Contractual
+                    </h3>
+                    <p className="text-sm text-gray-600 mb-4">
+                      Seleccione la condición contractual que define los términos del servicio
+                    </p>
+                  </div>
+
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                      <Search className="h-4 w-4 text-gray-400" />
+                    </div>
+                    <Input
+                      className="pl-10"
+                      placeholder="Buscar por tipo de servicio, periodicidad, etc..."
+                      value={searchTermCondicion}
+                      onChange={(e) => {
+                        setSearchTermCondicion(e.target.value);
+                        if (e.target.value.trim() === "") {
+                          setFilteredCondiciones(condicionesContractuales);
+                        }
+                      }}
+                      onKeyDown={handleCondicionSearch}
+                      disabled={isLoading}
+                    />
+                  </div>
+
                   {isLoading ? (
                     <div className="flex justify-center py-8">
-                      <Loader />
+                      <Loader className="h-6 w-6 text-indigo-500" />
                     </div>
                   ) : condicionesContractuales.length === 0 ? (
-                    <div className="text-center py-8 border rounded-md flex flex-col items-center">
-                      <p className="text-red-500 font-semibold mb-2">
-                        No hay condiciones contractuales disponibles
-                      </p>
-                      <p className="text-gray-500 mb-4">
-                        Este cliente no tiene condiciones contractuales
-                        configuradas. Primero debe crear al menos una condición
-                        contractual para poder asignarle un servicio.
-                      </p>
-                      <Button
-                        variant="outline"
-                        onClick={handlePrevStep}
-                        className="mt-2"
-                      >
-                        <ChevronLeft className="mr-2 h-4 w-4" /> Seleccionar
-                        otro cliente
-                      </Button>
+                    <div className="text-center py-8 border rounded-lg bg-red-50 border-red-200">
+                      <div className="flex flex-col items-center">
+                        <FileText className="h-12 w-12 text-red-400 mb-3" />
+                        <p className="text-red-700 font-semibold mb-2">
+                          No hay condiciones contractuales disponibles
+                        </p>
+                        <p className="text-red-600 mb-4 max-w-md">
+                          Este cliente no tiene condiciones contractuales configuradas. 
+                          Primero debe crear al menos una condición contractual para poder asignarle un servicio.
+                        </p>
+                        <Button
+                          variant="outline"
+                          onClick={handlePrevStep}
+                          className="border-red-300 text-red-700 hover:bg-red-50"
+                        >
+                          <ChevronLeft className="mr-2 h-4 w-4" /> 
+                          Seleccionar otro cliente
+                        </Button>
+                      </div>
                     </div>
                   ) : (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                       {filteredCondiciones.map((condicion) => (
                         <div
                           key={condicion.condicionContractualId}
-                          className={`border rounded-md p-4 cursor-pointer transition-colors ${
-                            selectedCondicionId ===
-                            condicion.condicionContractualId
-                              ? "border-blue-500 bg-blue-50"
-                              : "hover:border-blue-300 hover:bg-blue-50/50"
+                          className={`border rounded-lg p-4 cursor-pointer transition-all hover:shadow-md ${
+                            selectedCondicionId === condicion.condicionContractualId
+                              ? "border-indigo-500 bg-indigo-50 shadow-md"
+                              : "border-gray-200 hover:border-indigo-300"
                           }`}
                           onClick={() => {
-                            // Update the form value
-                            setValue(
-                              "condicionContractualId",
-                              condicion.condicionContractualId
-                            );
-                            // Also update the selected condition ID state
-                            setSelectedCondicionId(
-                              condicion.condicionContractualId
-                            );
+                            setValue("condicionContractualId", condicion.condicionContractualId);
+                            setSelectedCondicionId(condicion.condicionContractualId);
                           }}
                         >
-                          <div className="font-medium">
-                            {condicion.tipo_servicio}
-                          </div>
-                          <div className="text-sm text-gray-500">
-                            Período:{" "}
-                            {new Date(
-                              condicion.fecha_inicio
-                            ).toLocaleDateString()}{" "}
-                            -{" "}
-                            {new Date(condicion.fecha_fin).toLocaleDateString()}{" "}
-                          </div>
-                          {isAdmin && (
-                            <div className="text-sm text-gray-500">
-                              Tarifa: ${condicion.tarifa} (
-                              {condicion.periodicidad})
+                          <div className="flex items-start">
+                            <div
+                              className={`w-4 h-4 mt-1 mr-3 rounded-full border flex items-center justify-center ${
+                                selectedCondicionId === condicion.condicionContractualId
+                                  ? "border-indigo-500 bg-indigo-500"
+                                  : "border-gray-300"
+                              }`}
+                            >
+                              {selectedCondicionId === condicion.condicionContractualId && (
+                                <div className="w-2 h-2 bg-white rounded-full" />
+                              )}
                             </div>
-                          )}
-                          {condicion.condiciones_especificas && (
-                            <div className="text-sm text-gray-500 mt-2">
-                              <span className="font-medium">
-                                Condiciones específicas:
-                              </span>{" "}
-                              <p className="italic">
-                                &quot;{condicion.condiciones_especificas}&quot;
-                              </p>
+                            <div className="flex-1">
+                              <div className="font-medium text-gray-900 mb-2">
+                                {condicion.tipo_servicio}
+                              </div>
+                              <div className="text-sm text-gray-500 mb-1">
+                                Período: {new Date(condicion.fecha_inicio).toLocaleDateString()} - {new Date(condicion.fecha_fin).toLocaleDateString()}
+                              </div>
+                              {isAdmin && (
+                                <div className="text-sm text-gray-500 mb-2">
+                                  Tarifa: ${condicion.tarifa} ({condicion.periodicidad})
+                                </div>
+                              )}
+                              {condicion.condiciones_especificas && (
+                                <div className="text-sm text-gray-500 mb-2">
+                                  <span className="font-medium">Condiciones:</span> {condicion.condiciones_especificas}
+                                </div>
+                              )}
+                              <Badge
+                                className={`text-xs ${
+                                  condicion.estado === "Activo"
+                                    ? "bg-green-100 text-green-700"
+                                    : condicion.estado === "Terminado"
+                                    ? "bg-red-100 text-red-700"
+                                    : "bg-yellow-100 text-yellow-700"
+                                }`}
+                              >
+                                {condicion.estado}
+                              </Badge>
                             </div>
-                          )}
-                          <Badge
-                            className={`mt-2 ${
-                              condicion.estado === "Activo"
-                                ? "bg-green-100 text-green-800"
-                                : condicion.estado === "Terminado"
-                                ? "bg-red-100 text-red-800"
-                                : "bg-yellow-100 text-yellow-800"
-                            }`}
-                          >
-                            {condicion.estado}
-                          </Badge>
+                          </div>
                         </div>
                       ))}
                     </div>
-                  )}{" "}
+                  )}
+
                   {errors.condicionContractualId && (
                     <p className="text-red-500 text-sm mt-2">
                       {errors.condicionContractualId.message}
@@ -1252,40 +1519,43 @@ export function CrearServicioGenericoComponent() {
 
               {/* Paso 3: Detalles de Limpieza */}
               {step === 3 && (
-                <div>
-                  <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
-                    <Clipboard className="h-5 w-5" />
-                    Detalles del Servicio de Limpieza
-                  </h2>
+                <div className="space-y-6">
+                  <div>
+                    <h3 className="text-lg font-medium mb-2 flex items-center gap-2">
+                      <Clipboard className="h-5 w-5" />
+                      Detalles del Servicio de Limpieza
+                    </h3>
+                    <p className="text-sm text-gray-600 mb-4">
+                      Configure los detalles específicos del servicio de limpieza
+                    </p>
+                  </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     {/* Fecha Programada */}
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium">
-                        Fecha y Hora Programada
-                      </label>
-                      <Controller
-                        name="fechaProgramada"
-                        control={control}
-                        render={({ field }) => (
-                          <div className="flex flex-col">
-                            <SimpleDatePicker
-                              date={field.value}
-                              onChange={(date) => field.onChange(date)}
-                              format="dd/MM/yyyy"
-                              placeholder="Seleccione fecha y hora"
-                              className="w-full"
-                              showTimeSelect={true}
-                            />
-                            {errors.fechaProgramada && (
-                              <p className="text-red-500 text-sm mt-1">
-                                {errors.fechaProgramada.message}
-                              </p>
-                            )}
-                          </div>
-                        )}
-                      />
-                    </div>
+                    <Controller
+                      name="fechaProgramada"
+                      control={control}
+                      render={({ field }) => (
+                        <div className="space-y-2">
+                          <label className="text-sm font-medium text-gray-700">
+                            Fecha y Hora Programada
+                          </label>
+                          <SimpleDatePicker
+                            date={field.value}
+                            onChange={(date) => field.onChange(date)}
+                            format="dd/MM/yyyy"
+                            placeholder="Seleccione fecha y hora"
+                            className="w-full"
+                            showTimeSelect={true}
+                          />
+                          {errors.fechaProgramada && (
+                            <p className="text-red-500 text-sm">
+                              {errors.fechaProgramada.message}
+                            </p>
+                          )}
+                        </div>
+                      )}
+                    />
 
                     {/* Cantidad de Vehículos */}
                     <Controller
@@ -1305,52 +1575,54 @@ export function CrearServicioGenericoComponent() {
                         />
                       )}
                     />
-
-                    {/* Ubicación */}
-                    <Controller
-                      name="ubicacion"
-                      control={control}
-                      render={({ field, fieldState }) => (
-                        <FormField
-                          label="Ubicación"
-                          name="ubicacion"
-                          value={field.value || ""}
-                          onChange={field.onChange}
-                          error={fieldState.error?.message}
-                          placeholder="Ingrese la ubicación del servicio"
-                          className="md:col-span-2"
-                        />
-                      )}
-                    />
-
-                    {/* Notas */}
-                    <div className="space-y-2 md:col-span-2">
-                      <label className="text-sm font-medium">
-                        Notas (Opcional)
-                      </label>
-                      <Controller
-                        name="notas"
-                        control={control}
-                        render={({ field }) => (
-                          <Textarea
-                            {...field}
-                            placeholder="Ingrese notas adicionales sobre el servicio"
-                            className="min-h-[100px]"
-                          />
-                        )}
-                      />
-                    </div>
                   </div>
+
+                  {/* Ubicación */}
+                  <Controller
+                    name="ubicacion"
+                    control={control}
+                    render={({ field, fieldState }) => (
+                      <FormField
+                        label="Ubicación"
+                        name="ubicacion"
+                        value={field.value || ""}
+                        onChange={field.onChange}
+                        error={fieldState.error?.message}
+                        placeholder="Dirección completa donde se realizará el servicio"
+                      />
+                    )}
+                  />
+
+                  {/* Notas */}
+                  <Controller
+                    name="notas"
+                    control={control}
+                    render={({ field }) => (
+                      <FormField
+                        label="Notas Adicionales"
+                        name="notas"
+                        type="textarea"
+                        value={field.value || ""}
+                        onChange={field.onChange}
+                        placeholder="Instrucciones especiales, contactos en sitio, etc."
+                      />
+                    )}
+                  />
                 </div>
               )}
 
               {/* Paso 4: Asignación de Recursos */}
               {step === 4 && (
-                <div>
-                  <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
-                    <Bath className="h-5 w-5" />
-                    Selección de Baños, Empleados y Vehículos
-                  </h2>
+                <div className="space-y-6">
+                  <div>
+                    <h3 className="text-lg font-medium mb-2 flex items-center gap-2">
+                      <Bath className="h-5 w-5" />
+                      Selección de Recursos
+                    </h3>
+                    <p className="text-sm text-gray-600 mb-4">
+                      Asigne los empleados, vehículos y baños necesarios para el servicio
+                    </p>
+                  </div>
 
                   {isLoading ? (
                     <div className="flex justify-center py-8">
@@ -1440,25 +1712,29 @@ export function CrearServicioGenericoComponent() {
                               (async () => {
                                 setIsLoading(true);
                                 try {
-                                  const empleadosResponseRaw =
-                                    await getEmployees(1, 15, "");
+                                  const empleadosResponseRaw = await getEmployees(1, empleadosPagination.limit, "") as EmpleadosResponse;
                                   let empleados: Empleado[] = [];
-                                  if (
-                                    empleadosResponseRaw &&
-                                    typeof empleadosResponseRaw === "object"
-                                  ) {
+                                  let pagination = { page: 1, totalPages: 1, total: 0, limit: empleadosPagination.limit };
+                                  
+                                  if (empleadosResponseRaw && typeof empleadosResponseRaw === "object") {
                                     if (Array.isArray(empleadosResponseRaw)) {
                                       empleados = empleadosResponseRaw;
-                                    } else if (
-                                      "items" in empleadosResponseRaw &&
-                                      Array.isArray(empleadosResponseRaw.items)
-                                    ) {
+                                    } else if (empleadosResponseRaw.items && Array.isArray(empleadosResponseRaw.items)) {
                                       empleados = empleadosResponseRaw.items;
-                                    } else if (
-                                      "data" in empleadosResponseRaw &&
-                                      Array.isArray(empleadosResponseRaw.data)
-                                    ) {
+                                      pagination = {
+                                        page: empleadosResponseRaw.page || 1,
+                                        totalPages: empleadosResponseRaw.totalPages || 1,
+                                        total: empleadosResponseRaw.total || empleados.length,
+                                        limit: empleadosResponseRaw.limit || empleadosPagination.limit,
+                                      };
+                                    } else if (empleadosResponseRaw.data && Array.isArray(empleadosResponseRaw.data)) {
                                       empleados = empleadosResponseRaw.data;
+                                      pagination = {
+                                        page: empleadosResponseRaw.page || 1,
+                                        totalPages: empleadosResponseRaw.totalPages || 1,
+                                        total: empleadosResponseRaw.total || empleados.length,
+                                        limit: empleadosResponseRaw.limit || empleadosPagination.limit,
+                                      };
                                     }
                                   }
                                   empleados = empleados.filter(
@@ -1468,6 +1744,7 @@ export function CrearServicioGenericoComponent() {
                                   );
                                   setEmpleadosDisponibles(empleados);
                                   setFilteredEmpleados(empleados);
+                                  setEmpleadosPagination(pagination);
                                 } catch (error) {
                                   toast.error("Error al cargar empleados", {
                                     description:
@@ -1486,7 +1763,7 @@ export function CrearServicioGenericoComponent() {
                         <h3 className="text-lg font-medium mb-3 flex items-center justify-between">
                           Seleccionar Empleados
                           <Badge variant="outline" className="bg-blue-50">
-                            {filteredEmpleados.length} seleccionados
+                            {selectedEmpleados.length} seleccionados
                           </Badge>
                         </h3>{" "}
                         <div className="bg-blue-50 p-3 rounded-md mb-3 text-sm">
@@ -1653,6 +1930,57 @@ export function CrearServicioGenericoComponent() {
                             {errors.empleadosIds.message}
                           </p>
                         )}
+                        
+                        {/* Paginación de empleados */}
+                        {empleadosPagination.totalPages > 1 && (
+                          <div className="flex items-center justify-between pt-4 border-t mt-4">
+                            <div className="text-sm text-gray-500">
+                              Mostrando {filteredEmpleados.length} de {empleadosPagination.total} empleados
+                            </div>
+                            <div className="flex space-x-2">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleEmpleadosPageChange(empleadosPagination.page - 1)}
+                                disabled={empleadosPagination.page <= 1}
+                              >
+                                Anterior
+                              </Button>
+                              
+                              <div className="flex items-center space-x-1">
+                                {Array.from({ length: empleadosPagination.totalPages }, (_, i) => i + 1)
+                                  .filter(pageNum => 
+                                    pageNum === 1 || 
+                                    pageNum === empleadosPagination.totalPages || 
+                                    Math.abs(pageNum - empleadosPagination.page) <= 1
+                                  )
+                                  .map((pageNum, index, array) => (
+                                    <React.Fragment key={pageNum}>
+                                      {index > 0 && array[index - 1] !== pageNum - 1 && (
+                                        <span className="px-2 text-gray-400">...</span>
+                                      )}
+                                      <Button
+                                        variant={pageNum === empleadosPagination.page ? "default" : "outline"}
+                                        size="sm"
+                                        onClick={() => handleEmpleadosPageChange(pageNum)}
+                                      >
+                                        {pageNum}
+                                      </Button>
+                                    </React.Fragment>
+                                  ))}
+                              </div>
+                              
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleEmpleadosPageChange(empleadosPagination.page + 1)}
+                                disabled={empleadosPagination.page >= empleadosPagination.totalPages}
+                              >
+                                Siguiente
+                              </Button>
+                            </div>
+                          </div>
+                        )}
                       </div>
                       {/* Selección de Vehículos */}
                       <div>
@@ -1672,36 +2000,45 @@ export function CrearServicioGenericoComponent() {
                               setIsLoading(true);
                               try {
                                 const vehiculosResponse = await getVehicles(
-                                  1,
-                                  100,
+                                  vehiculosPagination.page,
+                                  vehiculosPagination.limit,
                                   term
-                                );
+                                ) as VehiculosResponse;
+                                
                                 let vehiculos: Vehiculo[] = [];
-                                if (
-                                  vehiculosResponse &&
-                                  typeof vehiculosResponse === "object"
-                                ) {
+                                let pagination = { page: 1, totalPages: 1, total: 0, limit: vehiculosPagination.limit };
+                                
+                                if (vehiculosResponse && typeof vehiculosResponse === "object") {
                                   if (Array.isArray(vehiculosResponse)) {
                                     vehiculos = vehiculosResponse;
-                                  } else if (
-                                    "items" in vehiculosResponse &&
-                                    Array.isArray(vehiculosResponse.items)
-                                  ) {
+                                  } else if (vehiculosResponse.items && Array.isArray(vehiculosResponse.items)) {
                                     vehiculos = vehiculosResponse.items;
-                                  } else if (
-                                    "data" in vehiculosResponse &&
-                                    Array.isArray(vehiculosResponse.data)
-                                  ) {
+                                    pagination = {
+                                      page: vehiculosResponse.page || 1,
+                                      totalPages: vehiculosResponse.totalPages || 1,
+                                      total: vehiculosResponse.total || vehiculos.length,
+                                      limit: vehiculosResponse.limit || vehiculosPagination.limit,
+                                    };
+                                  } else if (vehiculosResponse.data && Array.isArray(vehiculosResponse.data)) {
                                     vehiculos = vehiculosResponse.data;
+                                    pagination = {
+                                      page: vehiculosResponse.page || 1,
+                                      totalPages: vehiculosResponse.totalPages || 1,
+                                      total: vehiculosResponse.total || vehiculos.length,
+                                      limit: vehiculosResponse.limit || vehiculosPagination.limit,
+                                    };
                                   }
                                 }
+                                
                                 vehiculos = vehiculos.filter(
                                   (vehiculo) =>
                                     vehiculo.estado === "DISPONIBLE" ||
                                     vehiculo.estado === "ASIGNADO"
                                 );
+                                
                                 setVehiculosDisponibles(vehiculos);
                                 setFilteredVehiculos(vehiculos);
+                                setVehiculosPagination(pagination);
                               } catch (error) {
                                 toast.error("Error al buscar vehículos", {
                                   description:
@@ -1769,6 +2106,57 @@ export function CrearServicioGenericoComponent() {
                             {errors.vehiculosIds.message}
                           </p>
                         )}
+                        
+                        {/* Paginación de vehículos */}
+                        {vehiculosPagination.totalPages > 1 && (
+                          <div className="flex items-center justify-between pt-4 border-t mt-4">
+                            <div className="text-sm text-gray-500">
+                              Mostrando {filteredVehiculos.length} de {vehiculosPagination.total} vehículos
+                            </div>
+                            <div className="flex space-x-2">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleVehiculosPageChange(vehiculosPagination.page - 1)}
+                                disabled={vehiculosPagination.page <= 1}
+                              >
+                                Anterior
+                              </Button>
+                              
+                              <div className="flex items-center space-x-1">
+                                {Array.from({ length: vehiculosPagination.totalPages }, (_, i) => i + 1)
+                                  .filter(pageNum => 
+                                    pageNum === 1 || 
+                                    pageNum === vehiculosPagination.totalPages || 
+                                    Math.abs(pageNum - vehiculosPagination.page) <= 1
+                                  )
+                                  .map((pageNum, index, array) => (
+                                    <React.Fragment key={pageNum}>
+                                      {index > 0 && array[index - 1] !== pageNum - 1 && (
+                                        <span className="px-2 text-gray-400">...</span>
+                                      )}
+                                      <Button
+                                        variant={pageNum === vehiculosPagination.page ? "default" : "outline"}
+                                        size="sm"
+                                        onClick={() => handleVehiculosPageChange(pageNum)}
+                                      >
+                                        {pageNum}
+                                      </Button>
+                                    </React.Fragment>
+                                  ))}
+                              </div>
+                              
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleVehiculosPageChange(vehiculosPagination.page + 1)}
+                                disabled={vehiculosPagination.page >= vehiculosPagination.totalPages}
+                              >
+                                Siguiente
+                              </Button>
+                            </div>
+                          </div>
+                        )}
                       </div>
                     </div>
                   )}
@@ -1776,7 +2164,7 @@ export function CrearServicioGenericoComponent() {
               )}
 
               {/* Botones de navegación */}
-              <div className="flex justify-between mt-8">
+              <div className="flex items-center justify-between pt-6 border-t">
                 {step > 1 ? (
                   <Button
                     type="button"
@@ -1797,7 +2185,7 @@ export function CrearServicioGenericoComponent() {
                     type="button"
                     onClick={handleNextStep}
                     disabled={isSubmitting}
-                    className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700"
+                    className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700"
                   >
                     Siguiente
                     <ChevronRight className="h-4 w-4" />
@@ -1806,27 +2194,22 @@ export function CrearServicioGenericoComponent() {
                   <Button
                     type="submit"
                     disabled={isSubmitting}
-                    className="flex items-center gap-2 bg-green-600 hover:bg-green-700" // El onClick no es necesario aquí, ya que estamos usando handleSubmit
-                    // que manejará la validación y enviará los datos
+                    className="bg-indigo-600 hover:bg-indigo-700"
                   >
                     {isSubmitting ? (
                       <>
-                        <Loader className="h-4 w-4 animate-spin" />
-                        Creando...
+                        <Loader className="mr-2 h-4 w-4" /> Guardando...
                       </>
                     ) : (
                       <>
-                        <Save className="h-4 w-4" />
-                        Crear Servicio
+                        <Save className="mr-2 h-4 w-4" /> Crear Servicio
                       </>
                     )}
                   </Button>
                 )}
               </div>
             </form>
-          </CardContent>
-        </Card>
-      </div>
-    </div>
+      </CardContent>
+    </Card>
   );
 }

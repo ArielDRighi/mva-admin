@@ -134,6 +134,30 @@ export default function CrearInstalacionComponent() {
   const [banosTotal, setBanosTotal] = useState<number>(0);
   const [isLoadingBanos, setIsLoadingBanos] = useState<boolean>(false);
 
+  // Estados para paginación de empleados
+  const [empleadosPagination, setEmpleadosPagination] = useState({
+    page: 1,
+    totalPages: 1,
+    total: 0,
+    limit: 15
+  });
+
+  // Estados para paginación de vehículos
+  const [vehiculosPagination, setVehiculosPagination] = useState({
+    page: 1,
+    totalPages: 1,
+    total: 0,
+    limit: 15
+  });
+
+  // Estados para paginación de clientes
+  const [clientesPagination, setClientesPagination] = useState({
+    page: 1,
+    totalPages: 1,
+    total: 0,
+    limit: 15
+  });
+
   // Estado para asignación de roles A y B
   const [empleadoRolA, setEmpleadoRolA] = useState<number | null>(null);
   const [empleadoRolB, setEmpleadoRolB] = useState<number | null>(null);
@@ -322,21 +346,36 @@ export default function CrearInstalacionComponent() {
           data?: Cliente[];
           total?: number;
           totalItems?: number;
+          page?: number;
+          totalPages?: number;
+          limit?: number;
         }
 
-        const clientesData = (await getClients()) as ClienteResponse;
+        const clientesData = (await getClients(clientesPagination.page, clientesPagination.limit)) as ClienteResponse;
 
         if (clientesData && typeof clientesData === "object") {
           // Determinar qué propiedad contiene los datos (items o data)
           if ("items" in clientesData && Array.isArray(clientesData.items)) {
             setClientes(clientesData.items);
             setFilteredClientes(clientesData.items);
+            setClientesPagination({
+              page: clientesData.page || 1,
+              totalPages: clientesData.totalPages || 1,
+              total: clientesData.total || 0,
+              limit: clientesData.limit || 15
+            });
           } else if (
             "data" in clientesData &&
             Array.isArray(clientesData.data)
           ) {
             setClientes(clientesData.data);
             setFilteredClientes(clientesData.data);
+            setClientesPagination({
+              page: clientesData.page || 1,
+              totalPages: clientesData.totalPages || 1,
+              total: clientesData.total || 0,
+              limit: clientesData.limit || 15
+            });
           } else {
             console.error("Formato de respuesta no reconocido:", clientesData);
             toast.error("Error de formato", {
@@ -367,7 +406,7 @@ export default function CrearInstalacionComponent() {
     };
 
     fetchClientes();
-  }, []);
+  }, [clientesPagination.page, clientesPagination.limit]);
 
   // Buscar clientes en la API al presionar Enter
   useEffect(() => {
@@ -492,11 +531,19 @@ export default function CrearInstalacionComponent() {
           interface EmpleadosResponse {
             data?: Empleado[];
             items?: Empleado[];
+            page?: number;
+            totalPages?: number;
+            total?: number;
+            limit?: number;
           }
 
           interface VehiculosResponse {
             data?: Vehiculo[];
             items?: Vehiculo[];
+            page?: number;
+            totalPages?: number;
+            total?: number;
+            limit?: number;
           }
 
           interface SanitariosResponse {
@@ -506,7 +553,10 @@ export default function CrearInstalacionComponent() {
 
           // Obtener datos con Promise.all para optimizar las peticiones
           const [empleadosResponseRaw, vehiculosResponseRaw] =
-            await Promise.all([getEmployees(), getVehicles()]);
+            await Promise.all([
+              getEmployees(empleadosPagination.page, empleadosPagination.limit),
+              getVehicles(vehiculosPagination.page, vehiculosPagination.limit)
+            ]);
 
           // Procesar respuesta de empleados con verificación de tipo
           // Permitir empleados tanto en estado DISPONIBLE como ASIGNADO
@@ -524,6 +574,12 @@ export default function CrearInstalacionComponent() {
                   empleado.estado === "DISPONIBLE" ||
                   empleado.estado === "ASIGNADO"
               );
+              setEmpleadosPagination({
+                page: empleadosResponse.page || 1,
+                totalPages: empleadosResponse.totalPages || 1,
+                total: empleadosResponse.total || 0,
+                limit: empleadosResponse.limit || 15
+              });
             } else if (
               "items" in empleadosResponse &&
               Array.isArray(empleadosResponse.items)
@@ -533,6 +589,12 @@ export default function CrearInstalacionComponent() {
                   empleado.estado === "DISPONIBLE" ||
                   empleado.estado === "ASIGNADO"
               );
+              setEmpleadosPagination({
+                page: empleadosResponse.page || 1,
+                totalPages: empleadosResponse.totalPages || 1,
+                total: empleadosResponse.total || 0,
+                limit: empleadosResponse.limit || 15
+              });
             }
           }
 
@@ -552,6 +614,12 @@ export default function CrearInstalacionComponent() {
                   vehiculo.estado === "DISPONIBLE" ||
                   vehiculo.estado === "ASIGNADO"
               );
+              setVehiculosPagination({
+                page: vehiculosResponse.page || 1,
+                totalPages: vehiculosResponse.totalPages || 1,
+                total: vehiculosResponse.total || 0,
+                limit: vehiculosResponse.limit || 15
+              });
             } else if (
               "items" in vehiculosResponse &&
               Array.isArray(vehiculosResponse.items)
@@ -561,6 +629,12 @@ export default function CrearInstalacionComponent() {
                   vehiculo.estado === "DISPONIBLE" ||
                   vehiculo.estado === "ASIGNADO"
               );
+              setVehiculosPagination({
+                page: vehiculosResponse.page || 1,
+                totalPages: vehiculosResponse.totalPages || 1,
+                total: vehiculosResponse.total || 0,
+                limit: vehiculosResponse.limit || 15
+              });
             }
           }
 
@@ -589,7 +663,7 @@ export default function CrearInstalacionComponent() {
       setBanosPage(1); // Resetear página de baños
       fetchResources();
     }
-  }, [selectedFechaProgramada, step, setValue]);
+  }, [selectedFechaProgramada, step, setValue, empleadosPagination.page, empleadosPagination.limit, vehiculosPagination.page, vehiculosPagination.limit]);
 
   useEffect(() => {
     if (selectedCondicionId && selectedCondicionId > 0) {
@@ -927,6 +1001,19 @@ export default function CrearInstalacionComponent() {
     setBanosPage(page);
   };
 
+  // Funciones para manejar paginación
+  const handleClientesPageChange = (newPage: number) => {
+    setClientesPagination(prev => ({ ...prev, page: newPage }));
+  };
+
+  const handleEmpleadosPageChange = (newPage: number) => {
+    setEmpleadosPagination(prev => ({ ...prev, page: newPage }));
+  };
+
+  const handleVehiculosPageChange = (newPage: number) => {
+    setVehiculosPagination(prev => ({ ...prev, page: newPage }));
+  };
+
   return (
     <Card className="w-full shadow-md">
       <CardHeader className="bg-slate-50 dark:bg-slate-900 border-b">
@@ -1097,6 +1184,33 @@ export default function CrearInstalacionComponent() {
                           cliente primero.
                         </div>
                       )}
+                    </div>
+                  )}
+
+                  {/* Paginación de clientes */}
+                  {clientesPagination.totalPages > 1 && (
+                    <div className="flex justify-center items-center gap-2 mt-4">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleClientesPageChange(clientesPagination.page - 1)}
+                        disabled={clientesPagination.page === 1}
+                      >
+                        Anterior
+                      </Button>
+                      
+                      <span className="text-sm text-gray-600">
+                        Página {clientesPagination.page} de {clientesPagination.totalPages} ({clientesPagination.total} clientes)
+                      </span>
+                      
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleClientesPageChange(clientesPagination.page + 1)}
+                        disabled={clientesPagination.page === clientesPagination.totalPages}
+                      >
+                        Siguiente
+                      </Button>
                     </div>
                   )}
 
@@ -1572,6 +1686,34 @@ export default function CrearInstalacionComponent() {
                   No hay empleados disponibles para la fecha seleccionada.
                 </div>
               )}
+
+              {/* Paginación de empleados */}
+              {empleadosPagination.totalPages > 1 && (
+                <div className="flex justify-center items-center gap-2 mt-4">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleEmpleadosPageChange(empleadosPagination.page - 1)}
+                    disabled={empleadosPagination.page === 1}
+                  >
+                    Anterior
+                  </Button>
+                  
+                  <span className="text-sm text-gray-600">
+                    Página {empleadosPagination.page} de {empleadosPagination.totalPages} ({empleadosPagination.total} empleados)
+                  </span>
+                  
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleEmpleadosPageChange(empleadosPagination.page + 1)}
+                    disabled={empleadosPagination.page === empleadosPagination.totalPages}
+                  >
+                    Siguiente
+                  </Button>
+                </div>
+              )}
+
               {errors.empleadosIds && (
                 <p className="text-sm text-red-500 mt-1">
                   {errors.empleadosIds.message}
@@ -1727,6 +1869,34 @@ export default function CrearInstalacionComponent() {
                   }
                 })()
               )}
+
+              {/* Paginación de vehículos */}
+              {vehiculosPagination.totalPages > 1 && (
+                <div className="flex justify-center items-center gap-2 mt-4">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleVehiculosPageChange(vehiculosPagination.page - 1)}
+                    disabled={vehiculosPagination.page === 1}
+                  >
+                    Anterior
+                  </Button>
+                  
+                  <span className="text-sm text-gray-600">
+                    Página {vehiculosPagination.page} de {vehiculosPagination.totalPages} ({vehiculosPagination.total} vehículos)
+                  </span>
+                  
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleVehiculosPageChange(vehiculosPagination.page + 1)}
+                    disabled={vehiculosPagination.page === vehiculosPagination.totalPages}
+                  >
+                    Siguiente
+                  </Button>
+                </div>
+              )}
+
               {errors.vehiculosIds && (
                 <p className="text-sm text-red-500 mt-1">
                   {errors.vehiculosIds.message}

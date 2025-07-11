@@ -10,7 +10,13 @@ import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { FormField } from "@/components/ui/local/FormField";
-import { Card, CardContent } from "@/components/ui/card";
+import { 
+  Card, 
+  CardContent, 
+  CardHeader, 
+  CardTitle, 
+  CardDescription 
+} from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { getClients } from "@/app/actions/clientes";
@@ -79,11 +85,28 @@ type CondicionContractual = {
 interface EmpleadosResponse {
   data?: Empleado[];
   items?: Empleado[];
+  page?: number;
+  totalPages?: number;
+  total?: number;
+  limit?: number;
 }
 
 interface VehiculosResponse {
   data?: Vehiculo[];
   items?: Vehiculo[];
+  page?: number;
+  totalPages?: number;
+  total?: number;
+  limit?: number;
+}
+
+interface ClientesResponse {
+  data?: Cliente[];
+  items?: Cliente[];
+  page?: number;
+  totalPages?: number;
+  total?: number;
+  limit?: number;
 }
 
 export function CrearServicioRetiroComponent() {
@@ -92,8 +115,33 @@ export function CrearServicioRetiroComponent() {
   const [step, setStep] = useState<number>(1);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
 
+  // Estados de paginación
+  const [empleadosPagination, setEmpleadosPagination] = useState({
+    page: 1,
+    totalPages: 1,
+    total: 0,
+    limit: 15
+  });
+  
+  const [vehiculosPagination, setVehiculosPagination] = useState({
+    page: 1,
+    totalPages: 1,
+    total: 0,
+    limit: 15
+  });
+  
+  const [clientesPagination, setClientesPagination] = useState({
+    page: 1,
+    totalPages: 1,
+    total: 0,
+    limit: 15
+  });
+  
+  // Estados de búsqueda
+  const [searchEmpleados, setSearchEmpleados] = useState('');
+  const [searchVehiculos, setSearchVehiculos] = useState('');
+
   const [clientes, setClientes] = useState<Cliente[]>([]);
-  const [filteredClientes, setFilteredClientes] = useState<Cliente[]>([]);
   const [searchTermCliente, setSearchTermCliente] = useState<string>("");
 
   const [condicionesContractuales, setCondicionesContractuales] = useState<
@@ -159,38 +207,39 @@ export function CrearServicioRetiroComponent() {
     return () => subscription.unsubscribe();
   }, [watch]);
 
-  // Cargar clientes al inicio
+  // Cargar clientes al inicio y cuando cambie la búsqueda o paginación
   useEffect(() => {
-    const fetchClientes = async () => {
+    const fetchClientes = async (page = 1, search = '') => {
       try {
         setIsLoading(true);
 
-        interface ClientesResponse {
-          items?: Cliente[];
-          data?: Cliente[];
-          total?: number;
-          page?: number;
-        }
-
-        const clientesData = (await getClients()) as ClientesResponse;
+        const clientesData = (await getClients(page, 15, search)) as ClientesResponse;
 
         if (clientesData && typeof clientesData === "object") {
           if ("items" in clientesData && Array.isArray(clientesData.items)) {
             setClientes(clientesData.items);
-            setFilteredClientes(clientesData.items);
+            setClientesPagination({
+              page: clientesData.page || 1,
+              totalPages: clientesData.totalPages || 1,
+              total: clientesData.total || 0,
+              limit: clientesData.limit || 15
+            });
           } else if (
             "data" in clientesData &&
             Array.isArray(clientesData.data)
           ) {
             setClientes(clientesData.data);
-            setFilteredClientes(clientesData.data);
+            setClientesPagination({
+              page: clientesData.page || 1,
+              totalPages: clientesData.totalPages || 1,
+              total: clientesData.total || 0,
+              limit: clientesData.limit || 15
+            });
           } else if (Array.isArray(clientesData)) {
             setClientes(clientesData);
-            setFilteredClientes(clientesData);
           } else {
             console.error("Formato de respuesta no reconocido:", clientesData);
             setClientes([]);
-            setFilteredClientes([]);
             toast.error("Error en el formato de datos", {
               description:
                 "El servidor devolvió datos en un formato inesperado",
@@ -202,7 +251,6 @@ export function CrearServicioRetiroComponent() {
             clientesData
           );
           setClientes([]);
-          setFilteredClientes([]);
           toast.error("Error en la respuesta", {
             description: "No se recibió una respuesta válida del servidor",
           });
@@ -216,30 +264,13 @@ export function CrearServicioRetiroComponent() {
               : "No se pudieron cargar los clientes. Por favor, intente nuevamente.",
         });
         setClientes([]);
-        setFilteredClientes([]);
       } finally {
         setIsLoading(false);
       }
     };
 
-    fetchClientes();
-  }, []);
-
-  // Filtrar clientes por término de búsqueda
-  useEffect(() => {
-    if (searchTermCliente.trim() === "") {
-      setFilteredClientes(clientes);
-    } else {
-      const searchTermLower = searchTermCliente.toLowerCase();
-      const filtered = clientes.filter(
-        (cliente) =>
-          cliente.nombre.toLowerCase().includes(searchTermLower) ||
-          cliente.cuit.toLowerCase().includes(searchTermLower) ||
-          cliente.email.toLowerCase().includes(searchTermLower)
-      );
-      setFilteredClientes(filtered);
-    }
-  }, [searchTermCliente, clientes]);
+    fetchClientes(clientesPagination.page, searchTermCliente);
+  }, [clientesPagination.page, searchTermCliente]);
 
   // Cargar condiciones contractuales cuando se selecciona un cliente
   useEffect(() => {
@@ -321,8 +352,8 @@ export function CrearServicioRetiroComponent() {
           setIsLoading(true);
 
           // Cargar empleados y vehículos disponibles
-          const empleadosResponse = (await getEmployees()) as EmpleadosResponse;
-          const vehiculosResponse = (await getVehicles()) as VehiculosResponse;
+          const empleadosResponse = (await getEmployees(empleadosPagination.page, empleadosPagination.limit, searchEmpleados)) as EmpleadosResponse;
+          const vehiculosResponse = (await getVehicles(vehiculosPagination.page, vehiculosPagination.limit, searchVehiculos)) as VehiculosResponse;
 
           // Procesar respuesta de empleados
           let empleadosDisp: Empleado[] = [];
@@ -336,6 +367,12 @@ export function CrearServicioRetiroComponent() {
                   empleado.estado === "DISPONIBLE" ||
                   empleado.estado === "ASIGNADO"
               );
+              setEmpleadosPagination({
+                page: empleadosResponse.page || 1,
+                totalPages: empleadosResponse.totalPages || 1,
+                total: empleadosResponse.total || 0,
+                limit: empleadosResponse.limit || 15
+              });
             } else if (
               "items" in empleadosResponse &&
               Array.isArray(empleadosResponse.items)
@@ -345,6 +382,12 @@ export function CrearServicioRetiroComponent() {
                   empleado.estado === "DISPONIBLE" ||
                   empleado.estado === "ASIGNADO"
               );
+              setEmpleadosPagination({
+                page: empleadosResponse.page || 1,
+                totalPages: empleadosResponse.totalPages || 1,
+                total: empleadosResponse.total || 0,
+                limit: empleadosResponse.limit || 15
+              });
             } else {
               console.error(
                 "Formato de respuesta de empleados no reconocido:",
@@ -377,6 +420,12 @@ export function CrearServicioRetiroComponent() {
                   vehiculo.estado === "DISPONIBLE" ||
                   vehiculo.estado === "ASIGNADO"
               );
+              setVehiculosPagination({
+                page: vehiculosResponse.page || 1,
+                totalPages: vehiculosResponse.totalPages || 1,
+                total: vehiculosResponse.total || 0,
+                limit: vehiculosResponse.limit || 15
+              });
             } else if (
               "items" in vehiculosResponse &&
               Array.isArray(vehiculosResponse.items)
@@ -386,6 +435,12 @@ export function CrearServicioRetiroComponent() {
                   vehiculo.estado === "DISPONIBLE" ||
                   vehiculo.estado === "ASIGNADO"
               );
+              setVehiculosPagination({
+                page: vehiculosResponse.page || 1,
+                totalPages: vehiculosResponse.totalPages || 1,
+                total: vehiculosResponse.total || 0,
+                limit: vehiculosResponse.limit || 15
+              });
             } else {
               console.error(
                 "Formato de respuesta de vehículos no reconocido:",
@@ -494,7 +549,7 @@ export function CrearServicioRetiroComponent() {
     };
 
     fetchResources();
-  }, [selectedClientId, selectedFechaProgramada, step, setValue, getValues]);
+  }, [selectedClientId, selectedFechaProgramada, step, setValue, getValues, empleadosPagination.page, empleadosPagination.limit, searchEmpleados, vehiculosPagination.page, vehiculosPagination.limit, searchVehiculos]);
 
   // Manejar selección de empleado
   const handleEmpleadoSelection = (empleadoId: number) => {
@@ -534,6 +589,34 @@ export function CrearServicioRetiroComponent() {
 
     setSelectedBanos(updatedSelection);
     setValue("banosInstalados", updatedSelection);
+  };
+
+  // Funciones de paginación y búsqueda
+  const handleClientesPageChange = (newPage: number) => {
+    setClientesPagination(prev => ({ ...prev, page: newPage }));
+  };
+
+  const handleEmpleadosPageChange = (newPage: number) => {
+    setEmpleadosPagination(prev => ({ ...prev, page: newPage }));
+  };
+
+  const handleVehiculosPageChange = (newPage: number) => {
+    setVehiculosPagination(prev => ({ ...prev, page: newPage }));
+  };
+
+  const handleClientesSearch = (searchTerm: string) => {
+    setSearchTermCliente(searchTerm);
+    setClientesPagination(prev => ({ ...prev, page: 1 }));
+  };
+
+  const handleEmpleadosSearch = (searchTerm: string) => {
+    setSearchEmpleados(searchTerm);
+    setEmpleadosPagination(prev => ({ ...prev, page: 1 }));
+  };
+
+  const handleVehiculosSearch = (searchTerm: string) => {
+    setSearchVehiculos(searchTerm);
+    setVehiculosPagination(prev => ({ ...prev, page: 1 }));
   };
 
   // Avanzar al siguiente paso
@@ -780,90 +863,74 @@ export function CrearServicioRetiroComponent() {
   }
 
   return (
-    <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
-      <div className="grid auto-rows-min gap-4 grid-cols-1">
+    <Card className="w-full shadow-md">
+      <CardHeader className="bg-slate-50 dark:bg-slate-900 border-b">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold">Crear Servicio de Retiro</h1>
-            <p className="text-gray-600">
-              Complete el formulario para crear un nuevo servicio de retiro de
-              sanitarios
-            </p>
+            <CardTitle className="text-2xl font-bold flex items-center gap-2">
+              <Trash2 className="h-6 w-6" />
+              Crear Servicio de Retiro
+            </CardTitle>
+            <CardDescription className="text-muted-foreground mt-1">
+              {step === 1 && "Seleccione el cliente para el servicio de retiro"}
+              {step === 2 && "Seleccione la condición contractual aplicable"}
+              {step === 3 && "Defina la fecha y detalles del servicio de retiro"}
+              {step === 4 && "Asigne los recursos necesarios para el servicio"}
+            </CardDescription>
           </div>
-
-          {/* Indicador de pasos */}
-          <div className="flex items-center gap-2">
-            <Badge
-              className={`px-3 py-1 ${
-                step >= 1 ? "bg-red-500" : "bg-gray-300"
-              }`}
-            >
-              1. Cliente
-            </Badge>
-            <Badge
-              className={`px-3 py-1 ${
-                step >= 2 ? "bg-red-500" : "bg-gray-300"
-              }`}
-            >
-              2. Condición Contractual
-            </Badge>
-            <Badge
-              className={`px-3 py-1 ${
-                step >= 3 ? "bg-red-500" : "bg-gray-300"
-              }`}
-            >
-              3. Detalles de Retiro
-            </Badge>
-            <Badge
-              className={`px-3 py-1 ${
-                step >= 4 ? "bg-red-500" : "bg-gray-300"
-              }`}
-            >
-              4. Asignación de Recursos
-            </Badge>
-          </div>
+          <Badge
+            variant="outline"
+            className="bg-slate-100 text-slate-700 text-base px-3 py-1"
+          >
+            Paso {step} de 4
+          </Badge>
         </div>
-
-        <Card>
-          <CardContent className="p-6">
-            <form
-              onSubmit={handleSubmit(
-                (data) => {
-                  onSubmit(data);
-                },
-                (errors) => {
-                  console.error("Form validation failed:", errors);
-                  return false;
-                }
-              )}
-            >
+      </CardHeader>
+      <CardContent>
+        <form
+          onSubmit={handleSubmit(
+            (data) => {
+              onSubmit(data);
+            },
+            (errors) => {
+              console.error("Form validation failed:", errors);
+              return false;
+            }
+          )}
+        >
               {/* Paso 1: Selección de Cliente */}
               {step === 1 && (
-                <div>
-                  <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
-                    <Users className="h-5 w-5" />
-                    Selección de Cliente
-                  </h2>
-                  <div className="mb-4">
-                    <div className="relative">
-                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-                      <Input
-                        placeholder="Buscar cliente por nombre, CUIT o email..."
-                        className="pl-10"
-                        value={searchTermCliente}
-                        onChange={(e) => setSearchTermCliente(e.target.value)}
-                      />
-                    </div>
+                <div className="space-y-4">
+                  <div>
+                    <h3 className="text-lg font-medium mb-2 flex items-center gap-2">
+                      <Users className="h-5 w-5" />
+                      Selección de Cliente
+                    </h3>
+                    <p className="text-sm text-gray-600 mb-4">
+                      Seleccione el cliente para el cual se realizará el servicio de retiro
+                    </p>
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-4">
-                    {filteredClientes.map((cliente) => (
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                      <Search className="h-4 w-4 text-gray-400" />
+                    </div>
+                    <Input
+                      placeholder="Buscar cliente por nombre, CUIT o email..."
+                      className="pl-10"
+                      value={searchTermCliente}
+                      onChange={(e) => handleClientesSearch(e.target.value)}
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                    {clientes.map((cliente) => (
                       <div
                         key={cliente.clienteId}
-                        className={`border rounded-md p-4 cursor-pointer transition-colors ${
+                        className={`border rounded-lg p-4 cursor-pointer transition-all hover:shadow-md ${
                           selectedClientId === cliente.clienteId
-                            ? "border-red-500 bg-red-50"
-                            : "hover:border-red-300 hover:bg-red-50/50"
+                            ? "border-indigo-500 bg-indigo-50 shadow-md"
+                            : "border-gray-200 hover:border-indigo-300"
                         }`}
                         onClick={async () => {
                           if (cliente.clienteId !== undefined) {
@@ -930,21 +997,63 @@ export function CrearServicioRetiroComponent() {
                           }
                         }}
                       >
-                        <div className="font-medium text-lg">
-                          {cliente.nombre}
-                        </div>
-                        <div className="text-sm text-gray-500">
-                          CUIT: {cliente.cuit}
-                        </div>
-                        <div className="text-sm text-gray-500">
-                          Email: {cliente.email}
-                        </div>
-                        <div className="text-sm text-gray-500">
-                          Dirección: {cliente.direccion}
+                        <div className="flex items-start">
+                          <div
+                            className={`w-4 h-4 mt-1 mr-3 rounded-full border flex items-center justify-center ${
+                              selectedClientId === cliente.clienteId
+                                ? "border-indigo-500 bg-indigo-500"
+                                : "border-gray-300"
+                            }`}
+                          >
+                            {selectedClientId === cliente.clienteId && (
+                              <div className="w-2 h-2 bg-white rounded-full" />
+                            )}
+                          </div>
+                          <div className="flex-1">
+                            <div className="font-medium text-gray-900">
+                              {cliente.nombre}
+                            </div>
+                            <div className="text-sm text-gray-500">
+                              CUIT: {cliente.cuit}
+                            </div>
+                            <div className="text-sm text-gray-500">
+                              {cliente.email}
+                            </div>
+                            <div className="text-sm text-gray-500 mt-1">
+                              {cliente.direccion}
+                            </div>
+                          </div>
                         </div>
                       </div>
                     ))}
                   </div>
+
+                  {/* Paginación de clientes */}
+                  {clientesPagination.totalPages > 1 && (
+                    <div className="flex justify-center items-center gap-2 mt-4">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleClientesPageChange(clientesPagination.page - 1)}
+                        disabled={clientesPagination.page === 1}
+                      >
+                        Anterior
+                      </Button>
+                      
+                      <span className="text-sm text-gray-600">
+                        Página {clientesPagination.page} de {clientesPagination.totalPages} ({clientesPagination.total} clientes)
+                      </span>
+                      
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleClientesPageChange(clientesPagination.page + 1)}
+                        disabled={clientesPagination.page === clientesPagination.totalPages}
+                      >
+                        Siguiente
+                      </Button>
+                    </div>
+                  )}
 
                   {errors.clienteId && (
                     <p className="text-red-500 text-sm mt-2">
@@ -992,8 +1101,8 @@ export function CrearServicioRetiroComponent() {
                           className={`border rounded-md p-4 cursor-pointer transition-colors ${
                             selectedCondicionId ===
                             condicion.condicionContractualId
-                              ? "border-red-500 bg-red-50"
-                              : "hover:border-red-300 hover:bg-red-50/50"
+                              ? "border-indigo-500 bg-indigo-50"
+                              : "hover:border-indigo-300 hover:bg-indigo-50/50"
                           }`}
                           onClick={() => {
                             setValue(
@@ -1167,13 +1276,13 @@ export function CrearServicioRetiroComponent() {
                       <div>
                         <h3 className="text-lg font-medium mb-3 flex items-center justify-between">
                           Baños a Retirar (Selección Obligatoria)
-                          <Badge variant="outline" className="bg-red-50">
+                          <Badge variant="outline" className="bg-indigo-50">
                             {selectedBanos.length} seleccionados
                           </Badge>
                         </h3>
 
-                        <div className="mb-3 p-3 bg-red-50 border border-red-200 rounded-md">
-                          <p className="text-sm text-red-700">
+                        <div className="mb-3 p-3 bg-indigo-50 border border-indigo-200 rounded-md">
+                          <p className="text-sm text-indigo-700">
                             <strong>Importante:</strong> Debe seleccionar al
                             menos un baño para retirar. Estos son los baños
                             instalados que serán retirados durante el servicio.
@@ -1181,11 +1290,11 @@ export function CrearServicioRetiroComponent() {
                         </div>
 
                         {banosInstalados.length === 0 ? (
-                          <div className="text-center py-8 border border-red-200 bg-red-50 rounded-md">
-                            <p className="text-red-600 font-medium">
+                          <div className="text-center py-8 border border-indigo-200 bg-indigo-50 rounded-md">
+                            <p className="text-amber-600 font-medium">
                               No hay baños instalados para este cliente.
                             </p>
-                            <p className="text-red-500 text-sm mt-1">
+                            <p className="text-amber-500 text-sm mt-1">
                               No se puede crear un servicio de retiro sin baños
                               instalados.
                             </p>
@@ -1199,7 +1308,7 @@ export function CrearServicioRetiroComponent() {
                                   selectedBanos.includes(
                                     parseInt(bano.baño_id || "0")
                                   )
-                                    ? "bg-red-50 border-red-300"
+                                    ? "bg-indigo-50 border-indigo-300"
                                     : "hover:bg-slate-50"
                                 }`}
                                 onClick={() =>
@@ -1225,7 +1334,7 @@ export function CrearServicioRetiroComponent() {
                                     {selectedBanos.includes(
                                       parseInt(bano.baño_id || "0")
                                     ) && (
-                                      <p className="text-xs text-red-600 font-medium mt-1">
+                                      <p className="text-xs text-amber-600 font-medium mt-1">
                                         ✓ Seleccionado para retiro
                                       </p>
                                     )}
@@ -1255,7 +1364,20 @@ export function CrearServicioRetiroComponent() {
                           </Badge>
                         </h3>
 
-                        <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-md">
+                        {/* Búsqueda de empleados */}
+                        <div className="mb-4">
+                          <div className="relative">
+                            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                            <Input
+                              placeholder="Buscar empleados por nombre, apellido o DNI..."
+                              className="pl-10"
+                              value={searchEmpleados}
+                              onChange={(e) => handleEmpleadosSearch(e.target.value)}
+                            />
+                          </div>
+                        </div>
+
+                        <div className="mb-4 p-3 bg-indigo-50 border border-indigo-200 rounded-md">
                           <p className="text-sm font-medium mb-2">
                             Asignación de roles:
                           </p>
@@ -1275,14 +1397,14 @@ export function CrearServicioRetiroComponent() {
 
                           {/* Resumen de asignaciones actuales */}
                           {(empleadoRolA !== null || empleadoRolB !== null) && (
-                            <div className="mt-3 pt-2 border-t border-blue-200">
+                            <div className="mt-3 pt-2 border-t border-indigo-200">
                               <p className="font-medium mb-1">
                                 Asignaciones actuales:
                               </p>
                               {empleadoRolA !== null &&
                                 empleadosDisponibles && (
                                   <div className="flex items-center gap-2">
-                                    <Badge className="bg-blue-600">Rol A</Badge>
+                                    <Badge className="bg-indigo-600">Rol A</Badge>
                                     <span>
                                       {
                                         empleadosDisponibles.find(
@@ -1382,7 +1504,7 @@ export function CrearServicioRetiroComponent() {
                                             }}
                                             className={`cursor-pointer ${
                                               empleadoRolA === empleado.id
-                                                ? "bg-blue-600 hover:bg-blue-700"
+                                                ? "bg-indigo-600 hover:bg-indigo-700"
                                                 : "bg-gray-300 hover:bg-gray-400"
                                             }`}
                                           >
@@ -1416,6 +1538,33 @@ export function CrearServicioRetiroComponent() {
                           </div>
                         )}
 
+                        {/* Paginación de empleados */}
+                        {empleadosPagination.totalPages > 1 && (
+                          <div className="flex justify-center items-center gap-2 mt-4">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleEmpleadosPageChange(empleadosPagination.page - 1)}
+                              disabled={empleadosPagination.page === 1}
+                            >
+                              Anterior
+                            </Button>
+                            
+                            <span className="text-sm text-gray-600">
+                              Página {empleadosPagination.page} de {empleadosPagination.totalPages} ({empleadosPagination.total} empleados)
+                            </span>
+                            
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleEmpleadosPageChange(empleadosPagination.page + 1)}
+                              disabled={empleadosPagination.page === empleadosPagination.totalPages}
+                            >
+                              Siguiente
+                            </Button>
+                          </div>
+                        )}
+
                         {errors.empleadosIds && (
                           <p className="text-red-500 text-sm mt-2">
                             {errors.empleadosIds.message}
@@ -1431,6 +1580,19 @@ export function CrearServicioRetiroComponent() {
                             {selectedVehiculos.length} seleccionados
                           </Badge>
                         </h3>
+
+                        {/* Búsqueda de vehículos */}
+                        <div className="mb-4">
+                          <div className="relative">
+                            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                            <Input
+                              placeholder="Buscar vehículos por marca, modelo o patente..."
+                              className="pl-10"
+                              value={searchVehiculos}
+                              onChange={(e) => handleVehiculosSearch(e.target.value)}
+                            />
+                          </div>
+                        </div>
 
                         {vehiculosDisponibles.length === 0 ? (
                           <div className="text-center py-8 border rounded-md">
@@ -1474,6 +1636,33 @@ export function CrearServicioRetiroComponent() {
                           </div>
                         )}
 
+                        {/* Paginación de vehículos */}
+                        {vehiculosPagination.totalPages > 1 && (
+                          <div className="flex justify-center items-center gap-2 mt-4">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleVehiculosPageChange(vehiculosPagination.page - 1)}
+                              disabled={vehiculosPagination.page === 1}
+                            >
+                              Anterior
+                            </Button>
+                            
+                            <span className="text-sm text-gray-600">
+                              Página {vehiculosPagination.page} de {vehiculosPagination.totalPages} ({vehiculosPagination.total} vehículos)
+                            </span>
+                            
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleVehiculosPageChange(vehiculosPagination.page + 1)}
+                              disabled={vehiculosPagination.page === vehiculosPagination.totalPages}
+                            >
+                              Siguiente
+                            </Button>
+                          </div>
+                        )}
+
                         {errors.vehiculosIds && (
                           <p className="text-red-500 text-sm mt-2">
                             {errors.vehiculosIds.message}
@@ -1507,7 +1696,7 @@ export function CrearServicioRetiroComponent() {
                     type="button"
                     onClick={handleNextStep}
                     disabled={isSubmitting}
-                    className="flex items-center gap-2 bg-red-600 hover:bg-red-700"
+                    className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700"
                   >
                     Siguiente
                     <ChevronRight className="h-4 w-4" />
@@ -1516,7 +1705,7 @@ export function CrearServicioRetiroComponent() {
                   <Button
                     type="submit"
                     disabled={isSubmitting}
-                    className="flex items-center gap-2 bg-red-600 hover:bg-red-700"
+                    className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700"
                   >
                     {isSubmitting ? (
                       <>
@@ -1533,9 +1722,7 @@ export function CrearServicioRetiroComponent() {
                 )}
               </div>
             </form>
-          </CardContent>
-        </Card>
-      </div>
-    </div>
+      </CardContent>
+    </Card>
   );
 }
