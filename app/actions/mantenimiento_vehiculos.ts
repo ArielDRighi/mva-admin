@@ -17,6 +17,7 @@ export const getMantenimientosVehiculos = createServerAction(
   async (page: number = 1, limit: number = 15, search: string = "") => {
     const headers = await createAuthHeaders();
     // Corregir esta línea - asegúrate de codificar el término de búsqueda
+    console.log("search", search);
     const searchQuery = search ? `&search=${encodeURIComponent(search)}` : "";
     console.log(
       `Fetching vehicle maintenance with page=${page}, limit=${limit}, search=${search}`
@@ -210,3 +211,27 @@ export const completarMantenimientoVehiculo = createServerAction(
   },
   "Error al completar el mantenimiento del vehículo"
 );
+
+/**
+ * Fetch normal para obtener mantenimientos de vehículos desde el cliente
+ */
+export async function fetchMantenimientosVehiculos(
+  page: number = 1,
+  limit: number = 15,
+  search: string = ""
+) {
+  const headers = await createAuthHeaders();
+  const searchQuery = search ? `&search=${encodeURIComponent(search)}` : "";
+
+  const res = await fetch(
+    `${process.env.NEXT_PUBLIC_API_URL}/api/vehicle_maintenance?page=${page}&limit=${limit}${searchQuery}`,
+    {
+      headers,
+      cache: "no-store",
+    }
+  );
+  return handleApiResponse(
+    res,
+    "Error al obtener mantenimientos de vehículos"
+  );
+}
