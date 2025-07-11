@@ -97,6 +97,14 @@ type CondicionContractual = {
 };
 
 export default function CrearInstalacionComponent() {
+  // Estado para búsqueda de baños
+  const [searchTermBano, setSearchTermBano] = useState<string>("");
+  const [filteredBanos, setFilteredBanos] = useState<Sanitario[]>([]);
+  // Estado para búsqueda de empleados
+  const [searchTermEmpleado, setSearchTermEmpleado] = useState<string>("");
+  const [filteredEmpleados, setFilteredEmpleados] = useState<Empleado[]>([]);
+  // Filtrar empleados según búsqueda
+
   const router = useRouter();
   const { isAdmin } = useCurrentUser();
   const [step, setStep] = useState<number>(1);
@@ -131,6 +139,132 @@ export default function CrearInstalacionComponent() {
   const [empleadoRolB, setEmpleadoRolB] = useState<number | null>(null);
 
   const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [searchTermCondicion, setSearchTermCondicion] = useState<string>("");
+  const [filteredCondiciones, setFilteredCondiciones] = useState<
+    CondicionContractual[]
+  >([]);
+
+  // Estado para búsqueda de vehículos
+  const [searchTermVehiculo, setSearchTermVehiculo] = useState<string>("");
+  const [filteredVehiculos, setFilteredVehiculos] = useState<Vehiculo[]>([]);
+  // Actualizar filteredVehiculos cuando cambia vehiculosDisponibles o searchTermVehiculo
+  useEffect(() => {
+    if (!searchTermVehiculo.trim()) {
+      setFilteredVehiculos(vehiculosDisponibles);
+    } else {
+      const term = searchTermVehiculo.toLowerCase();
+      setFilteredVehiculos(
+        vehiculosDisponibles.filter(
+          (vehiculo: Vehiculo) =>
+            (vehiculo.marca && vehiculo.marca.toLowerCase().includes(term)) ||
+            (vehiculo.modelo && vehiculo.modelo.toLowerCase().includes(term)) ||
+            (vehiculo.placa && vehiculo.placa.toLowerCase().includes(term))
+        )
+      );
+    }
+  }, [vehiculosDisponibles, searchTermVehiculo]);
+  // Estado para búsqueda de condiciones contractuales
+  // Actualizar filteredCondiciones cuando cambia condicionesContractuales
+  useEffect(() => {
+    setFilteredCondiciones(condicionesContractuales);
+  }, [condicionesContractuales]);
+
+  // Handler para el search de condiciones contractuales
+  const handleCondicionSearch = async (
+    e: React.KeyboardEvent<HTMLInputElement>
+  ) => {
+    if (e.key === "Enter") {
+      const term = searchTermCondicion.trim();
+      // Agregar logs para depuración
+      console.log("[CondicionSearch] selectedClientId:", selectedClientId);
+      console.log("[CondicionSearch] term:", term);
+      setIsLoading(true);
+      try {
+        const condicionesData = await getContractualConditionsByClient(
+          selectedClientId,
+          1,
+          100,
+          term
+        );
+        let condicionesList: CondicionContractual[] = [];
+        if (condicionesData && typeof condicionesData === "object") {
+          if (Array.isArray(condicionesData)) {
+            condicionesList = condicionesData;
+          } else if (
+            "items" in condicionesData &&
+            Array.isArray(condicionesData.items)
+          ) {
+            condicionesList = condicionesData.items;
+          } else if (
+            "data" in condicionesData &&
+            Array.isArray(condicionesData.data)
+          ) {
+            condicionesList = condicionesData.data;
+          }
+        }
+        setFilteredCondiciones(condicionesList);
+      } catch (error) {
+        toast.error("Error al buscar condiciones contractuales", {
+          description:
+            error instanceof Error
+              ? error.message
+              : "No se pudieron buscar condiciones contractuales.",
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    }
+  };
+
+  // Buscar empleados en la API al presionar Enter
+  useEffect(() => {
+    setFilteredEmpleados(empleadosDisponibles);
+  }, [empleadosDisponibles]);
+
+  const handleEmpleadoSearch = async (
+    e: React.KeyboardEvent<HTMLInputElement>
+  ) => {
+    if (e.key === "Enter") {
+      const term = searchTermEmpleado.trim();
+      setIsLoading(true);
+      try {
+        // getEmployees puede aceptar un parámetro de búsqueda
+        const empleadosResponseRaw = await getEmployees(1, 15, term);
+        let empleados: Empleado[] = [];
+        if (empleadosResponseRaw && typeof empleadosResponseRaw === "object") {
+          if (Array.isArray(empleadosResponseRaw)) {
+            empleados = empleadosResponseRaw;
+          } else if (
+            "items" in empleadosResponseRaw &&
+            Array.isArray(empleadosResponseRaw.items)
+          ) {
+            empleados = empleadosResponseRaw.items;
+          } else if (
+            "data" in empleadosResponseRaw &&
+            Array.isArray(empleadosResponseRaw.data)
+          ) {
+            empleados = empleadosResponseRaw.data;
+          }
+        }
+        // Filtrar por estado DISPONIBLE o ASIGNADO
+        empleados = empleados.filter(
+          (empleado) =>
+            empleado.estado === "DISPONIBLE" || empleado.estado === "ASIGNADO"
+        );
+        setEmpleadosDisponibles(empleados);
+        setFilteredEmpleados(empleados);
+      } catch (error) {
+        toast.error("Error al buscar empleados", {
+          description:
+            error instanceof Error
+              ? error.message
+              : "No se pudieron buscar empleados.",
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    }
+  };
 
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
@@ -223,20 +357,51 @@ export default function CrearInstalacionComponent() {
     fetchClientes();
   }, []);
 
+  // Buscar clientes en la API al presionar Enter
   useEffect(() => {
-    if (searchTermCliente.trim() === "") {
-      setFilteredClientes(clientes);
-    } else {
-      const searchTermLower = searchTermCliente.toLowerCase();
-      const filtered = clientes.filter(
-        (cliente) =>
-          cliente.nombre.toLowerCase().includes(searchTermLower) ||
-          cliente.cuit.toLowerCase().includes(searchTermLower) ||
-          cliente.email.toLowerCase().includes(searchTermLower)
-      );
-      setFilteredClientes(filtered);
+    setFilteredClientes(clientes);
+  }, [clientes]);
+
+  const handleClienteSearch = async (
+    e: React.KeyboardEvent<HTMLInputElement>
+  ) => {
+    if (e.key === "Enter") {
+      const term = searchTermCliente.trim();
+      setIsLoading(true);
+      try {
+        // getClients puede aceptar un parámetro de búsqueda
+        const clientesData = await getClients(1, 15, term);
+        let clientesList: Cliente[] = [];
+        if (clientesData && typeof clientesData === "object") {
+          if (Array.isArray(clientesData)) {
+            clientesList = clientesData;
+          } else if (
+            "items" in clientesData &&
+            Array.isArray(clientesData.items)
+          ) {
+            clientesList = clientesData.items;
+          } else if (
+            "data" in clientesData &&
+            Array.isArray(clientesData.data)
+          ) {
+            clientesList = clientesData.data;
+          }
+        }
+        setClientes(clientesList);
+        setFilteredClientes(clientesList);
+      } catch (error) {
+        toast.error("Error al buscar clientes", {
+          description:
+            error instanceof Error
+              ? error.message
+              : "No se pudieron buscar clientes.",
+        });
+      } finally {
+        setIsLoading(false);
+      }
     }
-  }, [searchTermCliente, clientes]);
+  };
+
   useEffect(() => {
     const fetchCondicionesContractuales = async () => {
       if (selectedClientId && selectedClientId > 0) {
@@ -328,16 +493,11 @@ export default function CrearInstalacionComponent() {
           }
 
           // Obtener datos con Promise.all para optimizar las peticiones
-          const [
-            empleadosResponseRaw,
-            vehiculosResponseRaw,
-          ] = await Promise.all([
-            getEmployees(),
-            getVehicles(),
-          ]);
+          const [empleadosResponseRaw, vehiculosResponseRaw] =
+            await Promise.all([getEmployees(), getVehicles()]);
 
           // Procesar respuesta de empleados con verificación de tipo
-          // Permitir empleados tanto en estado DISPONIBLE como ASIGNADO 
+          // Permitir empleados tanto en estado DISPONIBLE como ASIGNADO
           // según la lógica del negocio que permite asignar recursos a múltiples servicios
           const empleadosResponse = empleadosResponseRaw as EmpleadosResponse;
           let empleadosDisp: Empleado[] = [];
@@ -348,20 +508,24 @@ export default function CrearInstalacionComponent() {
               Array.isArray(empleadosResponse.data)
             ) {
               empleadosDisp = empleadosResponse.data.filter(
-                (empleado) => empleado.estado === "DISPONIBLE" || empleado.estado === "ASIGNADO"
+                (empleado) =>
+                  empleado.estado === "DISPONIBLE" ||
+                  empleado.estado === "ASIGNADO"
               );
             } else if (
               "items" in empleadosResponse &&
               Array.isArray(empleadosResponse.items)
             ) {
               empleadosDisp = empleadosResponse.items.filter(
-                (empleado) => empleado.estado === "DISPONIBLE" || empleado.estado === "ASIGNADO"
+                (empleado) =>
+                  empleado.estado === "DISPONIBLE" ||
+                  empleado.estado === "ASIGNADO"
               );
             }
           }
 
-          // Procesar respuesta de vehículos con verificación de tipo  
-          // Permitir vehículos tanto en estado DISPONIBLE como ASIGNADO 
+          // Procesar respuesta de vehículos con verificación de tipo
+          // Permitir vehículos tanto en estado DISPONIBLE como ASIGNADO
           // según la lógica del negocio que permite asignar recursos a múltiples servicios
           const vehiculosResponse = vehiculosResponseRaw as VehiculosResponse;
           let vehiculosDisp: Vehiculo[] = [];
@@ -372,14 +536,18 @@ export default function CrearInstalacionComponent() {
               Array.isArray(vehiculosResponse.data)
             ) {
               vehiculosDisp = vehiculosResponse.data.filter(
-                (vehiculo) => vehiculo.estado === "DISPONIBLE" || vehiculo.estado === "ASIGNADO"
+                (vehiculo) =>
+                  vehiculo.estado === "DISPONIBLE" ||
+                  vehiculo.estado === "ASIGNADO"
               );
             } else if (
               "items" in vehiculosResponse &&
               Array.isArray(vehiculosResponse.items)
             ) {
               vehiculosDisp = vehiculosResponse.items.filter(
-                (vehiculo) => vehiculo.estado === "DISPONIBLE" || vehiculo.estado === "ASIGNADO"
+                (vehiculo) =>
+                  vehiculo.estado === "DISPONIBLE" ||
+                  vehiculo.estado === "ASIGNADO"
               );
             }
           }
@@ -542,18 +710,23 @@ export default function CrearInstalacionComponent() {
 
       // Crear las asignaciones manuales según el formato requerido para CreateInstalacionDto
       const asignacionesManual: [
-        { empleadoId?: number; vehiculoId: number; banosIds: number[]; rol: string },
+        {
+          empleadoId?: number;
+          vehiculoId: number;
+          banosIds: number[];
+          rol: string;
+        },
         { empleadoId?: number; rol: string }
       ] = [
         {
           empleadoId: empleadoA || undefined,
           vehiculoId: data.vehiculosIds.length > 0 ? data.vehiculosIds[0] : 0,
           banosIds: data.banosIds || [],
-          rol: 'A',
+          rol: "A",
         },
         {
           empleadoId: empleadoB || undefined,
-          rol: 'B',
+          rol: "B",
         },
       ]; // Construir objeto con datos del servicio
       const serviceData = {
@@ -678,11 +851,14 @@ export default function CrearInstalacionComponent() {
     try {
       setIsLoadingBanos(true);
       const sanitariosResponse = await getSanitarios(page, 15, "");
-      
+
       if (sanitariosResponse && typeof sanitariosResponse === "object") {
         let sanitariosDisp: Sanitario[] = [];
-        
-        if ("items" in sanitariosResponse && Array.isArray(sanitariosResponse.items)) {
+
+        if (
+          "items" in sanitariosResponse &&
+          Array.isArray(sanitariosResponse.items)
+        ) {
           sanitariosDisp = sanitariosResponse.items.filter(
             (sanitario) => sanitario.estado === "DISPONIBLE"
           );
@@ -696,13 +872,14 @@ export default function CrearInstalacionComponent() {
           setBanosTotalPages(1);
           setBanosTotal(sanitariosDisp.length);
         }
-        
+
         setBanosDisponibles(sanitariosDisp);
       }
     } catch (error) {
       console.error("Error al cargar baños:", error);
       toast.error("Error al cargar baños", {
-        description: error instanceof Error ? error.message : "Error desconocido",
+        description:
+          error instanceof Error ? error.message : "Error desconocido",
       });
     } finally {
       setIsLoadingBanos(false);
@@ -713,9 +890,26 @@ export default function CrearInstalacionComponent() {
   useEffect(() => {
     if (step >= 4) {
       fetchBanos(banosPage);
+      setSearchTermBano("");
     }
   }, [banosPage, step]);
 
+  // Actualizar filteredBanos cuando cambia banosDisponibles o searchTermBano
+  useEffect(() => {
+    if (!searchTermBano.trim()) {
+      setFilteredBanos(banosDisponibles);
+    } else {
+      const term = searchTermBano.toLowerCase();
+      setFilteredBanos(
+        banosDisponibles.filter(
+          (bano) =>
+            (bano.codigo_interno &&
+              bano.codigo_interno.toLowerCase().includes(term)) ||
+            (bano.modelo && bano.modelo.toLowerCase().includes(term))
+        )
+      );
+    }
+  }, [banosDisponibles, searchTermBano]);
   // Función para cambiar página de baños
   const handleBanosPageChange = (page: number) => {
     setBanosPage(page);
@@ -804,7 +998,49 @@ export default function CrearInstalacionComponent() {
                       className="pl-10"
                       placeholder="Buscar por nombre, CUIT o email..."
                       value={searchTermCliente}
-                      onChange={(e) => setSearchTermCliente(e.target.value)}
+                      onChange={(e) => {
+                        setSearchTermCliente(e.target.value);
+                        if (e.target.value.trim() === "") {
+                          // Si se borra el input, recargar todos los clientes
+                          (async () => {
+                            setIsLoading(true);
+                            try {
+                              const clientesData = await getClients(1, 100, "");
+                              let clientesList: Cliente[] = [];
+                              if (
+                                clientesData &&
+                                typeof clientesData === "object"
+                              ) {
+                                if (Array.isArray(clientesData)) {
+                                  clientesList = clientesData;
+                                } else if (
+                                  "items" in clientesData &&
+                                  Array.isArray(clientesData.items)
+                                ) {
+                                  clientesList = clientesData.items;
+                                } else if (
+                                  "data" in clientesData &&
+                                  Array.isArray(clientesData.data)
+                                ) {
+                                  clientesList = clientesData.data;
+                                }
+                              }
+                              setClientes(clientesList);
+                              setFilteredClientes(clientesList);
+                            } catch (error) {
+                              toast.error("Error al cargar clientes", {
+                                description:
+                                  error instanceof Error
+                                    ? error.message
+                                    : "No se pudieron cargar clientes.",
+                              });
+                            } finally {
+                              setIsLoading(false);
+                            }
+                          })();
+                        }
+                      }}
+                      onKeyDown={handleClienteSearch}
                     />
                   </div>
 
@@ -865,18 +1101,36 @@ export default function CrearInstalacionComponent() {
         {/* Step 2: Contractual condition selection */}
         {step === 2 && (
           <div className="space-y-6">
+            {/* Buscador de condiciones contractuales */}
+            <div className="relative mb-3">
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <Search className="h-4 w-4 text-gray-400" />
+              </div>
+              <Input
+                className="pl-10"
+                placeholder="Buscar por tipo de servicio, periodicidad, etc..."
+                value={searchTermCondicion}
+                onChange={(e) => {
+                  setSearchTermCondicion(e.target.value);
+                  if (e.target.value.trim() === "") {
+                    setFilteredCondiciones(condicionesContractuales);
+                  }
+                }}
+                onKeyDown={handleCondicionSearch}
+                disabled={isLoading}
+              />
+            </div>
             <Controller
               name="condicionContractualId"
               control={control}
               render={({ field, fieldState }) => (
                 <div>
-                  {" "}
                   <div className="flex justify-between items-center mb-2">
                     <label className="text-sm font-medium">
                       Condición Contractual
                     </label>
                     <Badge variant="outline" className="text-xs bg-slate-100">
-                      {condicionesContractuales.length} condiciones disponibles
+                      {filteredCondiciones.length} condiciones disponibles
                     </Badge>
                   </div>
                   {isLoading ? (
@@ -885,8 +1139,8 @@ export default function CrearInstalacionComponent() {
                     </div>
                   ) : (
                     <div className="max-h-[450px] overflow-y-auto px-1 py-2">
-                      {condicionesContractuales.length > 0 ? (
-                        condicionesContractuales.map((condicion) => (
+                      {filteredCondiciones.length > 0 ? (
+                        filteredCondiciones.map((condicion) => (
                           <div
                             key={condicion.condicionContractualId}
                             className={`px-4 py-4 cursor-pointer hover:bg-slate-50 mb-2 border rounded-md shadow-sm ${
@@ -898,7 +1152,6 @@ export default function CrearInstalacionComponent() {
                               setSelectedCondicionContractualId(
                                 condicion.condicionContractualId
                               );
-
                               setValue(
                                 "condicionContractualId",
                                 condicion.condicionContractualId,
@@ -910,8 +1163,8 @@ export default function CrearInstalacionComponent() {
                               );
                             }}
                           >
-                            {" "}
-                            <div className="flex justify-between">                              <Badge
+                            <div className="flex justify-between">
+                              <Badge
                                 variant="outline"
                                 className="bg-indigo-50 text-indigo-700 mb-1"
                               >
@@ -931,7 +1184,7 @@ export default function CrearInstalacionComponent() {
                               >
                                 {condicion.estado}
                               </Badge>
-                            </div>{" "}
+                            </div>
                             <div className="text-sm text-slate-600 mt-2">
                               <div className="mb-1">
                                 <span className="font-medium">
@@ -939,7 +1192,8 @@ export default function CrearInstalacionComponent() {
                                 </span>{" "}
                                 <span className="text-slate-800">
                                   {condicion.tipo_servicio}
-                                </span>                              </div>
+                                </span>{" "}
+                              </div>
                               <div className="flex justify-between mb-1">
                                 {isAdmin && (
                                   <span>Tarifa: ${condicion.tarifa}</span>
@@ -1088,6 +1342,70 @@ export default function CrearInstalacionComponent() {
                 </Badge>
               </h3>
 
+              {/* Buscador de empleados */}
+              <div className="relative mb-3">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <Search className="h-4 w-4 text-gray-400" />
+                </div>
+                <Input
+                  className="pl-10"
+                  placeholder="Buscar por nombre, apellido o cargo..."
+                  value={searchTermEmpleado}
+                  onChange={(e) => {
+                    setSearchTermEmpleado(e.target.value);
+                    if (e.target.value.trim() === "") {
+                      // Si se borra el input, recargar empleados sin filtro
+                      (async () => {
+                        setIsLoading(true);
+                        try {
+                          const empleadosResponseRaw = await getEmployees(
+                            1,
+                            100,
+                            ""
+                          );
+                          let empleados: Empleado[] = [];
+                          if (
+                            empleadosResponseRaw &&
+                            typeof empleadosResponseRaw === "object"
+                          ) {
+                            if (Array.isArray(empleadosResponseRaw)) {
+                              empleados = empleadosResponseRaw;
+                            } else if (
+                              "items" in empleadosResponseRaw &&
+                              Array.isArray(empleadosResponseRaw.items)
+                            ) {
+                              empleados = empleadosResponseRaw.items;
+                            } else if (
+                              "data" in empleadosResponseRaw &&
+                              Array.isArray(empleadosResponseRaw.data)
+                            ) {
+                              empleados = empleadosResponseRaw.data;
+                            }
+                          }
+                          empleados = empleados.filter(
+                            (empleado) =>
+                              empleado.estado === "DISPONIBLE" ||
+                              empleado.estado === "ASIGNADO"
+                          );
+                          setEmpleadosDisponibles(empleados);
+                          setFilteredEmpleados(empleados);
+                        } catch (error) {
+                          toast.error("Error al cargar empleados", {
+                            description:
+                              error instanceof Error
+                                ? error.message
+                                : "No se pudieron cargar empleados.",
+                          });
+                        } finally {
+                          setIsLoading(false);
+                        }
+                      })();
+                    }
+                  }}
+                  onKeyDown={handleEmpleadoSearch}
+                />
+              </div>
+
               {/* Información de roles */}
               <div className="bg-blue-50 p-3 rounded-md mb-3 text-sm">
                 <p className="font-medium mb-1">Asignación de roles:</p>
@@ -1147,15 +1465,16 @@ export default function CrearInstalacionComponent() {
               </div>
 
               <p className="text-xs text-slate-500 mb-3">
-                Se muestran empleados con estado &quot;DISPONIBLE&quot; y &quot;ASIGNADO&quot;
+                Se muestran empleados con estado &quot;DISPONIBLE&quot; y
+                &quot;ASIGNADO&quot;
               </p>
               {isLoading ? (
                 <div className="flex justify-center py-4">
                   <Loader className="h-6 w-6 text-indigo-500" />
                 </div>
-              ) : empleadosDisponibles.length > 0 ? (
+              ) : filteredEmpleados.length > 0 ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
-                  {empleadosDisponibles.map((empleado) => {
+                  {filteredEmpleados.map((empleado) => {
                     const isSelected = watch("empleadosIds").includes(
                       empleado.id
                     );
@@ -1251,15 +1570,75 @@ export default function CrearInstalacionComponent() {
             <div>
               <h3 className="font-medium mb-1">Vehículos Disponibles</h3>
               <p className="text-xs text-slate-500 mb-3">
-                Se muestran vehículos con estado &quot;DISPONIBLE&quot; y &quot;ASIGNADO&quot;
+                Se muestran vehículos con estado &quot;DISPONIBLE&quot; y
+                &quot;ASIGNADO&quot;
               </p>
+              {/* Buscador de vehículos */}
+              <div className="relative mb-3">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <Search className="h-4 w-4 text-gray-400" />
+                </div>
+                <Input
+                  className="pl-10"
+                  placeholder="Buscar por marca, modelo o placa..."
+                  value={searchTermVehiculo}
+                  onChange={async (e) => {
+                    const value = e.target.value;
+                    setSearchTermVehiculo(value);
+                    setIsLoading(true);
+                    try {
+                      const vehiculosResponse = await getVehicles(
+                        1,
+                        100,
+                        value
+                      );
+                      let vehiculos: Vehiculo[] = [];
+                      if (
+                        vehiculosResponse &&
+                        typeof vehiculosResponse === "object"
+                      ) {
+                        if (Array.isArray(vehiculosResponse)) {
+                          vehiculos = vehiculosResponse;
+                        } else if (
+                          "items" in vehiculosResponse &&
+                          Array.isArray(vehiculosResponse.items)
+                        ) {
+                          vehiculos = vehiculosResponse.items;
+                        } else if (
+                          "data" in vehiculosResponse &&
+                          Array.isArray(vehiculosResponse.data)
+                        ) {
+                          vehiculos = vehiculosResponse.data;
+                        }
+                      }
+                      vehiculos = vehiculos.filter(
+                        (vehiculo) =>
+                          vehiculo.estado === "DISPONIBLE" ||
+                          vehiculo.estado === "ASIGNADO"
+                      );
+                      setVehiculosDisponibles(vehiculos);
+                      setFilteredVehiculos(vehiculos);
+                    } catch (error) {
+                      toast.error("Error al buscar vehículos", {
+                        description:
+                          error instanceof Error
+                            ? error.message
+                            : "No se pudieron buscar vehículos.",
+                      });
+                    } finally {
+                      setIsLoading(false);
+                    }
+                  }}
+                  // Búsqueda en tiempo real con llamada a la API
+                />
+              </div>
               {isLoading ? (
                 <div className="flex justify-center py-4">
                   <Loader className="h-6 w-6 text-indigo-500" />
                 </div>
-              ) : vehiculosDisponibles.length > 0 ? (
+              ) : filteredVehiculos.length > 0 ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
-                  {vehiculosDisponibles.map((vehiculo) => {
+                  {filteredVehiculos.map((vehiculo) => {
                     const isSelected = watch("vehiculosIds").includes(
                       vehiculo.id
                     );
@@ -1327,13 +1706,109 @@ export default function CrearInstalacionComponent() {
               <p className="text-xs text-slate-500 mb-3">
                 Solo se muestran baños con estado &quot;DISPONIBLE&quot;
               </p>
+              {/* Buscador de baños */}
+              <div className="relative mb-3">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <Search className="h-4 w-4 text-gray-400" />
+                </div>
+                <Input
+                  className="pl-10"
+                  placeholder="Buscar por código interno o modelo..."
+                  value={searchTermBano}
+                  onChange={async (e) => {
+                    const value = e.target.value;
+                    setSearchTermBano(value);
+                    if (value.trim() === "") {
+                      setFilteredBanos(banosDisponibles);
+                      // Si se borra el input, recargar baños de la página actual sin filtro
+                      setIsLoadingBanos(true);
+                      try {
+                        const sanitariosResponse = await getSanitarios(
+                          banosPage,
+                          15,
+                          ""
+                        );
+                        let sanitariosDisp: Sanitario[] = [];
+                        if (
+                          sanitariosResponse &&
+                          typeof sanitariosResponse === "object"
+                        ) {
+                          if (
+                            "items" in sanitariosResponse &&
+                            Array.isArray(sanitariosResponse.items)
+                          ) {
+                            sanitariosDisp = sanitariosResponse.items.filter(
+                              (sanitario) => sanitario.estado === "DISPONIBLE"
+                            );
+                          } else if (Array.isArray(sanitariosResponse)) {
+                            sanitariosDisp = sanitariosResponse.filter(
+                              (sanitario) => sanitario.estado === "DISPONIBLE"
+                            );
+                          }
+                        }
+                        setBanosDisponibles(sanitariosDisp);
+                        setFilteredBanos(sanitariosDisp);
+                      } catch (error) {
+                        toast.error("Error al buscar baños", {
+                          description:
+                            error instanceof Error
+                              ? error.message
+                              : "No se pudieron buscar baños.",
+                        });
+                      } finally {
+                        setIsLoadingBanos(false);
+                      }
+                    } else {
+                      // Buscar en la API por el término ingresado
+                      setIsLoadingBanos(true);
+                      try {
+                        const sanitariosResponse = await getSanitarios(
+                          banosPage,
+                          15,
+                          value
+                        );
+                        let sanitariosDisp: Sanitario[] = [];
+                        if (
+                          sanitariosResponse &&
+                          typeof sanitariosResponse === "object"
+                        ) {
+                          if (
+                            "items" in sanitariosResponse &&
+                            Array.isArray(sanitariosResponse.items)
+                          ) {
+                            sanitariosDisp = sanitariosResponse.items.filter(
+                              (sanitario) => sanitario.estado === "DISPONIBLE"
+                            );
+                          } else if (Array.isArray(sanitariosResponse)) {
+                            sanitariosDisp = sanitariosResponse.filter(
+                              (sanitario) => sanitario.estado === "DISPONIBLE"
+                            );
+                          }
+                        }
+                        setBanosDisponibles(sanitariosDisp);
+                        setFilteredBanos(sanitariosDisp);
+                      } catch (error) {
+                        toast.error("Error al buscar baños", {
+                          description:
+                            error instanceof Error
+                              ? error.message
+                              : "No se pudieron buscar baños.",
+                        });
+                      } finally {
+                        setIsLoadingBanos(false);
+                      }
+                    }
+                  }}
+                  // Búsqueda en tiempo real con llamada a la API
+                />
+              </div>
               {isLoadingBanos ? (
                 <div className="flex justify-center py-4">
                   <Loader className="h-6 w-6 text-indigo-500" />
                 </div>
-              ) : banosDisponibles.length > 0 ? (
+              ) : filteredBanos.length > 0 ? (
                 <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-2">
-                  {banosDisponibles.map((bano) => {
+                  {filteredBanos.map((bano) => {
                     const banosIds = watch("banosIds") || [];
                     const isSelected = banosIds.includes(Number(bano.baño_id));
                     const isSelectable =
@@ -1398,17 +1873,8 @@ export default function CrearInstalacionComponent() {
                   No hay baños disponibles para la fecha seleccionada.
                 </div>
               )}
-              
-              {/* Paginación de baños */}
-              {banosTotalPages > 1 && (
-                <div className="mt-4 flex justify-center">
-                  <PaginationLocal
-                    total={banosTotalPages}
-                    currentPage={banosPage}
-                    onChangePage={handleBanosPageChange}
-                  />
-                </div>
-              )}
+
+              {/* Paginación de baños eliminada */}
               {errors.banosIds && (
                 <p className="text-sm text-red-500 mt-1">
                   {errors.banosIds.message}
