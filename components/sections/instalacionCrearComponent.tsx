@@ -2105,7 +2105,32 @@ export default function CrearInstalacionComponent() {
                 })()
               )}
 
-              {/* Paginación de baños eliminada */}
+              {/* Paginación de baños */}
+              {banosTotalPages > 1 && (
+                <div className="flex justify-center items-center gap-2 mt-4">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleBanosPageChange(banosPage - 1)}
+                    disabled={banosPage === 1}
+                  >
+                    Anterior
+                  </Button>
+                  
+                  <span className="text-sm text-gray-600">
+                    Página {banosPage} de {banosTotalPages} ({banosDisponibles.length} baños)
+                  </span>
+                  
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleBanosPageChange(banosPage + 1)}
+                    disabled={banosPage === banosTotalPages}
+                  >
+                    Siguiente
+                  </Button>
+                </div>
+              )}
               {errors.banosIds && (
                 <p className="text-sm text-red-500 mt-1">
                   {errors.banosIds.message}

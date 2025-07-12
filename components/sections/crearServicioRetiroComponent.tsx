@@ -42,7 +42,7 @@ import { getVehicles } from "@/app/actions/vehiculos";
 import { getSanitariosByClient } from "@/app/actions/sanitarios";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 
-// Schema for the form
+// Schema for the form - Simplified to avoid validation conflicts
 const formSchema = z.object({
   // Step 1
   clienteId: z.number().min(1, "Debe seleccionar un cliente"),
@@ -59,6 +59,8 @@ const formSchema = z.object({
   cantidadVehiculos: z.number().min(1, "Debe especificar al menos 1 vehículo"),
   ubicacion: z.string().min(3, "La ubicación debe tener al menos 3 caracteres"),
   notas: z.string().optional(),
+  
+  // Step 4 - Arrays required but not validated by zod to avoid premature validation
   banosInstalados: z.array(z.number()),
   empleadosIds: z.array(z.number()),
   vehiculosIds: z.array(z.number()),
@@ -143,6 +145,7 @@ export function CrearServicioRetiroComponent() {
 
   const [clientes, setClientes] = useState<Cliente[]>([]);
   const [searchTermCliente, setSearchTermCliente] = useState<string>("");
+  const [appliedSearchTerm, setAppliedSearchTerm] = useState<string>("");
 
   const [condicionesContractuales, setCondicionesContractuales] = useState<
     CondicionContractual[]
@@ -168,6 +171,7 @@ export function CrearServicioRetiroComponent() {
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
     mode: "onSubmit",
+    reValidateMode: "onSubmit",
     defaultValues: {
       clienteId: 0,
       condicionContractualId: 0,
@@ -185,7 +189,6 @@ export function CrearServicioRetiroComponent() {
 
   const {
     control,
-    handleSubmit,
     watch,
     setValue,
     trigger,
@@ -269,8 +272,14 @@ export function CrearServicioRetiroComponent() {
       }
     };
 
-    fetchClientes(clientesPagination.page, searchTermCliente);
-  }, [clientesPagination.page, searchTermCliente]);
+    fetchClientes(clientesPagination.page, appliedSearchTerm);
+  }, [clientesPagination.page, appliedSearchTerm]);
+
+  // Función para ejecutar búsqueda de clientes
+  const handleClientesSearch = async () => {
+    setAppliedSearchTerm(searchTermCliente);
+    setClientesPagination(prev => ({ ...prev, page: 1 }));
+  };
 
   // Cargar condiciones contractuales cuando se selecciona un cliente
   useEffect(() => {
@@ -604,21 +613,6 @@ export function CrearServicioRetiroComponent() {
     setVehiculosPagination(prev => ({ ...prev, page: newPage }));
   };
 
-  const handleClientesSearch = (searchTerm: string) => {
-    setSearchTermCliente(searchTerm);
-    setClientesPagination(prev => ({ ...prev, page: 1 }));
-  };
-
-  const handleEmpleadosSearch = (searchTerm: string) => {
-    setSearchEmpleados(searchTerm);
-    setEmpleadosPagination(prev => ({ ...prev, page: 1 }));
-  };
-
-  const handleVehiculosSearch = (searchTerm: string) => {
-    setSearchVehiculos(searchTerm);
-    setVehiculosPagination(prev => ({ ...prev, page: 1 }));
-  };
-
   // Avanzar al siguiente paso
   const handleNextStep = async () => {
     let isStepValid = false;
@@ -675,33 +669,6 @@ export function CrearServicioRetiroComponent() {
   const onSubmit = async (data: FormData) => {
     try {
       setIsSubmitting(true);
-
-      // Validaciones específicas para servicio de retiro
-      // Nota: banosInstalados debe contener los IDs de baños a retirar
-
-      if (!data.empleadosIds || data.empleadosIds.length === 0) {
-        toast.error("Validación de formulario", {
-          description: "Debe seleccionar al menos un empleado.",
-        });
-        setIsSubmitting(false);
-        return;
-      }
-
-      if (!data.vehiculosIds || data.vehiculosIds.length === 0) {
-        toast.error("Validación de formulario", {
-          description: "Debe seleccionar al menos un vehículo.",
-        });
-        setIsSubmitting(false);
-        return;
-      }
-
-      if (!data.banosInstalados || data.banosInstalados.length === 0) {
-        toast.error("Validación de formulario", {
-          description: "Debe seleccionar al menos un baño para retirar.",
-        });
-        setIsSubmitting(false);
-        return;
-      }
 
       // Validar que haya al menos un empleado seleccionado para el rol A si hay vehículos seleccionados
       if (
@@ -854,6 +821,53 @@ export function CrearServicioRetiroComponent() {
     ];
   };
 
+  // Manejar el envío final del formulario
+  const handleFinalSubmit = async () => {
+    try {
+      // Obtener datos actuales del formulario
+      const formData = getValues();
+      
+      // Validaciones manuales para el paso 4
+      if (!formData.empleadosIds || formData.empleadosIds.length === 0) {
+        toast.error("Validación de formulario", {
+          description: "Debe seleccionar al menos un empleado.",
+        });
+        return;
+      }
+
+      if (!formData.vehiculosIds || formData.vehiculosIds.length === 0) {
+        toast.error("Validación de formulario", {
+          description: "Debe seleccionar al menos un vehículo.",
+        });
+        return;
+      }
+
+      if (!formData.banosInstalados || formData.banosInstalados.length === 0) {
+        toast.error("Validación de formulario", {
+          description: "Debe seleccionar al menos un baño para retirar.",
+        });
+        return;
+      }
+
+      // Validar usando react-hook-form para los otros campos
+      const isValid = await trigger();
+      if (!isValid) {
+        toast.error("Validación de formulario", {
+          description: "Por favor complete todos los campos requeridos.",
+        });
+        return;
+      }
+
+      // Si todo está bien, llamar a onSubmit
+      await onSubmit(formData);
+    } catch (error) {
+      console.error("Error en validación final:", error);
+      toast.error("Error de validación", {
+        description: "Ocurrió un error al validar el formulario.",
+      });
+    }
+  };
+
   if (isLoading && step === 1) {
     return (
       <div className="flex flex-1 flex-col gap-4 p-4 pt-0 items-center justify-center">
@@ -887,17 +901,7 @@ export function CrearServicioRetiroComponent() {
         </div>
       </CardHeader>
       <CardContent>
-        <form
-          onSubmit={handleSubmit(
-            (data) => {
-              onSubmit(data);
-            },
-            (errors) => {
-              console.error("Form validation failed:", errors);
-              return false;
-            }
-          )}
-        >
+        <form>
               {/* Paso 1: Selección de Cliente */}
               {step === 1 && (
                 <div className="space-y-4">
@@ -919,7 +923,13 @@ export function CrearServicioRetiroComponent() {
                       placeholder="Buscar cliente por nombre, CUIT o email..."
                       className="pl-10"
                       value={searchTermCliente}
-                      onChange={(e) => handleClientesSearch(e.target.value)}
+                      onChange={(e) => setSearchTermCliente(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          e.preventDefault();
+                          handleClientesSearch();
+                        }
+                      }}
                     />
                   </div>
 
@@ -1372,7 +1382,13 @@ export function CrearServicioRetiroComponent() {
                               placeholder="Buscar empleados por nombre, apellido o DNI..."
                               className="pl-10"
                               value={searchEmpleados}
-                              onChange={(e) => handleEmpleadosSearch(e.target.value)}
+                              onChange={(e) => setSearchEmpleados(e.target.value)}
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter") {
+                                  e.preventDefault();
+                                  setEmpleadosPagination(prev => ({ ...prev, page: 1 }));
+                                }
+                              }}
                             />
                           </div>
                         </div>
@@ -1589,7 +1605,13 @@ export function CrearServicioRetiroComponent() {
                               placeholder="Buscar vehículos por marca, modelo o patente..."
                               className="pl-10"
                               value={searchVehiculos}
-                              onChange={(e) => handleVehiculosSearch(e.target.value)}
+                              onChange={(e) => setSearchVehiculos(e.target.value)}
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter") {
+                                  e.preventDefault();
+                                  setVehiculosPagination(prev => ({ ...prev, page: 1 }));
+                                }
+                              }}
                             />
                           </div>
                         </div>
@@ -1703,7 +1725,8 @@ export function CrearServicioRetiroComponent() {
                   </Button>
                 ) : (
                   <Button
-                    type="submit"
+                    type="button"
+                    onClick={handleFinalSubmit}
                     disabled={isSubmitting}
                     className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700"
                   >

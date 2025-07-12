@@ -10,6 +10,7 @@ import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { FormField } from "@/components/ui/local/FormField";
+import { PaginationLocal } from "@/components/ui/local/PaginationLocal";
 import { 
   Card, 
   CardContent, 
@@ -61,10 +62,10 @@ const formSchema = z.object({
   }),
   cantidadVehiculos: z.number().min(1, "Debe especificar al menos 1 vehículo"),
   ubicacion: z.string().min(3, "La ubicación debe tener al menos 3 caracteres"),
-  notas: z.string().optional(), // Step 4 - campos opcionales para permitir navegación entre pasos
-  banosInstalados: z.array(z.number()),
-  empleadosIds: z.array(z.number()),
-  vehiculosIds: z.array(z.number()),
+  notas: z.string().optional(),  // Step 4 - campos opcionales para permitir navegación entre pasos
+  banosInstalados: z.array(z.number()).optional(),
+  empleadosIds: z.array(z.number()).optional(),
+  vehiculosIds: z.array(z.number()).optional(),
 
   // Additional fields for service creation
   tipoServicio: z.literal(ServiceType.LIMPIEZA),
@@ -126,6 +127,7 @@ export function CrearServicioGenericoComponent() {
   const { isAdmin } = useCurrentUser();
   const [step, setStep] = useState<number>(1);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
+  const [showStepErrors, setShowStepErrors] = useState<boolean>(false);
 
   const [clientes, setClientes] = useState<Cliente[]>([]);
   const [filteredClientes, setFilteredClientes] = useState<Cliente[]>([]);
@@ -158,6 +160,8 @@ export function CrearServicioGenericoComponent() {
   const [filteredEmpleados, setFilteredEmpleados] = useState<Empleado[]>([]);
   const [searchTermVehiculo, setSearchTermVehiculo] = useState<string>("");
   const [filteredVehiculos, setFilteredVehiculos] = useState<Vehiculo[]>([]);
+  const [searchTermSanitario, setSearchTermSanitario] = useState<string>("");
+  const [filteredSanitarios, setFilteredSanitarios] = useState<Sanitario[]>([]);
 
   // Estados para paginado
   const [empleadosPagination, setEmpleadosPagination] = useState({
@@ -179,6 +183,12 @@ export function CrearServicioGenericoComponent() {
     limit: 15,
   });
   const [condicionesPagination, setCondicionesPagination] = useState({
+    page: 1,
+    totalPages: 1,
+    total: 0,
+    limit: 15,
+  });
+  const [sanitariosPagination, setSanitariosPagination] = useState({
     page: 1,
     totalPages: 1,
     total: 0,
@@ -265,7 +275,7 @@ export function CrearServicioGenericoComponent() {
 
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
-    mode: "onSubmit", // Solo validar cuando se envía el formulario
+    mode: "onTouched", // Solo validar cuando el campo ha sido tocado
     defaultValues: {
       clienteId: 0,
       condicionContractualId: 0,
@@ -273,9 +283,9 @@ export function CrearServicioGenericoComponent() {
       cantidadVehiculos: 1,
       ubicacion: "",
       notas: "",
-      banosInstalados: [],
-      empleadosIds: [],
-      vehiculosIds: [],
+      banosInstalados: undefined,
+      empleadosIds: undefined,
+      vehiculosIds: undefined,
       tipoServicio: ServiceType.LIMPIEZA,
       asignacionAutomatica: false,
     },
@@ -604,8 +614,17 @@ export function CrearServicioGenericoComponent() {
   useEffect(() => {
     const fetchResources = async () => {
       if (selectedClientId && selectedFechaProgramada && step >= 4) {
+        let shouldShowErrors = false;
+        
         try {
           setIsLoading(true);
+
+          // Pequeño delay para evitar que los errores de carga se muestren inmediatamente 
+          // cuando el usuario navega al step 4
+          await new Promise(resolve => setTimeout(resolve, 500));
+          
+          // Permitir mostrar errores después del delay
+          shouldShowErrors = true;
 
           // Cargar empleados y vehículos disponibles con tipos correctos
           const empleadosResponse = (await getEmployees(1, empleadosPagination.limit)) as EmpleadosResponse;
@@ -647,19 +666,29 @@ export function CrearServicioGenericoComponent() {
                 "Formato de respuesta de empleados no reconocido:",
                 empleadosResponse
               );
-              toast.error("Error al cargar empleados", {
-                description:
-                  "El servidor devolvió datos en un formato inesperado",
-              });
+              // Silenciar error si no debemos mostrar errores de carga de recursos aún
+              if (shouldShowErrors) {
+                toast.error("Error al cargar empleados", {
+                  description:
+                    "El servidor devolvió datos en un formato inesperado",
+                });
+              } else {
+                console.warn("Error silenciado durante carga inicial de empleados");
+              }
             }
           } else {
             console.error(
               "Tipo de respuesta de empleados no esperado:",
               empleadosResponse
             );
-            toast.error("Error al cargar empleados", {
-              description: "No se recibió una respuesta válida del servidor",
-            });
+            // Silenciar error si no debemos mostrar errores de carga de recursos aún
+            if (shouldShowErrors) {
+              toast.error("Error al cargar empleados", {
+                description: "No se recibió una respuesta válida del servidor",
+              });
+            } else {
+              console.warn("Error silenciado durante carga inicial de empleados");
+            }
           }
 
           // Procesar respuesta de vehículos
@@ -698,19 +727,29 @@ export function CrearServicioGenericoComponent() {
                 "Formato de respuesta de vehículos no reconocido:",
                 vehiculosResponse
               );
-              toast.error("Error al cargar vehículos", {
-                description:
-                  "El servidor devolvió datos en un formato inesperado",
-              });
+              // Silenciar error si no debemos mostrar errores de carga de recursos aún
+              if (shouldShowErrors) {
+                toast.error("Error al cargar vehículos", {
+                  description:
+                    "El servidor devolvió datos en un formato inesperado",
+                });
+              } else {
+                console.warn("Error silenciado durante carga inicial de vehículos");
+              }
             }
           } else {
             console.error(
               "Tipo de respuesta de vehículos no esperado:",
               vehiculosResponse
             );
-            toast.error("Error al cargar vehículos", {
-              description: "No se recibió una respuesta válida del servidor",
-            });
+            // Silenciar error si no debemos mostrar errores de carga de recursos aún
+            if (shouldShowErrors) {
+              toast.error("Error al cargar vehículos", {
+                description: "No se recibió una respuesta válida del servidor",
+              });
+            } else {
+              console.warn("Error silenciado durante carga inicial de vehículos");
+            }
           }
 
           setEmpleadosDisponibles(empleadosDisp);
@@ -723,15 +762,22 @@ export function CrearServicioGenericoComponent() {
           interface SanitariosResponse {
             data?: Sanitario[];
             items?: Sanitario[];
+            page?: number;
+            totalPages?: number;
+            total?: number;
+            limit?: number;
           }
 
           const banosClienteResponse = (await getSanitariosByClient(
             selectedClientId
           )) as SanitariosResponse | Sanitario[];
 
+          let sanitarios: Sanitario[] = [];
+          let pagination = { page: 1, totalPages: 1, total: 0, limit: sanitariosPagination.limit };
+
           // Procesamiento de la respuesta
           if (Array.isArray(banosClienteResponse)) {
-            setBanosInstalados(banosClienteResponse);
+            sanitarios = banosClienteResponse;
           } else if (
             banosClienteResponse &&
             typeof banosClienteResponse === "object"
@@ -740,41 +786,72 @@ export function CrearServicioGenericoComponent() {
               "data" in banosClienteResponse &&
               Array.isArray(banosClienteResponse.data)
             ) {
-              setBanosInstalados(banosClienteResponse.data);
+              sanitarios = banosClienteResponse.data;
+              pagination = {
+                page: banosClienteResponse.page || 1,
+                totalPages: banosClienteResponse.totalPages || 1,
+                total: banosClienteResponse.total || sanitarios.length,
+                limit: banosClienteResponse.limit || sanitariosPagination.limit,
+              };
             } else if (
               "items" in banosClienteResponse &&
               Array.isArray(banosClienteResponse.items)
             ) {
-              setBanosInstalados(banosClienteResponse.items);
+              sanitarios = banosClienteResponse.items;
+              pagination = {
+                page: banosClienteResponse.page || 1,
+                totalPages: banosClienteResponse.totalPages || 1,
+                total: banosClienteResponse.total || sanitarios.length,
+                limit: banosClienteResponse.limit || sanitariosPagination.limit,
+              };
             } else {
               console.error(
                 "Formato de respuesta de baños no reconocido:",
                 banosClienteResponse
               );
-              setBanosInstalados([]);
-              toast.error("Error al cargar baños", {
-                description:
-                  "El servidor devolvió datos en un formato inesperado",
-              });
+              sanitarios = [];
+              // Silenciar error si no debemos mostrar errores de carga de recursos aún
+              if (shouldShowErrors) {
+                toast.error("Error al cargar baños", {
+                  description:
+                    "El servidor devolvió datos en un formato inesperado",
+                });
+              } else {
+                console.warn("Error silenciado durante carga inicial de baños");
+              }
             }
           } else {
             console.error(
               "Tipo de respuesta de baños no esperado:",
               banosClienteResponse
             );
-            setBanosInstalados([]);
-            toast.error("Error al cargar baños", {
-              description: "No se recibió una respuesta válida del servidor",
-            });
+            sanitarios = [];
+            // Silenciar error si no debemos mostrar errores de carga de recursos aún
+            if (shouldShowErrors) {
+              toast.error("Error al cargar baños", {
+                description: "No se recibió una respuesta válida del servidor",
+              });
+            } else {
+              console.warn("Error silenciado durante carga inicial de baños");
+            }
           }
+
+          setBanosInstalados(sanitarios);
+          setFilteredSanitarios(sanitarios);
+          setSanitariosPagination(pagination);
         } catch (error) {
           console.error("Error al cargar recursos:", error);
-          toast.error("Error al cargar recursos", {
-            description:
-              error instanceof Error
-                ? error.message
-                : "No se pudieron cargar los recursos necesarios. Por favor, intente nuevamente.",
-          });
+          // Solo mostrar toast de error si debemos mostrar errores de carga de recursos
+          if (shouldShowErrors) {
+            toast.error("Error al cargar recursos", {
+              description:
+                error instanceof Error
+                  ? error.message
+                  : "No se pudieron cargar los recursos necesarios. Por favor, intente nuevamente.",
+            });
+          } else {
+            console.warn("Error silenciado durante carga inicial de recursos:", error);
+          }
           setEmpleadosDisponibles([]);
           setVehiculosDisponibles([]);
           setBanosInstalados([]);
@@ -785,7 +862,7 @@ export function CrearServicioGenericoComponent() {
     };
 
     fetchResources();
-  }, [selectedClientId, selectedFechaProgramada, step, empleadosPagination.limit, vehiculosPagination.limit]);
+  }, [selectedClientId, selectedFechaProgramada, step, empleadosPagination.limit, vehiculosPagination.limit, sanitariosPagination.limit]);
   // Manejar selección de empleado
   const handleEmpleadoSelection = (empleadoId: number) => {
     const updatedSelection = selectedEmpleados.includes(empleadoId)
@@ -917,6 +994,88 @@ export function CrearServicioGenericoComponent() {
   const handleVehiculosPageChange = (newPage: number) => {
     const fakeEvent = { key: "Enter" } as React.KeyboardEvent<HTMLInputElement>;
     handleVehiculoSearch(fakeEvent, newPage);
+  };
+
+  // Función para manejar búsqueda de sanitarios con paginado
+  const handleSanitarioSearch = async (
+    e: React.KeyboardEvent<HTMLInputElement>,
+    page: number = 1
+  ) => {
+    if (e.key === "Enter" || typeof page === "number") {
+      const term = searchTermSanitario.trim();
+      setIsLoading(true);
+      try {
+        // La función getSanitariosByClient no acepta parámetros de paginación,
+        // así que aplicamos filtrado local
+        interface SanitariosSearchResponse {
+          items?: Sanitario[];
+          data?: Sanitario[];
+        }
+        const sanitariosResponse = await getSanitariosByClient(selectedClientId!) as SanitariosSearchResponse | Sanitario[];
+        
+        let allSanitarios: Sanitario[] = [];
+        
+        if (Array.isArray(sanitariosResponse)) {
+          allSanitarios = sanitariosResponse;
+        } else if (sanitariosResponse && typeof sanitariosResponse === "object") {
+          if ("items" in sanitariosResponse && Array.isArray(sanitariosResponse.items)) {
+            allSanitarios = sanitariosResponse.items;
+          } else if ("data" in sanitariosResponse && Array.isArray(sanitariosResponse.data)) {
+            allSanitarios = sanitariosResponse.data;
+          }
+        }
+        
+        // Filtrar solo sanitarios instalados/disponibles
+        allSanitarios = allSanitarios.filter(
+          (sanitario) =>
+            sanitario.estado === "INSTALADO" ||
+            sanitario.estado === "DISPONIBLE"
+        );
+        
+        // Aplicar filtro de búsqueda si hay término
+        if (term) {
+          allSanitarios = allSanitarios.filter(
+            (sanitario) =>
+              sanitario.codigo_interno?.toLowerCase().includes(term.toLowerCase()) ||
+              sanitario.modelo?.toLowerCase().includes(term.toLowerCase())
+          );
+        }
+        
+        // Calcular paginación manualmente
+        const total = allSanitarios.length;
+        const limit = sanitariosPagination.limit;
+        const totalPages = Math.ceil(total / limit);
+        const startIndex = (page - 1) * limit;
+        const endIndex = startIndex + limit;
+        const sanitariosPaginados = allSanitarios.slice(startIndex, endIndex);
+        
+        const pagination = {
+          page,
+          totalPages,
+          total,
+          limit,
+        };
+        
+        setBanosInstalados(allSanitarios);
+        setFilteredSanitarios(sanitariosPaginados);
+        setSanitariosPagination(pagination);
+      } catch (error) {
+        toast.error("Error al buscar sanitarios", {
+          description:
+            error instanceof Error
+              ? error.message
+              : "No se pudieron buscar sanitarios.",
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    }
+  };
+
+  // Función para manejar cambio de página de sanitarios
+  const handleSanitariosPageChange = (newPage: number) => {
+    const fakeEvent = { key: "Enter" } as React.KeyboardEvent<HTMLInputElement>;
+    handleSanitarioSearch(fakeEvent, newPage);
   }; // Avanzar al siguiente paso
   const handleNextStep = async () => {
     // Validar campos según el paso actual
@@ -958,6 +1117,7 @@ export function CrearServicioGenericoComponent() {
         break;
     }
     if (isStepValid) {
+      setShowStepErrors(false); // Resetear errores al avanzar
       setStep((prevStep) => prevStep + 1);
     }
   };
@@ -970,12 +1130,14 @@ export function CrearServicioGenericoComponent() {
       }
     }
 
+    setShowStepErrors(false); // Resetear errores al retroceder
     setStep((prevStep) => prevStep - 1);
   };
   // Enviar formulario
   const onSubmit = async (data: FormData) => {
     try {
       setIsSubmitting(true);
+      setShowStepErrors(true); // Activar la muestra de errores al intentar enviar
 
       // Validación manual de campos requeridos del paso 4
       // Para servicios de limpieza, los baños son opcionales (se pueden heredar del último servicio de instalación)
@@ -1098,7 +1260,7 @@ export function CrearServicioGenericoComponent() {
         fechaProgramada: data.fechaProgramada.toISOString(),
         ubicacion: data.ubicacion,
         asignacionAutomatica: false,
-        banosInstalados: data.banosInstalados,
+        banosInstalados: data.banosInstalados || [],
         asignacionesManual: asignacionesManual,
         notas: data.notas || "Limpieza mensual según contrato",
       };
@@ -1632,6 +1794,24 @@ export function CrearServicioGenericoComponent() {
                     <div className="space-y-8">
                       {/* Selección de Baños Instalados */}
                       <div>
+                        <div className="relative mb-4">
+                          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <Search className="h-4 w-4 text-gray-400" />
+                          </div>
+                          <Input
+                            className="pl-10"
+                            placeholder="Buscar por código interno o modelo..."
+                            value={searchTermSanitario}
+                            onChange={(e) => {
+                              setSearchTermSanitario(e.target.value);
+                              if (e.target.value.trim() === "") {
+                                setFilteredSanitarios(banosInstalados);
+                              }
+                            }}
+                            onKeyDown={handleSanitarioSearch}
+                          />
+                        </div>
+                        
                         <h3 className="text-lg font-medium mb-3 flex items-center justify-between">
                           Seleccionar Baños Instalados
                           <Badge variant="outline" className="bg-blue-50">
@@ -1639,15 +1819,15 @@ export function CrearServicioGenericoComponent() {
                           </Badge>
                         </h3>
 
-                        {banosInstalados.length === 0 ? (
+                        {filteredSanitarios.length === 0 ? (
                           <div className="text-center py-8 border rounded-md">
                             <p className="text-gray-500">
-                              No hay baños instalados para este cliente.
+                              {searchTermSanitario.trim() ? "No se encontraron baños que coincidan con la búsqueda." : "No hay baños instalados para este cliente."}
                             </p>
                           </div>
                         ) : (
                           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                            {banosInstalados.map((bano) => (
+                            {filteredSanitarios.map((bano) => (
                               <div
                                 key={bano.baño_id}
                                 className={`border p-3 rounded-md cursor-pointer transition-colors ${
@@ -1697,6 +1877,17 @@ export function CrearServicioGenericoComponent() {
                           <p className="text-red-500 text-sm mt-2">
                             {errors.banosInstalados.message}
                           </p>
+                        )}
+                        
+                        {/* Paginación de sanitarios */}
+                        {sanitariosPagination.totalPages > 1 && (
+                          <div className="mt-4">
+                            <PaginationLocal
+                              currentPage={sanitariosPagination.page}
+                              total={sanitariosPagination.totalPages}
+                              onChangePage={handleSanitariosPageChange}
+                            />
+                          </div>
                         )}
                       </div>{" "}
                       {/* Selección de Empleados */}
@@ -1925,7 +2116,7 @@ export function CrearServicioGenericoComponent() {
                             ))}
                           </div>
                         )}
-                        {errors.empleadosIds && (
+                        {errors.empleadosIds && showStepErrors && (
                           <p className="text-red-500 text-sm mt-2">
                             {errors.empleadosIds.message}
                           </p>
