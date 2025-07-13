@@ -44,7 +44,10 @@ import {
   Info,
   User,
 } from "lucide-react";
-import { deleteContractualCondition } from "@/app/actions/contractualConditions";
+import {
+  deleteContractualCondition,
+  getAllContractualConditions,
+} from "@/app/actions/contractualConditions";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 
 // Definir el tipo para la condición contractual
@@ -70,29 +73,16 @@ type CondicionContractual = {
   };
 };
 
-export default function ListadoCondicionesContractualesComponent({
-  data,
-  totalItems,
-  currentPage,
-  itemsPerPage,
-}: {
-  data: CondicionContractual[];
-  totalItems: number;
-  currentPage: number;
-  itemsPerPage: number;
-}) {
+export default function ListadoCondicionesContractualesComponent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { isAdmin, isSupervisor } = useCurrentUser();
 
-  // Asegurarnos de que data siempre sea un array
-  const safeData = useMemo(() => (Array.isArray(data) ? data : []), [data]);
-
   // Estado para manejar los datos
-  const [condiciones, setCondiciones] =
-    useState<CondicionContractual[]>(safeData);
-  const [total, setTotal] = useState<number>(totalItems);
-  const [page, setPage] = useState<number>(currentPage);
+  const [condiciones, setCondiciones] = useState<CondicionContractual[]>([]);
+  const [total, setTotal] = useState<number>(0);
+  const [page, setPage] = useState<number>(1);
+  const [itemsPerPage, setItemsPerPage] = useState<number>(15);
   const [loading, setLoading] = useState<boolean>(false);
   const [selectedCondicion, setSelectedCondicion] =
     useState<CondicionContractual | null>(null);
@@ -282,15 +272,106 @@ export default function ListadoCondicionesContractualesComponent({
     }
   };
 
-  // Actualiza el estado cuando cambian las props
+  // Primer render: cargar datos iniciales
   useEffect(() => {
-    if (isFirstLoad) {
-      setCondiciones(safeData);
-      setTotal(totalItems);
-      setPage(currentPage);
-      setIsFirstLoad(false);
-    }
-  }, [safeData, totalItems, currentPage, isFirstLoad]);
+    const fetchData = async () => {
+      setLoading(true);
+      try {
+        const result = await getAllContractualConditions(
+          page,
+          itemsPerPage,
+          ""
+        );
+        let items: any[] = [];
+        let total = 0;
+        let pageNum = 1;
+        let limitNum = 15;
+        if (result && typeof result === "object") {
+          if ("items" in result) {
+            items = Array.isArray((result as any).items)
+              ? (result as any).items
+              : [];
+            total = (result as any).total || 0;
+            pageNum = (result as any).page || 1;
+            limitNum = (result as any).limit || 15;
+          } else if ("data" in result) {
+            items = Array.isArray((result as any).data)
+              ? (result as any).data
+              : [];
+            total = (result as any).totalItems || 0;
+            pageNum = (result as any).page || 1;
+            limitNum = (result as any).limit || 15;
+          }
+        }
+        setCondiciones(items);
+        setTotal(total);
+        setPage(pageNum);
+        setItemsPerPage(limitNum);
+      } catch (err) {
+        setCondiciones([]);
+        setTotal(0);
+        toast.error("Error al cargar condiciones contractuales");
+      } finally {
+        setLoading(false);
+        setIsFirstLoad(false);
+      }
+    };
+    if (isFirstLoad) fetchData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isFirstLoad]);
+
+  // Efecto para recargar datos cuando cambian los searchParams (búsqueda o paginación)
+  useEffect(() => {
+    if (isFirstLoad) return;
+    const fetchData = async () => {
+      setLoading(true);
+      try {
+        const params = new URLSearchParams(searchParams.toString());
+        const search = params.get("search") || "";
+        const pageParam = params.get("page") || "1";
+        // Llama a la función getAllContractualConditions con page, limit, search
+        const result = await getAllContractualConditions(
+          Number(pageParam),
+          itemsPerPage,
+          search
+        );
+        // Unificar manejo de respuesta para 'items' o 'data'
+        let items: any[] = [];
+        let total = 0;
+        let pageNum = Number(pageParam);
+        let limitNum = itemsPerPage;
+        if (result && typeof result === "object") {
+          if ("items" in result) {
+            items = Array.isArray((result as any).items)
+              ? (result as any).items
+              : [];
+            total = (result as any).total || 0;
+            pageNum = (result as any).page || Number(pageParam);
+            limitNum = (result as any).limit || itemsPerPage;
+          } else if ("data" in result) {
+            items = Array.isArray((result as any).data)
+              ? (result as any).data
+              : [];
+            total = (result as any).totalItems || 0;
+            pageNum = (result as any).page || Number(pageParam);
+            limitNum = (result as any).limit || itemsPerPage;
+          }
+        }
+        setCondiciones(items);
+        setTotal(total);
+        setPage(pageNum);
+        setItemsPerPage(limitNum);
+      } catch (err) {
+        setCondiciones([]);
+        setTotal(0);
+        toast.error("Error al buscar condiciones contractuales");
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]);
 
   // Filtrar según el tab seleccionado
   const filteredCondiciones =
@@ -443,7 +524,8 @@ export default function ListadoCondicionesContractualesComponent({
                     onClick={() => handleViewDetails(condicion)}
                   >
                     <div className="font-medium">
-                      Contrato #{condicion.condicionContractualId}
+                      {condicion.tipo_servicio} #
+                      {condicion.condicionContractualId}
                     </div>
                     <div className="text-sm text-muted-foreground line-clamp-2">
                       {condicion.condiciones_especificas}

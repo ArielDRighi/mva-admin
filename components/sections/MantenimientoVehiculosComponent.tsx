@@ -4,7 +4,7 @@ import {
   createMantenimientoVehiculo,
   deleteMantenimientoVehiculo,
   editMantenimientoVehiculo,
-  getMantenimientosVehiculos,
+  fetchMantenimientosVehiculos,
 } from "@/app/actions/mantenimiento_vehiculos";
 import {
   VehicleMaintenance,
@@ -13,7 +13,7 @@ import {
   Vehiculo,
 } from "@/types/types";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useRouter, useSearchParams } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import React, { useCallback, useEffect, useState, useMemo } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -62,7 +62,15 @@ const MantenimientoVehiculosComponent = ({
   itemsPerPage: number;
 }) => {
   const router = useRouter();
+  const pathname = usePathname();
   const searchParams = useSearchParams();
+
+  // Utilidad para obtener el parámetro actualizado de la URL real
+  const getSearchParam = (param: string) => {
+    if (typeof window === "undefined") return "";
+    const params = new URLSearchParams(window.location.search);
+    return params.get(param) || "";
+  };
 
   const [mantenimientos, setMantenimientos] =
     useState<VehicleMaintenance[]>(data);
@@ -87,7 +95,6 @@ const MantenimientoVehiculosComponent = ({
     number | null
   >(null);
   const [searchTerm, setSearchTerm] = useState<string>(searchParams.get("search") || "");
-  console.log("mantenimientos", mantenimientos);
   const mantenimientoSchema = z.object({
     vehiculoId: z.number({
       required_error: "El vehículo es obligatorio",
@@ -391,12 +398,10 @@ const MantenimientoVehiculosComponent = ({
     const searchTerm = searchParams.get("search") || "";
     
     setLoading(true);
-    console.log("currentPage", currentPage);
-    console.log("itemsPerPage", itemsPerPage);
-    console.log("search term:", searchTerm);
+ 
     
     try {
-      const fetchedMantenimientos = (await getMantenimientosVehiculos(
+      const fetchedMantenimientos = (await fetchMantenimientosVehiculos(
         currentPage,
         itemsPerPage,
         searchTerm
@@ -405,6 +410,7 @@ const MantenimientoVehiculosComponent = ({
         totalItems: number;
         currentPage: number;
       };
+
 
       setMantenimientos(fetchedMantenimientos.data);
       setTotal(fetchedMantenimientos.totalItems);
@@ -427,12 +433,16 @@ const MantenimientoVehiculosComponent = ({
     } finally {
       setLoading(false);
     }
-  }, [searchParams, itemsPerPage, loadVehiclesInfo]);
+  }, [searchParams, itemsPerPage, loadVehiclesInfo, activeTab]);
 
-  // useEffect to call fetchMantenimientos when searchParams change
+  // useEffect para llamar a fetchMantenimientos cuando cambie la ruta
   useEffect(() => {
-    fetchMantenimientos();
-  }, [fetchMantenimientos]);
+    if (isFirstLoad) {
+      setIsFirstLoad(false);
+    } else {
+      fetchMantenimientos();
+    }
+  }, [fetchMantenimientos, isFirstLoad, activeTab]);
 
   // En el componente MantenimientoVehiculosComponent
   useEffect(() => {

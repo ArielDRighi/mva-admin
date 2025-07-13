@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -8,7 +8,7 @@ import * as z from "zod";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
-import { ChevronLeft, Loader } from "lucide-react";
+import { ChevronLeft, Loader, Search } from "lucide-react";
 
 import { getServiceById, updateService } from "@/app/actions/services";
 import { getEmployees } from "@/app/actions/empleados";
@@ -16,7 +16,13 @@ import { getVehicles } from "@/app/actions/vehiculos";
 import { getSanitariosByClient } from "@/app/actions/sanitarios";
 
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import { 
+  Card, 
+  CardContent, 
+  CardHeader, 
+  CardTitle, 
+  CardDescription 
+} from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { FormField } from "@/components/ui/local/FormField";
 import {
@@ -97,6 +103,25 @@ export function EditarServicioGenericoComponent({ id }: { id: string }) {
   const [empleadoRolA, setEmpleadoRolA] = useState<number | null>(null);
   const [empleadoRolB, setEmpleadoRolB] = useState<number | null>(null);
 
+  // Estados para paginación
+  const [empleadosPagination, setEmpleadosPagination] = useState({
+    page: 1,
+    totalPages: 1,
+    total: 0,
+    limit: 15
+  });
+
+  const [vehiculosPagination, setVehiculosPagination] = useState({
+    page: 1,
+    totalPages: 1,
+    total: 0,
+    limit: 15
+  });
+
+  // Estados para búsqueda
+  const [searchTermEmpleado, setSearchTermEmpleado] = useState<string>("");
+  const [searchTermVehiculo, setSearchTermVehiculo] = useState<string>("");
+
   // Configuración del formulario
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
@@ -117,6 +142,144 @@ export function EditarServicioGenericoComponent({ id }: { id: string }) {
     setValue,
     formState: { errors },
   } = form;
+
+  // Cargar recursos (empleados, vehículos, baños)
+  const loadResources = useCallback(async (clienteId: number) => {
+    try {
+      setIsLoading(true);
+
+      // Interfaces para respuestas de API
+      interface EmpleadosResponse {
+        data?: Empleado[];
+        items?: Empleado[];
+        page?: number;
+        totalPages?: number;
+        total?: number;
+        limit?: number;
+      }
+
+      interface VehiculosResponse {
+        data?: Vehiculo[];
+        items?: Vehiculo[];
+        page?: number;
+        totalPages?: number;
+        total?: number;
+        limit?: number;
+      }
+
+      // Cargar empleados disponibles con búsqueda
+      const empleadosResponse = (await getEmployees(empleadosPagination.page, empleadosPagination.limit, searchTermEmpleado.trim())) as EmpleadosResponse;
+
+      // Procesar respuesta de empleados
+      let empleadosDisp: Empleado[] = [];
+      if (empleadosResponse) {
+        if (Array.isArray(empleadosResponse)) {
+          empleadosDisp = empleadosResponse;
+        } else if (typeof empleadosResponse === "object") {
+          if (
+            "data" in empleadosResponse &&
+            Array.isArray(empleadosResponse.data)
+          ) {
+            empleadosDisp = empleadosResponse.data;
+            setEmpleadosPagination({
+              page: empleadosResponse.page || 1,
+              totalPages: empleadosResponse.totalPages || 1,
+              total: empleadosResponse.total || 0,
+              limit: empleadosResponse.limit || 15
+            });
+          } else if (
+            "items" in empleadosResponse &&
+            Array.isArray(empleadosResponse.items)
+          ) {
+            empleadosDisp = empleadosResponse.items;
+            setEmpleadosPagination({
+              page: empleadosResponse.page || 1,
+              totalPages: empleadosResponse.totalPages || 1,
+              total: empleadosResponse.total || 0,
+              limit: empleadosResponse.limit || 15
+            });
+          }
+        }
+      }
+      setEmpleadosDisponibles(empleadosDisp);
+
+      // Cargar vehículos disponibles con búsqueda
+      const vehiculosResponse = (await getVehicles(vehiculosPagination.page, vehiculosPagination.limit, searchTermVehiculo.trim())) as VehiculosResponse;
+
+      // Procesar respuesta de vehículos
+      let vehiculosDisp: Vehiculo[] = [];
+      if (vehiculosResponse) {
+        if (Array.isArray(vehiculosResponse)) {
+          vehiculosDisp = vehiculosResponse;
+        } else if (typeof vehiculosResponse === "object") {
+          if (
+            "data" in vehiculosResponse &&
+            Array.isArray(vehiculosResponse.data)
+          ) {
+            vehiculosDisp = vehiculosResponse.data;
+            setVehiculosPagination({
+              page: vehiculosResponse.page || 1,
+              totalPages: vehiculosResponse.totalPages || 1,
+              total: vehiculosResponse.total || 0,
+              limit: vehiculosResponse.limit || 15
+            });
+          } else if (
+            "items" in vehiculosResponse &&
+            Array.isArray(vehiculosResponse.items)
+          ) {
+            vehiculosDisp = vehiculosResponse.items;
+            setVehiculosPagination({
+              page: vehiculosResponse.page || 1,
+              totalPages: vehiculosResponse.totalPages || 1,
+              total: vehiculosResponse.total || 0,
+              limit: vehiculosResponse.limit || 15
+            });
+          }
+        }
+      }
+      setVehiculosDisponibles(vehiculosDisp); // Cargar baños instalados para el cliente
+      const banosClienteResponse = await getSanitariosByClient(clienteId);
+
+      // Definir la interfaz para la respuesta
+      interface SanitariosResponse {
+        data?: Sanitario[];
+        items?: Sanitario[];
+        [key: string]: unknown;
+      }
+
+      // Procesar respuesta de baños
+      let banosDisp: Sanitario[] = [];
+      if (banosClienteResponse) {
+        // Si es un array, usarlo directamente
+        if (Array.isArray(banosClienteResponse)) {
+          banosDisp = banosClienteResponse as unknown as Sanitario[];
+        }
+        // Si es un objeto, buscar la propiedad data o items
+        else if (typeof banosClienteResponse === "object") {
+          const typedResponse = banosClienteResponse as SanitariosResponse;
+          if (typedResponse.data && Array.isArray(typedResponse.data)) {
+            banosDisp = typedResponse.data;
+          } else if (
+            typedResponse.items &&
+            Array.isArray(typedResponse.items)
+          ) {
+            banosDisp = typedResponse.items;
+          }
+        }
+      }
+      setBanosInstalados(banosDisp);
+    } catch (error) {
+      console.error("Error al cargar recursos:", error);
+      toast.error("Error al cargar recursos", {
+        description:
+          error instanceof Error
+            ? error.message
+            : "No se pudieron cargar los recursos necesarios",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  }, [empleadosPagination.page, empleadosPagination.limit, vehiculosPagination.page, vehiculosPagination.limit, searchTermEmpleado, searchTermVehiculo]);
 
   // Cargar los datos del servicio
   useEffect(() => {
@@ -209,99 +372,44 @@ export function EditarServicioGenericoComponent({ id }: { id: string }) {
     if (id) {
       fetchServicio();
     }
-  }, [id, router, setValue]);
-  // Cargar recursos (empleados, vehículos, baños)
-  const loadResources = async (clienteId: number) => {
-    try {
-      setIsLoading(true);
+  }, [id, router, setValue, loadResources]);
 
-      // Cargar empleados disponibles
-      const empleadosResponse = await getEmployees();
+  // useEffect para recargar recursos cuando cambie la paginación
+  useEffect(() => {
+    if (servicio && servicio.clienteId) {
+      loadResources(servicio.clienteId);
+    }
+  }, [empleadosPagination.page, empleadosPagination.limit, vehiculosPagination.page, vehiculosPagination.limit, servicio, loadResources]);
 
-      // Procesar respuesta de empleados
-      let empleadosDisp: Empleado[] = [];
-      if (empleadosResponse) {
-        if (Array.isArray(empleadosResponse)) {
-          empleadosDisp = empleadosResponse;
-        } else if (typeof empleadosResponse === "object") {
-          if (
-            "data" in empleadosResponse &&
-            Array.isArray(empleadosResponse.data)
-          ) {
-            empleadosDisp = empleadosResponse.data;
-          } else if (
-            "items" in empleadosResponse &&
-            Array.isArray(empleadosResponse.items)
-          ) {
-            empleadosDisp = empleadosResponse.items;
-          }
-        }
+  // Funciones para manejar paginación
+  const handleEmpleadosPageChange = (newPage: number) => {
+    setEmpleadosPagination(prev => ({ ...prev, page: newPage }));
+  };
+
+  const handleVehiculosPageChange = (newPage: number) => {
+    setVehiculosPagination(prev => ({ ...prev, page: newPage }));
+  };
+
+  // Funciones para manejar búsqueda
+  const handleEmpleadoSearch = async (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") {
+      // Resetear la página a 1 al buscar
+      setEmpleadosPagination(prev => ({ ...prev, page: 1 }));
+      
+      if (servicio && servicio.clienteId) {
+        loadResources(servicio.clienteId);
       }
-      setEmpleadosDisponibles(empleadosDisp);
+    }
+  };
 
-      // Cargar vehículos disponibles
-      const vehiculosResponse = await getVehicles();
-
-      // Procesar respuesta de vehículos
-      let vehiculosDisp: Vehiculo[] = [];
-      if (vehiculosResponse) {
-        if (Array.isArray(vehiculosResponse)) {
-          vehiculosDisp = vehiculosResponse;
-        } else if (typeof vehiculosResponse === "object") {
-          if (
-            "data" in vehiculosResponse &&
-            Array.isArray(vehiculosResponse.data)
-          ) {
-            vehiculosDisp = vehiculosResponse.data;
-          } else if (
-            "items" in vehiculosResponse &&
-            Array.isArray(vehiculosResponse.items)
-          ) {
-            vehiculosDisp = vehiculosResponse.items;
-          }
-        }
+  const handleVehiculoSearch = async (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") {
+      // Resetear la página a 1 al buscar
+      setVehiculosPagination(prev => ({ ...prev, page: 1 }));
+      
+      if (servicio && servicio.clienteId) {
+        loadResources(servicio.clienteId);
       }
-      setVehiculosDisponibles(vehiculosDisp); // Cargar baños instalados para el cliente
-      const banosClienteResponse = await getSanitariosByClient(clienteId);
-
-      // Definir la interfaz para la respuesta
-      interface SanitariosResponse {
-        data?: Sanitario[];
-        items?: Sanitario[];
-        [key: string]: unknown;
-      }
-
-      // Procesar respuesta de baños
-      let banosDisp: Sanitario[] = [];
-      if (banosClienteResponse) {
-        // Si es un array, usarlo directamente
-        if (Array.isArray(banosClienteResponse)) {
-          banosDisp = banosClienteResponse as unknown as Sanitario[];
-        }
-        // Si es un objeto, buscar la propiedad data o items
-        else if (typeof banosClienteResponse === "object") {
-          const typedResponse = banosClienteResponse as SanitariosResponse;
-          if (typedResponse.data && Array.isArray(typedResponse.data)) {
-            banosDisp = typedResponse.data;
-          } else if (
-            typedResponse.items &&
-            Array.isArray(typedResponse.items)
-          ) {
-            banosDisp = typedResponse.items;
-          }
-        }
-      }
-      setBanosInstalados(banosDisp);
-    } catch (error) {
-      console.error("Error al cargar recursos:", error);
-      toast.error("Error al cargar recursos", {
-        description:
-          error instanceof Error
-            ? error.message
-            : "No se pudieron cargar los recursos necesarios",
-      });
-    } finally {
-      setIsLoading(false);
     }
   };
 
@@ -580,27 +688,24 @@ export function EditarServicioGenericoComponent({ id }: { id: string }) {
   }
 
   return (
-    <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
-      <div className="grid auto-rows-min gap-4 grid-cols-1">
+    <Card className="w-full shadow-md">
+      <CardHeader className="bg-slate-50 dark:bg-slate-900 border-b">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold">Editar Servicio de Limpieza</h1>
-            <p className="text-gray-600">
+            <CardTitle className="text-2xl font-bold flex items-center gap-2">
+              <ChevronLeft 
+                className="h-6 w-6 cursor-pointer" 
+                onClick={() => router.push("/admin/dashboard/servicios/listado")}
+              />
+              Editar Servicio de Limpieza
+            </CardTitle>
+            <CardDescription className="text-muted-foreground mt-1">
               Modifique los datos del servicio según sea necesario
-            </p>{" "}
+            </CardDescription>
           </div>
-          <Button
-            variant="outline"
-            onClick={() => router.push("/admin/dashboard/servicios/listado")}
-            className="flex items-center gap-2"
-          >
-            <ChevronLeft className="h-4 w-4" />
-            Volver al listado
-          </Button>
         </div>
-
-        <Card>
-          <CardContent className="p-6">
+      </CardHeader>
+      <CardContent>
             <form
               onSubmit={handleSubmit(
                 (data) => {
@@ -735,6 +840,22 @@ export function EditarServicioGenericoComponent({ id }: { id: string }) {
                   {/* Empleados */}
                   <div className="mb-6">
                     <h3 className="text-md font-medium mb-2">Empleados</h3>
+                    
+                    {/* Input de búsqueda de empleados */}
+                    <div className="mb-4">
+                      <div className="relative">
+                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                        <input
+                          type="text"
+                          placeholder="Buscar empleados por nombre o documento..."
+                          className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                          value={searchTermEmpleado}
+                          onChange={(e) => setSearchTermEmpleado(e.target.value)}
+                          onKeyDown={handleEmpleadoSearch}
+                        />
+                      </div>
+                    </div>
+                    
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 mt-2">
                       {empleadosDisponibles.map((empleado) => (
                         <div
@@ -796,6 +917,34 @@ export function EditarServicioGenericoComponent({ id }: { id: string }) {
                         </div>
                       ))}
                     </div>
+
+                    {/* Paginación de empleados */}
+                    {empleadosPagination.totalPages > 1 && (
+                      <div className="flex justify-center items-center gap-2 mt-4">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleEmpleadosPageChange(empleadosPagination.page - 1)}
+                          disabled={empleadosPagination.page === 1}
+                        >
+                          Anterior
+                        </Button>
+                        
+                        <span className="text-sm text-gray-600">
+                          Página {empleadosPagination.page} de {empleadosPagination.totalPages} ({empleadosPagination.total} empleados)
+                        </span>
+                        
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleEmpleadosPageChange(empleadosPagination.page + 1)}
+                          disabled={empleadosPagination.page === empleadosPagination.totalPages}
+                        >
+                          Siguiente
+                        </Button>
+                      </div>
+                    )}
+
                     {errors.empleadosIds && (
                       <p className="text-red-500 text-sm mt-2">
                         {errors.empleadosIds.message}
@@ -806,6 +955,22 @@ export function EditarServicioGenericoComponent({ id }: { id: string }) {
                   {/* Vehículos */}
                   <div className="mb-6">
                     <h3 className="text-md font-medium mb-2">Vehículos</h3>
+                    
+                    {/* Input de búsqueda de vehículos */}
+                    <div className="mb-4">
+                      <div className="relative">
+                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                        <input
+                          type="text"
+                          placeholder="Buscar vehículos por patente o modelo..."
+                          className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                          value={searchTermVehiculo}
+                          onChange={(e) => setSearchTermVehiculo(e.target.value)}
+                          onKeyDown={handleVehiculoSearch}
+                        />
+                      </div>
+                    </div>
+                    
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 mt-2">
                       {vehiculosDisponibles.map((vehiculo) => (
                         <div
@@ -833,6 +998,34 @@ export function EditarServicioGenericoComponent({ id }: { id: string }) {
                         </div>
                       ))}
                     </div>
+
+                    {/* Paginación de vehículos */}
+                    {vehiculosPagination.totalPages > 1 && (
+                      <div className="flex justify-center items-center gap-2 mt-4">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleVehiculosPageChange(vehiculosPagination.page - 1)}
+                          disabled={vehiculosPagination.page === 1}
+                        >
+                          Anterior
+                        </Button>
+                        
+                        <span className="text-sm text-gray-600">
+                          Página {vehiculosPagination.page} de {vehiculosPagination.totalPages} ({vehiculosPagination.total} vehículos)
+                        </span>
+                        
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleVehiculosPageChange(vehiculosPagination.page + 1)}
+                          disabled={vehiculosPagination.page === vehiculosPagination.totalPages}
+                        >
+                          Siguiente
+                        </Button>
+                      </div>
+                    )}
+
                     {errors.vehiculosIds && (
                       <p className="text-red-500 text-sm mt-2">
                         {errors.vehiculosIds.message}
@@ -900,9 +1093,7 @@ export function EditarServicioGenericoComponent({ id }: { id: string }) {
                 </div>
               </div>
             </form>
-          </CardContent>
-        </Card>
-      </div>
-    </div>
+      </CardContent>
+    </Card>
   );
 }

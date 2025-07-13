@@ -97,6 +97,14 @@ type CondicionContractual = {
 };
 
 export default function CrearInstalacionComponent() {
+  // Estado para búsqueda de baños
+  const [searchTermBano, setSearchTermBano] = useState<string>("");
+  const [filteredBanos, setFilteredBanos] = useState<Sanitario[]>([]);
+  // Estado para búsqueda de empleados
+  const [searchTermEmpleado, setSearchTermEmpleado] = useState<string>("");
+  const [filteredEmpleados, setFilteredEmpleados] = useState<Empleado[]>([]);
+  // Filtrar empleados según búsqueda
+
   const router = useRouter();
   const { isAdmin } = useCurrentUser();
   const [step, setStep] = useState<number>(1);
@@ -126,11 +134,173 @@ export default function CrearInstalacionComponent() {
   const [banosTotal, setBanosTotal] = useState<number>(0);
   const [isLoadingBanos, setIsLoadingBanos] = useState<boolean>(false);
 
+  // Estados para paginación de empleados
+  const [empleadosPagination, setEmpleadosPagination] = useState({
+    page: 1,
+    totalPages: 1,
+    total: 0,
+    limit: 15
+  });
+
+  // Estados para paginación de vehículos
+  const [vehiculosPagination, setVehiculosPagination] = useState({
+    page: 1,
+    totalPages: 1,
+    total: 0,
+    limit: 15
+  });
+
+  // Estados para paginación de clientes
+  const [clientesPagination, setClientesPagination] = useState({
+    page: 1,
+    totalPages: 1,
+    total: 0,
+    limit: 15
+  });
+
   // Estado para asignación de roles A y B
   const [empleadoRolA, setEmpleadoRolA] = useState<number | null>(null);
   const [empleadoRolB, setEmpleadoRolB] = useState<number | null>(null);
 
   const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [searchTermCondicion, setSearchTermCondicion] = useState<string>("");
+  const [filteredCondiciones, setFilteredCondiciones] = useState<
+    CondicionContractual[]
+  >([]);
+
+  // Estado para búsqueda de vehículos
+  const [searchTermVehiculo, setSearchTermVehiculo] = useState<string>("");
+  const [filteredVehiculos, setFilteredVehiculos] = useState<Vehiculo[]>([]);
+  // Actualizar filteredVehiculos cuando cambia vehiculosDisponibles o searchTermVehiculo
+  useEffect(() => {
+    if (!searchTermVehiculo.trim()) {
+      setFilteredVehiculos(vehiculosDisponibles);
+    } else {
+      const term = searchTermVehiculo.toLowerCase();
+      setFilteredVehiculos(
+        vehiculosDisponibles.filter(
+          (vehiculo: Vehiculo) =>
+            (vehiculo.marca && vehiculo.marca.toLowerCase().includes(term)) ||
+            (vehiculo.modelo && vehiculo.modelo.toLowerCase().includes(term)) ||
+            (vehiculo.placa && vehiculo.placa.toLowerCase().includes(term))
+        )
+      );
+    }
+  }, [vehiculosDisponibles, searchTermVehiculo]);
+  // Estado para búsqueda de condiciones contractuales
+  // Actualizar filteredCondiciones cuando cambia condicionesContractuales
+  useEffect(() => {
+    setFilteredCondiciones(condicionesContractuales);
+  }, [condicionesContractuales]);
+
+  // Handler para el search de condiciones contractuales
+  const handleCondicionSearch = async (
+    e: React.KeyboardEvent<HTMLInputElement>
+  ) => {
+    if (e.key === "Enter") {
+      const term = searchTermCondicion.trim();
+      // Agregar logs para depuración
+      console.log("[CondicionSearch] selectedClientId:", selectedClientId);
+      console.log("[CondicionSearch] term:", term);
+      setIsLoading(true);
+      try {
+        const condicionesData = await getContractualConditionsByClient(
+          selectedClientId,
+          1,
+          15,
+          term
+        );
+        let condicionesList: CondicionContractual[] = [];
+        if (condicionesData && typeof condicionesData === "object") {
+          if (Array.isArray(condicionesData)) {
+            condicionesList = condicionesData;
+          } else if (
+            "items" in condicionesData &&
+            Array.isArray(condicionesData.items)
+          ) {
+            condicionesList = condicionesData.items;
+          } else if (
+            "data" in condicionesData &&
+            Array.isArray(condicionesData.data)
+          ) {
+            condicionesList = condicionesData.data;
+          }
+        }
+        setFilteredCondiciones(condicionesList);
+      } catch (error) {
+        toast.error("Error al buscar condiciones contractuales", {
+          description:
+            error instanceof Error
+              ? error.message
+              : "No se pudieron buscar condiciones contractuales.",
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    }
+  };
+
+  // Buscar empleados en la API al presionar Enter
+  useEffect(() => {
+    setFilteredEmpleados(empleadosDisponibles);
+  }, [empleadosDisponibles]);
+
+  const handleEmpleadoSearch = async (
+    e: React.KeyboardEvent<HTMLInputElement>
+  ) => {
+    if (e.key === "Enter") {
+      const term = searchTermEmpleado.trim();
+      setIsLoading(true);
+      try {
+        // getEmployees puede aceptar un parámetro de búsqueda
+        const empleadosResponseRaw = await getEmployees(1, 15, term);
+        let empleados: Empleado[] = [];
+        if (empleadosResponseRaw && typeof empleadosResponseRaw === "object") {
+          if (Array.isArray(empleadosResponseRaw)) {
+            empleados = empleadosResponseRaw;
+          } else if (
+            "items" in empleadosResponseRaw &&
+            Array.isArray(empleadosResponseRaw.items)
+          ) {
+            empleados = empleadosResponseRaw.items;
+          } else if (
+            "data" in empleadosResponseRaw &&
+            Array.isArray(empleadosResponseRaw.data)
+          ) {
+            empleados = empleadosResponseRaw.data;
+          }
+        }
+        // Filtrar por estado DISPONIBLE o ASIGNADO
+        empleados = empleados.filter(
+          (empleado) =>
+            empleado.estado === "DISPONIBLE" || empleado.estado === "ASIGNADO"
+        );
+
+        // Mezclar empleados seleccionados que no estén en el resultado actual
+        const empleadosSeleccionadosIds = getValues("empleadosIds") || [];
+        const empleadosSeleccionados = empleadosDisponibles.filter((emp) =>
+          empleadosSeleccionadosIds.includes(emp.id)
+        );
+        // Agregar empleados seleccionados que no estén en la búsqueda actual
+        const empleadosNoIncluidos = empleadosSeleccionados.filter(
+          (empSel) => !empleados.some((emp) => emp.id === empSel.id)
+        );
+        const empleadosFinal = [...empleadosNoIncluidos, ...empleados];
+
+        setEmpleadosDisponibles(empleadosFinal);
+        setFilteredEmpleados(empleadosFinal);
+      } catch (error) {
+        toast.error("Error al buscar empleados", {
+          description:
+            error instanceof Error
+              ? error.message
+              : "No se pudieron buscar empleados.",
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    }
+  };
 
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
@@ -176,21 +346,36 @@ export default function CrearInstalacionComponent() {
           data?: Cliente[];
           total?: number;
           totalItems?: number;
+          page?: number;
+          totalPages?: number;
+          limit?: number;
         }
 
-        const clientesData = (await getClients()) as ClienteResponse;
+        const clientesData = (await getClients(clientesPagination.page, clientesPagination.limit)) as ClienteResponse;
 
         if (clientesData && typeof clientesData === "object") {
           // Determinar qué propiedad contiene los datos (items o data)
           if ("items" in clientesData && Array.isArray(clientesData.items)) {
             setClientes(clientesData.items);
             setFilteredClientes(clientesData.items);
+            setClientesPagination({
+              page: clientesData.page || 1,
+              totalPages: clientesData.totalPages || 1,
+              total: clientesData.total || 0,
+              limit: clientesData.limit || 15
+            });
           } else if (
             "data" in clientesData &&
             Array.isArray(clientesData.data)
           ) {
             setClientes(clientesData.data);
             setFilteredClientes(clientesData.data);
+            setClientesPagination({
+              page: clientesData.page || 1,
+              totalPages: clientesData.totalPages || 1,
+              total: clientesData.total || 0,
+              limit: clientesData.limit || 15
+            });
           } else {
             console.error("Formato de respuesta no reconocido:", clientesData);
             toast.error("Error de formato", {
@@ -221,22 +406,53 @@ export default function CrearInstalacionComponent() {
     };
 
     fetchClientes();
-  }, []);
+  }, [clientesPagination.page, clientesPagination.limit]);
 
+  // Buscar clientes en la API al presionar Enter
   useEffect(() => {
-    if (searchTermCliente.trim() === "") {
-      setFilteredClientes(clientes);
-    } else {
-      const searchTermLower = searchTermCliente.toLowerCase();
-      const filtered = clientes.filter(
-        (cliente) =>
-          cliente.nombre.toLowerCase().includes(searchTermLower) ||
-          cliente.cuit.toLowerCase().includes(searchTermLower) ||
-          cliente.email.toLowerCase().includes(searchTermLower)
-      );
-      setFilteredClientes(filtered);
+    setFilteredClientes(clientes);
+  }, [clientes]);
+
+  const handleClienteSearch = async (
+    e: React.KeyboardEvent<HTMLInputElement>
+  ) => {
+    if (e.key === "Enter") {
+      const term = searchTermCliente.trim();
+      setIsLoading(true);
+      try {
+        // getClients puede aceptar un parámetro de búsqueda
+        const clientesData = await getClients(1, 15, term);
+        let clientesList: Cliente[] = [];
+        if (clientesData && typeof clientesData === "object") {
+          if (Array.isArray(clientesData)) {
+            clientesList = clientesData;
+          } else if (
+            "items" in clientesData &&
+            Array.isArray(clientesData.items)
+          ) {
+            clientesList = clientesData.items;
+          } else if (
+            "data" in clientesData &&
+            Array.isArray(clientesData.data)
+          ) {
+            clientesList = clientesData.data;
+          }
+        }
+        setClientes(clientesList);
+        setFilteredClientes(clientesList);
+      } catch (error) {
+        toast.error("Error al buscar clientes", {
+          description:
+            error instanceof Error
+              ? error.message
+              : "No se pudieron buscar clientes.",
+        });
+      } finally {
+        setIsLoading(false);
+      }
     }
-  }, [searchTermCliente, clientes]);
+  };
+
   useEffect(() => {
     const fetchCondicionesContractuales = async () => {
       if (selectedClientId && selectedClientId > 0) {
@@ -315,11 +531,19 @@ export default function CrearInstalacionComponent() {
           interface EmpleadosResponse {
             data?: Empleado[];
             items?: Empleado[];
+            page?: number;
+            totalPages?: number;
+            total?: number;
+            limit?: number;
           }
 
           interface VehiculosResponse {
             data?: Vehiculo[];
             items?: Vehiculo[];
+            page?: number;
+            totalPages?: number;
+            total?: number;
+            limit?: number;
           }
 
           interface SanitariosResponse {
@@ -328,16 +552,14 @@ export default function CrearInstalacionComponent() {
           }
 
           // Obtener datos con Promise.all para optimizar las peticiones
-          const [
-            empleadosResponseRaw,
-            vehiculosResponseRaw,
-          ] = await Promise.all([
-            getEmployees(),
-            getVehicles(),
-          ]);
+          const [empleadosResponseRaw, vehiculosResponseRaw] =
+            await Promise.all([
+              getEmployees(empleadosPagination.page, empleadosPagination.limit),
+              getVehicles(vehiculosPagination.page, vehiculosPagination.limit)
+            ]);
 
           // Procesar respuesta de empleados con verificación de tipo
-          // Permitir empleados tanto en estado DISPONIBLE como ASIGNADO 
+          // Permitir empleados tanto en estado DISPONIBLE como ASIGNADO
           // según la lógica del negocio que permite asignar recursos a múltiples servicios
           const empleadosResponse = empleadosResponseRaw as EmpleadosResponse;
           let empleadosDisp: Empleado[] = [];
@@ -348,20 +570,36 @@ export default function CrearInstalacionComponent() {
               Array.isArray(empleadosResponse.data)
             ) {
               empleadosDisp = empleadosResponse.data.filter(
-                (empleado) => empleado.estado === "DISPONIBLE" || empleado.estado === "ASIGNADO"
+                (empleado) =>
+                  empleado.estado === "DISPONIBLE" ||
+                  empleado.estado === "ASIGNADO"
               );
+              setEmpleadosPagination({
+                page: empleadosResponse.page || 1,
+                totalPages: empleadosResponse.totalPages || 1,
+                total: empleadosResponse.total || 0,
+                limit: empleadosResponse.limit || 15
+              });
             } else if (
               "items" in empleadosResponse &&
               Array.isArray(empleadosResponse.items)
             ) {
               empleadosDisp = empleadosResponse.items.filter(
-                (empleado) => empleado.estado === "DISPONIBLE" || empleado.estado === "ASIGNADO"
+                (empleado) =>
+                  empleado.estado === "DISPONIBLE" ||
+                  empleado.estado === "ASIGNADO"
               );
+              setEmpleadosPagination({
+                page: empleadosResponse.page || 1,
+                totalPages: empleadosResponse.totalPages || 1,
+                total: empleadosResponse.total || 0,
+                limit: empleadosResponse.limit || 15
+              });
             }
           }
 
-          // Procesar respuesta de vehículos con verificación de tipo  
-          // Permitir vehículos tanto en estado DISPONIBLE como ASIGNADO 
+          // Procesar respuesta de vehículos con verificación de tipo
+          // Permitir vehículos tanto en estado DISPONIBLE como ASIGNADO
           // según la lógica del negocio que permite asignar recursos a múltiples servicios
           const vehiculosResponse = vehiculosResponseRaw as VehiculosResponse;
           let vehiculosDisp: Vehiculo[] = [];
@@ -372,15 +610,31 @@ export default function CrearInstalacionComponent() {
               Array.isArray(vehiculosResponse.data)
             ) {
               vehiculosDisp = vehiculosResponse.data.filter(
-                (vehiculo) => vehiculo.estado === "DISPONIBLE" || vehiculo.estado === "ASIGNADO"
+                (vehiculo) =>
+                  vehiculo.estado === "DISPONIBLE" ||
+                  vehiculo.estado === "ASIGNADO"
               );
+              setVehiculosPagination({
+                page: vehiculosResponse.page || 1,
+                totalPages: vehiculosResponse.totalPages || 1,
+                total: vehiculosResponse.total || 0,
+                limit: vehiculosResponse.limit || 15
+              });
             } else if (
               "items" in vehiculosResponse &&
               Array.isArray(vehiculosResponse.items)
             ) {
               vehiculosDisp = vehiculosResponse.items.filter(
-                (vehiculo) => vehiculo.estado === "DISPONIBLE" || vehiculo.estado === "ASIGNADO"
+                (vehiculo) =>
+                  vehiculo.estado === "DISPONIBLE" ||
+                  vehiculo.estado === "ASIGNADO"
               );
+              setVehiculosPagination({
+                page: vehiculosResponse.page || 1,
+                totalPages: vehiculosResponse.totalPages || 1,
+                total: vehiculosResponse.total || 0,
+                limit: vehiculosResponse.limit || 15
+              });
             }
           }
 
@@ -409,7 +663,7 @@ export default function CrearInstalacionComponent() {
       setBanosPage(1); // Resetear página de baños
       fetchResources();
     }
-  }, [selectedFechaProgramada, step, setValue]);
+  }, [selectedFechaProgramada, step, setValue, empleadosPagination.page, empleadosPagination.limit, vehiculosPagination.page, vehiculosPagination.limit]);
 
   useEffect(() => {
     if (selectedCondicionId && selectedCondicionId > 0) {
@@ -542,18 +796,23 @@ export default function CrearInstalacionComponent() {
 
       // Crear las asignaciones manuales según el formato requerido para CreateInstalacionDto
       const asignacionesManual: [
-        { empleadoId?: number; vehiculoId: number; banosIds: number[]; rol: string },
+        {
+          empleadoId?: number;
+          vehiculoId: number;
+          banosIds: number[];
+          rol: string;
+        },
         { empleadoId?: number; rol: string }
       ] = [
         {
           empleadoId: empleadoA || undefined,
           vehiculoId: data.vehiculosIds.length > 0 ? data.vehiculosIds[0] : 0,
           banosIds: data.banosIds || [],
-          rol: 'A',
+          rol: "A",
         },
         {
           empleadoId: empleadoB || undefined,
-          rol: 'B',
+          rol: "B",
         },
       ]; // Construir objeto con datos del servicio
       const serviceData = {
@@ -678,11 +937,14 @@ export default function CrearInstalacionComponent() {
     try {
       setIsLoadingBanos(true);
       const sanitariosResponse = await getSanitarios(page, 15, "");
-      
+
       if (sanitariosResponse && typeof sanitariosResponse === "object") {
         let sanitariosDisp: Sanitario[] = [];
-        
-        if ("items" in sanitariosResponse && Array.isArray(sanitariosResponse.items)) {
+
+        if (
+          "items" in sanitariosResponse &&
+          Array.isArray(sanitariosResponse.items)
+        ) {
           sanitariosDisp = sanitariosResponse.items.filter(
             (sanitario) => sanitario.estado === "DISPONIBLE"
           );
@@ -696,13 +958,14 @@ export default function CrearInstalacionComponent() {
           setBanosTotalPages(1);
           setBanosTotal(sanitariosDisp.length);
         }
-        
+
         setBanosDisponibles(sanitariosDisp);
       }
     } catch (error) {
       console.error("Error al cargar baños:", error);
       toast.error("Error al cargar baños", {
-        description: error instanceof Error ? error.message : "Error desconocido",
+        description:
+          error instanceof Error ? error.message : "Error desconocido",
       });
     } finally {
       setIsLoadingBanos(false);
@@ -713,12 +976,42 @@ export default function CrearInstalacionComponent() {
   useEffect(() => {
     if (step >= 4) {
       fetchBanos(banosPage);
+      setSearchTermBano("");
     }
   }, [banosPage, step]);
 
+  // Actualizar filteredBanos cuando cambia banosDisponibles o searchTermBano
+  useEffect(() => {
+    if (!searchTermBano.trim()) {
+      setFilteredBanos(banosDisponibles);
+    } else {
+      const term = searchTermBano.toLowerCase();
+      setFilteredBanos(
+        banosDisponibles.filter(
+          (bano) =>
+            (bano.codigo_interno &&
+              bano.codigo_interno.toLowerCase().includes(term)) ||
+            (bano.modelo && bano.modelo.toLowerCase().includes(term))
+        )
+      );
+    }
+  }, [banosDisponibles, searchTermBano]);
   // Función para cambiar página de baños
   const handleBanosPageChange = (page: number) => {
     setBanosPage(page);
+  };
+
+  // Funciones para manejar paginación
+  const handleClientesPageChange = (newPage: number) => {
+    setClientesPagination(prev => ({ ...prev, page: newPage }));
+  };
+
+  const handleEmpleadosPageChange = (newPage: number) => {
+    setEmpleadosPagination(prev => ({ ...prev, page: newPage }));
+  };
+
+  const handleVehiculosPageChange = (newPage: number) => {
+    setVehiculosPagination(prev => ({ ...prev, page: newPage }));
   };
 
   return (
@@ -804,7 +1097,49 @@ export default function CrearInstalacionComponent() {
                       className="pl-10"
                       placeholder="Buscar por nombre, CUIT o email..."
                       value={searchTermCliente}
-                      onChange={(e) => setSearchTermCliente(e.target.value)}
+                      onChange={(e) => {
+                        setSearchTermCliente(e.target.value);
+                        if (e.target.value.trim() === "") {
+                          // Si se borra el input, recargar todos los clientes
+                          (async () => {
+                            setIsLoading(true);
+                            try {
+                              const clientesData = await getClients(1, 15, "");
+                              let clientesList: Cliente[] = [];
+                              if (
+                                clientesData &&
+                                typeof clientesData === "object"
+                              ) {
+                                if (Array.isArray(clientesData)) {
+                                  clientesList = clientesData;
+                                } else if (
+                                  "items" in clientesData &&
+                                  Array.isArray(clientesData.items)
+                                ) {
+                                  clientesList = clientesData.items;
+                                } else if (
+                                  "data" in clientesData &&
+                                  Array.isArray(clientesData.data)
+                                ) {
+                                  clientesList = clientesData.data;
+                                }
+                              }
+                              setClientes(clientesList);
+                              setFilteredClientes(clientesList);
+                            } catch (error) {
+                              toast.error("Error al cargar clientes", {
+                                description:
+                                  error instanceof Error
+                                    ? error.message
+                                    : "No se pudieron cargar clientes.",
+                              });
+                            } finally {
+                              setIsLoading(false);
+                            }
+                          })();
+                        }
+                      }}
+                      onKeyDown={handleClienteSearch}
                     />
                   </div>
 
@@ -852,6 +1187,33 @@ export default function CrearInstalacionComponent() {
                     </div>
                   )}
 
+                  {/* Paginación de clientes */}
+                  {clientesPagination.totalPages > 1 && (
+                    <div className="flex justify-center items-center gap-2 mt-4">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleClientesPageChange(clientesPagination.page - 1)}
+                        disabled={clientesPagination.page === 1}
+                      >
+                        Anterior
+                      </Button>
+                      
+                      <span className="text-sm text-gray-600">
+                        Página {clientesPagination.page} de {clientesPagination.totalPages} ({clientesPagination.total} clientes)
+                      </span>
+                      
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleClientesPageChange(clientesPagination.page + 1)}
+                        disabled={clientesPagination.page === clientesPagination.totalPages}
+                      >
+                        Siguiente
+                      </Button>
+                    </div>
+                  )}
+
                   {fieldState.error?.message && (
                     <p className="text-sm text-red-500 mt-1">
                       {fieldState.error.message}
@@ -865,18 +1227,36 @@ export default function CrearInstalacionComponent() {
         {/* Step 2: Contractual condition selection */}
         {step === 2 && (
           <div className="space-y-6">
+            {/* Buscador de condiciones contractuales */}
+            <div className="relative mb-3">
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <Search className="h-4 w-4 text-gray-400" />
+              </div>
+              <Input
+                className="pl-10"
+                placeholder="Buscar por tipo de servicio, periodicidad, etc..."
+                value={searchTermCondicion}
+                onChange={(e) => {
+                  setSearchTermCondicion(e.target.value);
+                  if (e.target.value.trim() === "") {
+                    setFilteredCondiciones(condicionesContractuales);
+                  }
+                }}
+                onKeyDown={handleCondicionSearch}
+                disabled={isLoading}
+              />
+            </div>
             <Controller
               name="condicionContractualId"
               control={control}
               render={({ field, fieldState }) => (
                 <div>
-                  {" "}
                   <div className="flex justify-between items-center mb-2">
                     <label className="text-sm font-medium">
                       Condición Contractual
                     </label>
                     <Badge variant="outline" className="text-xs bg-slate-100">
-                      {condicionesContractuales.length} condiciones disponibles
+                      {filteredCondiciones.length} condiciones disponibles
                     </Badge>
                   </div>
                   {isLoading ? (
@@ -885,8 +1265,8 @@ export default function CrearInstalacionComponent() {
                     </div>
                   ) : (
                     <div className="max-h-[450px] overflow-y-auto px-1 py-2">
-                      {condicionesContractuales.length > 0 ? (
-                        condicionesContractuales.map((condicion) => (
+                      {filteredCondiciones.length > 0 ? (
+                        filteredCondiciones.map((condicion) => (
                           <div
                             key={condicion.condicionContractualId}
                             className={`px-4 py-4 cursor-pointer hover:bg-slate-50 mb-2 border rounded-md shadow-sm ${
@@ -898,7 +1278,6 @@ export default function CrearInstalacionComponent() {
                               setSelectedCondicionContractualId(
                                 condicion.condicionContractualId
                               );
-
                               setValue(
                                 "condicionContractualId",
                                 condicion.condicionContractualId,
@@ -910,8 +1289,8 @@ export default function CrearInstalacionComponent() {
                               );
                             }}
                           >
-                            {" "}
-                            <div className="flex justify-between">                              <Badge
+                            <div className="flex justify-between">
+                              <Badge
                                 variant="outline"
                                 className="bg-indigo-50 text-indigo-700 mb-1"
                               >
@@ -931,7 +1310,7 @@ export default function CrearInstalacionComponent() {
                               >
                                 {condicion.estado}
                               </Badge>
-                            </div>{" "}
+                            </div>
                             <div className="text-sm text-slate-600 mt-2">
                               <div className="mb-1">
                                 <span className="font-medium">
@@ -939,7 +1318,8 @@ export default function CrearInstalacionComponent() {
                                 </span>{" "}
                                 <span className="text-slate-800">
                                   {condicion.tipo_servicio}
-                                </span>                              </div>
+                                </span>{" "}
+                              </div>
                               <div className="flex justify-between mb-1">
                                 {isAdmin && (
                                   <span>Tarifa: ${condicion.tarifa}</span>
@@ -1088,6 +1468,70 @@ export default function CrearInstalacionComponent() {
                 </Badge>
               </h3>
 
+              {/* Buscador de empleados */}
+              <div className="relative mb-3">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <Search className="h-4 w-4 text-gray-400" />
+                </div>
+                <Input
+                  className="pl-10"
+                  placeholder="Buscar por nombre, apellido o cargo..."
+                  value={searchTermEmpleado}
+                  onChange={(e) => {
+                    setSearchTermEmpleado(e.target.value);
+                    if (e.target.value.trim() === "") {
+                      // Si se borra el input, recargar empleados sin filtro
+                      (async () => {
+                        setIsLoading(true);
+                        try {
+                          const empleadosResponseRaw = await getEmployees(
+                            1,
+                            15,
+                            ""
+                          );
+                          let empleados: Empleado[] = [];
+                          if (
+                            empleadosResponseRaw &&
+                            typeof empleadosResponseRaw === "object"
+                          ) {
+                            if (Array.isArray(empleadosResponseRaw)) {
+                              empleados = empleadosResponseRaw;
+                            } else if (
+                              "items" in empleadosResponseRaw &&
+                              Array.isArray(empleadosResponseRaw.items)
+                            ) {
+                              empleados = empleadosResponseRaw.items;
+                            } else if (
+                              "data" in empleadosResponseRaw &&
+                              Array.isArray(empleadosResponseRaw.data)
+                            ) {
+                              empleados = empleadosResponseRaw.data;
+                            }
+                          }
+                          empleados = empleados.filter(
+                            (empleado) =>
+                              empleado.estado === "DISPONIBLE" ||
+                              empleado.estado === "ASIGNADO"
+                          );
+                          setEmpleadosDisponibles(empleados);
+                          setFilteredEmpleados(empleados);
+                        } catch (error) {
+                          toast.error("Error al cargar empleados", {
+                            description:
+                              error instanceof Error
+                                ? error.message
+                                : "No se pudieron cargar empleados.",
+                          });
+                        } finally {
+                          setIsLoading(false);
+                        }
+                      })();
+                    }
+                  }}
+                  onKeyDown={handleEmpleadoSearch}
+                />
+              </div>
+
               {/* Información de roles */}
               <div className="bg-blue-50 p-3 rounded-md mb-3 text-sm">
                 <p className="font-medium mb-1">Asignación de roles:</p>
@@ -1147,15 +1591,16 @@ export default function CrearInstalacionComponent() {
               </div>
 
               <p className="text-xs text-slate-500 mb-3">
-                Se muestran empleados con estado &quot;DISPONIBLE&quot; y &quot;ASIGNADO&quot;
+                Se muestran empleados con estado &quot;DISPONIBLE&quot; y
+                &quot;ASIGNADO&quot;
               </p>
               {isLoading ? (
                 <div className="flex justify-center py-4">
                   <Loader className="h-6 w-6 text-indigo-500" />
                 </div>
-              ) : empleadosDisponibles.length > 0 ? (
+              ) : filteredEmpleados.length > 0 ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
-                  {empleadosDisponibles.map((empleado) => {
+                  {filteredEmpleados.map((empleado) => {
                     const isSelected = watch("empleadosIds").includes(
                       empleado.id
                     );
@@ -1241,6 +1686,34 @@ export default function CrearInstalacionComponent() {
                   No hay empleados disponibles para la fecha seleccionada.
                 </div>
               )}
+
+              {/* Paginación de empleados */}
+              {empleadosPagination.totalPages > 1 && (
+                <div className="flex justify-center items-center gap-2 mt-4">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleEmpleadosPageChange(empleadosPagination.page - 1)}
+                    disabled={empleadosPagination.page === 1}
+                  >
+                    Anterior
+                  </Button>
+                  
+                  <span className="text-sm text-gray-600">
+                    Página {empleadosPagination.page} de {empleadosPagination.totalPages} ({empleadosPagination.total} empleados)
+                  </span>
+                  
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleEmpleadosPageChange(empleadosPagination.page + 1)}
+                    disabled={empleadosPagination.page === empleadosPagination.totalPages}
+                  >
+                    Siguiente
+                  </Button>
+                </div>
+              )}
+
               {errors.empleadosIds && (
                 <p className="text-sm text-red-500 mt-1">
                   {errors.empleadosIds.message}
@@ -1251,66 +1724,179 @@ export default function CrearInstalacionComponent() {
             <div>
               <h3 className="font-medium mb-1">Vehículos Disponibles</h3>
               <p className="text-xs text-slate-500 mb-3">
-                Se muestran vehículos con estado &quot;DISPONIBLE&quot; y &quot;ASIGNADO&quot;
+                Se muestran vehículos con estado &quot;DISPONIBLE&quot; y
+                &quot;ASIGNADO&quot;
               </p>
+              {/* Buscador de vehículos */}
+              <div className="relative mb-3">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <Search className="h-4 w-4 text-gray-400" />
+                </div>
+                <Input
+                  className="pl-10"
+                  placeholder="Buscar por marca, modelo o placa..."
+                  value={searchTermVehiculo}
+                  onChange={(e) => {
+                    setSearchTermVehiculo(e.target.value);
+                  }}
+                  onKeyDown={async (e) => {
+                    if (e.key === "Enter") {
+                      setIsLoading(true);
+                      try {
+                        const vehiculosResponse = await getVehicles(
+                          1,
+                          15,
+                          searchTermVehiculo
+                        );
+                        let vehiculos: Vehiculo[] = [];
+                        if (
+                          vehiculosResponse &&
+                          typeof vehiculosResponse === "object"
+                        ) {
+                          if (Array.isArray(vehiculosResponse)) {
+                            vehiculos = vehiculosResponse;
+                          } else if (
+                            "items" in vehiculosResponse &&
+                            Array.isArray(vehiculosResponse.items)
+                          ) {
+                            vehiculos = vehiculosResponse.items;
+                          } else if (
+                            "data" in vehiculosResponse &&
+                            Array.isArray(vehiculosResponse.data)
+                          ) {
+                            vehiculos = vehiculosResponse.data;
+                          }
+                        }
+                        vehiculos = vehiculos.filter(
+                          (vehiculo) =>
+                            vehiculo.estado === "DISPONIBLE" ||
+                            vehiculo.estado === "ASIGNADO"
+                        );
+                        setVehiculosDisponibles(vehiculos);
+                        setFilteredVehiculos(vehiculos);
+                      } catch (error) {
+                        toast.error("Error al buscar vehículos", {
+                          description:
+                            error instanceof Error
+                              ? error.message
+                              : "No se pudieron buscar vehículos.",
+                        });
+                      } finally {
+                        setIsLoading(false);
+                      }
+                    }
+                  }}
+                />
+              </div>
               {isLoading ? (
                 <div className="flex justify-center py-4">
                   <Loader className="h-6 w-6 text-indigo-500" />
                 </div>
-              ) : vehiculosDisponibles.length > 0 ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
-                  {vehiculosDisponibles.map((vehiculo) => {
-                    const isSelected = watch("vehiculosIds").includes(
-                      vehiculo.id
-                    );
+              ) : (
+                (() => {
+                  // Unir vehículos seleccionados y filtrados, sin duplicados
+                  const vehiculosIdsSeleccionados = watch("vehiculosIds") || [];
+                  const vehiculosSeleccionados = vehiculosDisponibles.filter(
+                    (v) => vehiculosIdsSeleccionados.includes(v.id)
+                  );
+                  const vehiculosNoSeleccionados = filteredVehiculos.filter(
+                    (v) => !vehiculosIdsSeleccionados.includes(v.id)
+                  );
+                  const vehiculosParaMostrar = [
+                    ...vehiculosSeleccionados,
+                    ...vehiculosNoSeleccionados,
+                  ];
+                  if (vehiculosParaMostrar.length > 0) {
                     return (
-                      <div
-                        key={vehiculo.id}
-                        className={`border rounded-md p-2 cursor-pointer ${
-                          isSelected
-                            ? "bg-indigo-50 border-indigo-300"
-                            : "hover:bg-slate-50"
-                        }`}
-                        onClick={() =>
-                          toggleResourceSelection("vehiculosIds", vehiculo.id)
-                        }
-                      >
-                        <div className="flex items-center">
-                          <div
-                            className={`w-4 h-4 mr-2 rounded-full border flex items-center justify-center ${
-                              isSelected
-                                ? "border-indigo-500 bg-indigo-500"
-                                : "border-gray-300"
-                            }`}
-                          >
-                            {isSelected && (
-                              <Check className="h-3 w-3 text-white" />
-                            )}
-                          </div>
-                          <div>
-                            <div className="font-medium">{`${vehiculo.marca} ${vehiculo.modelo}`}</div>
-                            <div className="text-xs flex items-center gap-2">
-                              <span className="text-slate-500">
-                                Placa: {vehiculo.placa}
-                              </span>
-                              <Badge
-                                variant="outline"
-                                className="bg-green-50 text-green-700 text-xs"
-                              >
-                                {vehiculo.estado}
-                              </Badge>
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
+                        {vehiculosParaMostrar.map((vehiculo) => {
+                          const isSelected = vehiculosIdsSeleccionados.includes(
+                            vehiculo.id
+                          );
+                          return (
+                            <div
+                              key={vehiculo.id}
+                              className={`border rounded-md p-2 cursor-pointer ${
+                                isSelected
+                                  ? "bg-indigo-50 border-indigo-300"
+                                  : "hover:bg-slate-50"
+                              }`}
+                              onClick={() =>
+                                toggleResourceSelection(
+                                  "vehiculosIds",
+                                  vehiculo.id
+                                )
+                              }
+                            >
+                              <div className="flex items-center">
+                                <div
+                                  className={`w-4 h-4 mr-2 rounded-full border flex items-center justify-center ${
+                                    isSelected
+                                      ? "border-indigo-500 bg-indigo-500"
+                                      : "border-gray-300"
+                                  }`}
+                                >
+                                  {isSelected && (
+                                    <Check className="h-3 w-3 text-white" />
+                                  )}
+                                </div>
+                                <div>
+                                  <div className="font-medium">{`${vehiculo.marca} ${vehiculo.modelo}`}</div>
+                                  <div className="text-xs flex items-center gap-2">
+                                    <span className="text-slate-500">
+                                      Placa: {vehiculo.placa}
+                                    </span>
+                                    <Badge
+                                      variant="outline"
+                                      className="bg-green-50 text-green-700 text-xs"
+                                    >
+                                      {vehiculo.estado}
+                                    </Badge>
+                                  </div>
+                                </div>
+                              </div>
                             </div>
-                          </div>
-                        </div>
+                          );
+                        })}
                       </div>
                     );
-                  })}
-                </div>
-              ) : (
-                <div className="p-4 text-center text-slate-500 border rounded-md">
-                  No hay vehículos disponibles para la fecha seleccionada.
+                  } else {
+                    return (
+                      <div className="p-4 text-center text-slate-500 border rounded-md">
+                        No hay vehículos disponibles para la fecha seleccionada.
+                      </div>
+                    );
+                  }
+                })()
+              )}
+
+              {/* Paginación de vehículos */}
+              {vehiculosPagination.totalPages > 1 && (
+                <div className="flex justify-center items-center gap-2 mt-4">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleVehiculosPageChange(vehiculosPagination.page - 1)}
+                    disabled={vehiculosPagination.page === 1}
+                  >
+                    Anterior
+                  </Button>
+                  
+                  <span className="text-sm text-gray-600">
+                    Página {vehiculosPagination.page} de {vehiculosPagination.totalPages} ({vehiculosPagination.total} vehículos)
+                  </span>
+                  
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleVehiculosPageChange(vehiculosPagination.page + 1)}
+                    disabled={vehiculosPagination.page === vehiculosPagination.totalPages}
+                  >
+                    Siguiente
+                  </Button>
                 </div>
               )}
+
               {errors.vehiculosIds && (
                 <p className="text-sm text-red-500 mt-1">
                   {errors.vehiculosIds.message}
@@ -1327,86 +1913,222 @@ export default function CrearInstalacionComponent() {
               <p className="text-xs text-slate-500 mb-3">
                 Solo se muestran baños con estado &quot;DISPONIBLE&quot;
               </p>
+              {/* Buscador de baños */}
+              <div className="relative mb-3">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <Search className="h-4 w-4 text-gray-400" />
+                </div>
+                <Input
+                  className="pl-10"
+                  placeholder="Buscar por código interno o modelo..."
+                  value={searchTermBano}
+                  onChange={async (e) => {
+                    const value = e.target.value;
+                    setSearchTermBano(value);
+                    if (value.trim() === "") {
+                      setFilteredBanos(banosDisponibles);
+                      // Si se borra el input, recargar baños de la página actual sin filtro
+                      setIsLoadingBanos(true);
+                      try {
+                        const sanitariosResponse = await getSanitarios(
+                          banosPage,
+                          15,
+                          ""
+                        );
+                        let sanitariosDisp: Sanitario[] = [];
+                        if (
+                          sanitariosResponse &&
+                          typeof sanitariosResponse === "object"
+                        ) {
+                          if (
+                            "items" in sanitariosResponse &&
+                            Array.isArray(sanitariosResponse.items)
+                          ) {
+                            sanitariosDisp = sanitariosResponse.items.filter(
+                              (sanitario) => sanitario.estado === "DISPONIBLE"
+                            );
+                          } else if (Array.isArray(sanitariosResponse)) {
+                            sanitariosDisp = sanitariosResponse.filter(
+                              (sanitario) => sanitario.estado === "DISPONIBLE"
+                            );
+                          }
+                        }
+                        setBanosDisponibles(sanitariosDisp);
+                        setFilteredBanos(sanitariosDisp);
+                      } catch (error) {
+                        toast.error("Error al buscar baños", {
+                          description:
+                            error instanceof Error
+                              ? error.message
+                              : "No se pudieron buscar baños.",
+                        });
+                      } finally {
+                        setIsLoadingBanos(false);
+                      }
+                    } else {
+                      // Buscar en la API por el término ingresado
+                      setIsLoadingBanos(true);
+                      try {
+                        const sanitariosResponse = await getSanitarios(
+                          banosPage,
+                          15,
+                          value
+                        );
+                        let sanitariosDisp: Sanitario[] = [];
+                        if (
+                          sanitariosResponse &&
+                          typeof sanitariosResponse === "object"
+                        ) {
+                          if (
+                            "items" in sanitariosResponse &&
+                            Array.isArray(sanitariosResponse.items)
+                          ) {
+                            sanitariosDisp = sanitariosResponse.items.filter(
+                              (sanitario) => sanitario.estado === "DISPONIBLE"
+                            );
+                          } else if (Array.isArray(sanitariosResponse)) {
+                            sanitariosDisp = sanitariosResponse.filter(
+                              (sanitario) => sanitario.estado === "DISPONIBLE"
+                            );
+                          }
+                        }
+                        setBanosDisponibles(sanitariosDisp);
+                        setFilteredBanos(sanitariosDisp);
+                      } catch (error) {
+                        toast.error("Error al buscar baños", {
+                          description:
+                            error instanceof Error
+                              ? error.message
+                              : "No se pudieron buscar baños.",
+                        });
+                      } finally {
+                        setIsLoadingBanos(false);
+                      }
+                    }
+                  }}
+                  // Búsqueda en tiempo real con llamada a la API
+                />
+              </div>
               {isLoadingBanos ? (
                 <div className="flex justify-center py-4">
                   <Loader className="h-6 w-6 text-indigo-500" />
                 </div>
-              ) : banosDisponibles.length > 0 ? (
-                <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-2">
-                  {banosDisponibles.map((bano) => {
-                    const banosIds = watch("banosIds") || [];
-                    const isSelected = banosIds.includes(Number(bano.baño_id));
-                    const isSelectable =
-                      isSelected ||
-                      banosIds.length < cantidadBanosRequired ||
-                      cantidadBanosRequired === 0;
+              ) : (
+                (() => {
+                  // Unir baños seleccionados y filtrados, sin duplicados
+                  const banosIdsSeleccionados = watch("banosIds") || [];
+                  // Buscar los objetos de baños seleccionados en todas las fuentes posibles
+                  const banosSeleccionados = banosIdsSeleccionados
+                    .map((idSel) =>
+                      banosDisponibles.find((b) => Number(b.baño_id) === idSel) ||
+                      filteredBanos.find((b) => Number(b.baño_id) === idSel)
+                    )
+                    .filter(Boolean);
+                  // Agregar los seleccionados que no estén en los resultados actuales
+                  const banosNoSeleccionados = filteredBanos.filter(
+                    (b) => !banosIdsSeleccionados.includes(Number(b.baño_id))
+                  );
+                  const banosParaMostrar = [...banosSeleccionados, ...banosNoSeleccionados];
+                  if (banosParaMostrar.length > 0) {
                     return (
-                      <div
-                        key={bano.baño_id}
-                        className={`border rounded-md p-2 ${
-                          isSelectable
-                            ? "cursor-pointer"
-                            : "opacity-50 cursor-not-allowed"
-                        } ${
-                          isSelected
-                            ? "bg-indigo-50 border-indigo-300"
-                            : "hover:bg-slate-50"
-                        }`}
-                        onClick={() =>
-                          isSelectable &&
-                          toggleResourceSelection(
-                            "banosIds",
-                            Number(bano.baño_id)
-                          )
-                        }
-                      >
-                        <div className="flex items-center">
-                          <div
-                            className={`w-4 h-4 mr-2 rounded-full border flex items-center justify-center ${
-                              isSelected
-                                ? "border-indigo-500 bg-indigo-500"
-                                : "border-gray-300"
-                            }`}
-                          >
-                            {isSelected && (
-                              <Check className="h-3 w-3 text-white" />
-                            )}
-                          </div>
-                          <div>
-                            <div className="font-medium">
-                              {bano.codigo_interno}
+                      <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-2">
+                        {banosParaMostrar.map((bano) => {
+                          const banosIds = banosIdsSeleccionados;
+                          const isSelected = banosIds.includes(
+                            Number(bano?.baño_id)
+                          );
+                          const isSelectable =
+                            isSelected ||
+                            banosIds.length < cantidadBanosRequired ||
+                            cantidadBanosRequired === 0;
+                          return (
+                            <div
+                              key={bano?.baño_id}
+                              className={`border rounded-md p-2 ${
+                                isSelectable
+                                  ? "cursor-pointer"
+                                  : "opacity-50 cursor-not-allowed"
+                              } ${
+                                isSelected
+                                  ? "bg-indigo-50 border-indigo-300"
+                                  : "hover:bg-slate-50"
+                              }`}
+                              onClick={() =>
+                                isSelectable &&
+                                toggleResourceSelection(
+                                  "banosIds",
+                                  Number(bano?.baño_id)
+                                )
+                              }
+                            >
+                              <div className="flex items-center">
+                                <div
+                                  className={`w-4 h-4 mr-2 rounded-full border flex items-center justify-center ${
+                                    isSelected
+                                      ? "border-indigo-500 bg-indigo-500"
+                                      : "border-gray-300"
+                                  }`}
+                                >
+                                  {isSelected && (
+                                    <Check className="h-3 w-3 text-white" />
+                                  )}
+                                </div>
+                                <div>
+                                  <div className="font-medium">
+                                    {bano?.codigo_interno}
+                                  </div>
+                                  <div className="text-xs flex items-center gap-2">
+                                    <span className="text-slate-500">
+                                      {bano?.modelo}
+                                    </span>
+                                    <Badge
+                                      variant="outline"
+                                      className="bg-green-50 text-green-700 text-xs"
+                                    >
+                                      {bano?.estado}
+                                    </Badge>
+                                  </div>
+                                </div>
+                              </div>
                             </div>
-                            <div className="text-xs flex items-center gap-2">
-                              <span className="text-slate-500">
-                                {bano.modelo}
-                              </span>
-                              <Badge
-                                variant="outline"
-                                className="bg-green-50 text-green-700 text-xs"
-                              >
-                                {bano.estado}
-                              </Badge>
-                            </div>
-                          </div>
-                        </div>
+                          );
+                        })}
                       </div>
                     );
-                  })}
-                </div>
-              ) : (
-                <div className="p-4 text-center text-slate-500 border rounded-md">
-                  No hay baños disponibles para la fecha seleccionada.
-                </div>
+                  } else {
+                    return (
+                      <div className="p-4 text-center text-slate-500 border rounded-md">
+                        No hay baños disponibles para la fecha seleccionada.
+                      </div>
+                    );
+                  }
+                })()
               )}
-              
+
               {/* Paginación de baños */}
               {banosTotalPages > 1 && (
-                <div className="mt-4 flex justify-center">
-                  <PaginationLocal
-                    total={banosTotalPages}
-                    currentPage={banosPage}
-                    onChangePage={handleBanosPageChange}
-                  />
+                <div className="flex justify-center items-center gap-2 mt-4">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleBanosPageChange(banosPage - 1)}
+                    disabled={banosPage === 1}
+                  >
+                    Anterior
+                  </Button>
+                  
+                  <span className="text-sm text-gray-600">
+                    Página {banosPage} de {banosTotalPages} ({banosDisponibles.length} baños)
+                  </span>
+                  
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleBanosPageChange(banosPage + 1)}
+                    disabled={banosPage === banosTotalPages}
+                  >
+                    Siguiente
+                  </Button>
                 </div>
               )}
               {errors.banosIds && (

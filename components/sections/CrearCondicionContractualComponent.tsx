@@ -71,21 +71,23 @@ const detallesSchema = z.object({
     .number()
     .min(0, "La tarifa de limpieza no puede ser negativa")
     .optional(),
-  periodicidad: z.enum(
-    [
-      "Diaria",
-      "Dos veces por semana",
-      "Tres veces por semana",
-      "Cuatro veces por semana",
-      "Semanal",
-      "Quincenal",
-      "Mensual",
-      "Anual",
-    ],
-    {
-      required_error: "La periodicidad es obligatoria",
-    }
-  ).optional(),
+  periodicidad: z
+    .enum(
+      [
+        "Diaria",
+        "Dos veces por semana",
+        "Tres veces por semana",
+        "Cuatro veces por semana",
+        "Semanal",
+        "Quincenal",
+        "Mensual",
+        "Anual",
+      ],
+      {
+        required_error: "La periodicidad es obligatoria",
+      }
+    )
+    .optional(),
   estado: z.string().min(1, "El estado es obligatorio"),
 });
 
@@ -180,20 +182,49 @@ export default function CrearCondicionContractualComponent() {
     fetchClientes();
   }, []);
 
+  // Buscar clientes en la API al presionar Enter
   useEffect(() => {
-    if (searchTerm.trim() === "") {
-      setFilteredClientes(clientes);
-    } else {
-      const searchTermLower = searchTerm.toLowerCase();
-      const filtered = clientes.filter(
-        (cliente) =>
-          cliente.nombre.toLowerCase().includes(searchTermLower) ||
-          cliente.cuit.toLowerCase().includes(searchTermLower) ||
-          cliente.email.toLowerCase().includes(searchTermLower)
-      );
-      setFilteredClientes(filtered);
+    setFilteredClientes(clientes);
+  }, [clientes]);
+
+  const handleClienteSearch = async (
+    e: React.KeyboardEvent<HTMLInputElement>
+  ) => {
+    if (e.key === "Enter") {
+      const term = searchTerm.trim();
+      setIsLoading(true);
+      try {
+        const clientesData = await getClients(1, 100, term);
+        let clientesList: Cliente[] = [];
+        if (clientesData && typeof clientesData === "object") {
+          if (Array.isArray(clientesData)) {
+            clientesList = clientesData;
+          } else if (
+            "items" in clientesData &&
+            Array.isArray(clientesData.items)
+          ) {
+            clientesList = clientesData.items;
+          } else if (
+            "data" in clientesData &&
+            Array.isArray(clientesData.data)
+          ) {
+            clientesList = clientesData.data;
+          }
+        }
+        setClientes(clientesList);
+        setFilteredClientes(clientesList);
+      } catch (error) {
+        toast.error("Error al buscar clientes", {
+          description:
+            error instanceof Error
+              ? error.message
+              : "No se pudieron buscar clientes.",
+        });
+      } finally {
+        setIsLoading(false);
+      }
     }
-  }, [searchTerm, clientes]);
+  };
   // Inicializar el formulario
   const form = useForm<FormDataSchema>({
     resolver: zodResolver(formSchema),
@@ -217,7 +248,8 @@ export default function CrearCondicionContractualComponent() {
   const {
     control,
     handleSubmit,
-    watch,    trigger,
+    watch,
+    trigger,
     formState: {
       /* errors */
     }, // No se está utilizando errors
@@ -232,10 +264,7 @@ export default function CrearCondicionContractualComponent() {
         isValid = await trigger(["clientId"]);
         break;
       case 2:
-        isValid = await trigger([
-            "fecha_inicio",
-            "fecha_fin",
-          ]);
+        isValid = await trigger(["fecha_inicio", "fecha_fin"]);
         break;
     }
 
@@ -265,7 +294,10 @@ export default function CrearCondicionContractualComponent() {
         tarifa_instalacion: data.tarifa_instalacion || 0,
         tarifa_limpieza: data.tarifa_limpieza || 0,
         // Solo incluir periodicidad si es tipo INSTALACION, sino usar valor por defecto
-        periodicidad: data.tipo_servicio === "INSTALACION" ? (data.periodicidad || "Mensual") : "Mensual",
+        periodicidad:
+          data.tipo_servicio === "INSTALACION"
+            ? data.periodicidad || "Mensual"
+            : "Mensual",
         estado: data.estado,
       };
 
@@ -274,7 +306,8 @@ export default function CrearCondicionContractualComponent() {
 
       toast.success("¡Contrato creado correctamente!", {
         description: "La condición contractual ha sido registrada con éxito.",
-      });      setTimeout(() => {
+      });
+      setTimeout(() => {
         router.push("/admin/dashboard/condiciones-contractuales/listado");
       }, 2000);
     } catch (error) {
@@ -346,7 +379,6 @@ export default function CrearCondicionContractualComponent() {
             ></div>
           </div>
         </div>
-
         {/* Paso 1: Selección de cliente */}
         {step === 1 && (
           <div className="space-y-6">
@@ -367,7 +399,49 @@ export default function CrearCondicionContractualComponent() {
                       placeholder="Buscar clientes por nombre, CUIT o email..."
                       className="pl-10 border-slate-300 focus:border-indigo-500 focus:ring-indigo-500"
                       value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
+                      onChange={(e) => {
+                        setSearchTerm(e.target.value);
+                        if (e.target.value.trim() === "") {
+                          // Si se borra el input, recargar todos los clientes
+                          (async () => {
+                            setIsLoading(true);
+                            try {
+                              const clientesData = await getClients(1, 100, "");
+                              let clientesList: Cliente[] = [];
+                              if (
+                                clientesData &&
+                                typeof clientesData === "object"
+                              ) {
+                                if (Array.isArray(clientesData)) {
+                                  clientesList = clientesData;
+                                } else if (
+                                  "items" in clientesData &&
+                                  Array.isArray(clientesData.items)
+                                ) {
+                                  clientesList = clientesData.items;
+                                } else if (
+                                  "data" in clientesData &&
+                                  Array.isArray(clientesData.data)
+                                ) {
+                                  clientesList = clientesData.data;
+                                }
+                              }
+                              setClientes(clientesList);
+                              setFilteredClientes(clientesList);
+                            } catch (error) {
+                              toast.error("Error al cargar clientes", {
+                                description:
+                                  error instanceof Error
+                                    ? error.message
+                                    : "No se pudieron cargar clientes.",
+                              });
+                            } finally {
+                              setIsLoading(false);
+                            }
+                          })();
+                        }
+                      }}
+                      onKeyDown={handleClienteSearch}
                     />
                   </div>
 
@@ -424,7 +498,8 @@ export default function CrearCondicionContractualComponent() {
               )}
             />
           </div>
-        )}        {/* Paso 2: Tipo y período del contrato */}
+        )}{" "}
+        {/* Paso 2: Tipo y período del contrato */}
         {step === 2 && (
           <div className="space-y-6">
             <Controller
@@ -477,7 +552,8 @@ export default function CrearCondicionContractualComponent() {
                     error={fieldState.error?.message}
                     type="date"
                   />
-                )}              />
+                )}
+              />
 
               <Controller
                 name="fecha_fin"
@@ -486,7 +562,8 @@ export default function CrearCondicionContractualComponent() {
                   <FormField
                     label="Fecha de Fin"
                     name="fecha_fin"
-                    value={field.value?.toString()}                    onChange={field.onChange}
+                    value={field.value?.toString()}
+                    onChange={field.onChange}
                     error={fieldState.error?.message}
                     type="date"
                   />
@@ -495,7 +572,6 @@ export default function CrearCondicionContractualComponent() {
             </div>
           </div>
         )}
-
         {/* Paso 3: Detalles financieros y condiciones */}
         {step === 3 && (
           <div className="space-y-6">
@@ -642,9 +718,18 @@ export default function CrearCondicionContractualComponent() {
                       onChange={(value: string) => field.onChange(value)}
                       options={[
                         { label: "Diaria", value: "Diaria" },
-                        { label: "Dos veces por semana", value: "Dos veces por semana" },
-                        { label: "Tres veces por semana", value: "Tres veces por semana" },
-                        { label: "Cuatro veces por semana", value: "Cuatro veces por semana" },
+                        {
+                          label: "Dos veces por semana",
+                          value: "Dos veces por semana",
+                        },
+                        {
+                          label: "Tres veces por semana",
+                          value: "Tres veces por semana",
+                        },
+                        {
+                          label: "Cuatro veces por semana",
+                          value: "Cuatro veces por semana",
+                        },
                         { label: "Semanal", value: "Semanal" },
                         { label: "Quincenal", value: "Quincenal" },
                         { label: "Mensual", value: "Mensual" },
@@ -697,7 +782,6 @@ export default function CrearCondicionContractualComponent() {
             />
           </div>
         )}
-
         {/* Botones de navegación */}
         <div className="mt-8 flex justify-between">
           {step > 1 && (

@@ -15,7 +15,13 @@ export type ContractualCondition = {
     cuit: string;
   };
   clientId?: number;
-  tipo_servicio?: "INSTALACION" | "LIMPIEZA" | "MANTENIMIENTO" | "ALQUILER" | "RETIRO" | string; // Agregando tipo de servicio
+  tipo_servicio?:
+    | "INSTALACION"
+    | "LIMPIEZA"
+    | "MANTENIMIENTO"
+    | "ALQUILER"
+    | "RETIRO"
+    | string; // Agregando tipo de servicio
   fecha_inicio: string;
   fecha_fin: string;
   condiciones_especificas?: string;
@@ -26,7 +32,13 @@ export type ContractualCondition = {
 
 export type CreateContractualCondition = {
   clientId: number;
-  tipo_servicio?: "INSTALACION" | "LIMPIEZA" | "MANTENIMIENTO" | "ALQUILER" | "RETIRO" | string; // Agregando tipo de servicio
+  tipo_servicio?:
+    | "INSTALACION"
+    | "LIMPIEZA"
+    | "MANTENIMIENTO"
+    | "ALQUILER"
+    | "RETIRO"
+    | string; // Agregando tipo de servicio
   fecha_inicio: string;
   fecha_fin: string;
   condiciones_especificas?: string;
@@ -50,8 +62,8 @@ export type UpdateContractualCondition = {
 export const getAllContractualConditions = createServerAction(
   async (page: number = 1, limit: number = 15, search: string = "") => {
     const headers = await createAuthHeaders();
+    // Si search es vacío, no se filtra por búsqueda y trae todos
     const searchQuery = search ? `&search=${search}` : "";
-
     const res = await fetch(
       `${process.env.NEXT_PUBLIC_API_URL}/api/contractual_conditions?page=${page}&limit=${limit}${searchQuery}`,
       {
@@ -92,11 +104,19 @@ export const getContractualConditionById = createServerAction(
  * Obtiene todas las condiciones contractuales asociadas a un cliente específico
  */
 export const getContractualConditionsByClient = createServerAction(
-  async (clientId: number) => {
+  async (
+    clientId: number,
+    page: number = 1,
+    limit: number = 15,
+    search: string = ""
+  ) => {
     const headers = await createAuthHeaders();
-
+    console.log(
+      `Fetching contractual conditions for client ID: ${clientId}, page: ${page}, limit: ${limit}, search: ${search}`
+    );
+    // Si search es vacío, no se filtra por búsqueda
     const res = await fetch(
-      `${process.env.NEXT_PUBLIC_API_URL}/api/contractual_conditions/client-id/${clientId}`,
+      `${process.env.NEXT_PUBLIC_API_URL}/api/contractual_conditions/client-id/${clientId}?page=${page}&limit=${limit}&search=${search}`,
       {
         headers,
         cache: "no-store",
