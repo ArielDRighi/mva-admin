@@ -1,6 +1,7 @@
 # Resumen de Despliegue y Configuración - MVA Admin
 
 ## 📅 Fecha: 2 de Junio, 2025
+
 ## 🚀 Estado: COMPLETADO Y FUNCIONAL
 
 ---
@@ -12,14 +13,14 @@
 ✅ **Resolución de errores SIGBUS**  
 ✅ **Funcionalidad de login operativa**  
 ✅ **Dashboard cargando correctamente**  
-✅ **Todos los endpoints de API funcionando**  
+✅ **Todos los endpoints de API funcionando**
 
 ---
 
 ## 🏗️ ARQUITECTURA FINAL
 
 ```
-Cliente (Browser) 
+Cliente (Browser)
     ↓ HTTPS (puerto 443)
 Nginx (Reverse Proxy + SSL Termination)
     ↓ HTTP interno
@@ -33,7 +34,8 @@ Nginx (Reverse Proxy + SSL Termination)
 
 ## 🔧 CONFIGURACIONES APLICADAS
 
-### **Frontend (mva-admin)**
+### **Frontend (AR-Frontend)**
+
 - **Puerto**: 3001
 - **URL**: https://mvasrl.com
 - **Tecnología**: Next.js 15.3.0
@@ -41,6 +43,7 @@ Nginx (Reverse Proxy + SSL Termination)
 - **Build**: Optimizado con `build-ignore-lint`
 
 ### **Backend (mva-backend)**
+
 - **Puerto**: 3002
 - **API Base**: https://mvasrl.com/api
 - **Tecnología**: NestJS
@@ -48,6 +51,7 @@ Nginx (Reverse Proxy + SSL Termination)
 - **Autenticación**: JWT
 
 ### **Infraestructura**
+
 - **Servidor**: VPS Linux Ubuntu
 - **Proxy**: Nginx 1.24.0
 - **SSL**: Let's Encrypt (renovación automática)
@@ -58,6 +62,7 @@ Nginx (Reverse Proxy + SSL Termination)
 ## 📂 ARCHIVOS CLAVE MODIFICADOS
 
 ### **Frontend**
+
 ```
 ecosystem.config.js          # Configuración PM2 para ambas apps
 .npmrc                       # Optimizaciones de build
@@ -68,15 +73,17 @@ build-no-lint.sh            # Script de build sin linting
 ```
 
 ### **Backend**
+
 ```
 src/future_cleanings/futureCleanings.service.ts  # Fix endpoint vacío
 src/main.ts                                      # Configuraciones SSL/CORS
 ```
 
 ### **Sistema**
+
 ```
 /etc/nginx/sites-available/mvasrl.com  # Configuración proxy HTTPS
-/root/mva-admin/.env.local             # Variables de entorno frontend
+/root/AR-Frontend/.env.local             # Variables de entorno frontend
 /root/mva-backend/.env                 # Variables de entorno backend
 ```
 
@@ -85,11 +92,13 @@ src/main.ts                                      # Configuraciones SSL/CORS
 ## 🔑 CREDENCIALES DE ACCESO
 
 ### **Aplicación Web**
+
 - **URL**: https://mvasrl.com/login
 - **Usuario Admin**: admin@mva.com
 - **Contraseña**: admin123
 
 ### **Base de Datos**
+
 - **Host**: localhost
 - **Puerto**: 5432
 - **Usuario**: postgres
@@ -101,21 +110,25 @@ src/main.ts                                      # Configuraciones SSL/CORS
 ## 🐛 PROBLEMAS RESUELTOS
 
 ### **1. Error SIGBUS**
+
 - **Causa**: Dependencias corruptas y problemas de compilación
 - **Solución**: Limpieza completa de node_modules, reinstalación optimizada
 - **Archivos**: .npmrc, build scripts
 
 ### **2. Endpoint future_cleanings fallando**
+
 - **Causa**: Backend lanzaba excepción en lugar de retornar array vacío
 - **Solución**: Modificación en `futureCleanings.service.ts`
 - **Resultado**: Dashboard carga sin errores
 
 ### **3. Errores de autenticación**
+
 - **Causa**: Endpoint esperaba 'email' en lugar de 'username'
 - **Solución**: Verificación y corrección del formato de login
 - **Estado**: Login funcional con admin@mva.com
 
 ### **4. Problemas de SSL/HTTPS**
+
 - **Causa**: Configuración mixta HTTP/HTTPS
 - **Solución**: Nginx como terminador SSL, apps HTTP internas
 - **Estado**: HTTPS completamente funcional
@@ -124,29 +137,31 @@ src/main.ts                                      # Configuraciones SSL/CORS
 
 ## 📊 ENDPOINTS API VERIFICADOS
 
-| Endpoint | Estado | Respuesta |
-|----------|--------|-----------|
-| `/api/auth/login` | ✅ | JWT Token válido |
-| `/api/future_cleanings` | ✅ | Array vacío/datos |
-| `/api/vehicles/total_vehicles` | ✅ | Estadísticas de vehículos |
-| `/api/employees/total_employees` | ✅ | Estadísticas de empleados |
-| `/api/chemical_toilets/total_chemical_toilets` | ✅ | Estadísticas de sanitarios |
-| `/api/services/proximos` | ✅ | Servicios próximos |
-| `/api/services/stats` | ✅ | Estadísticas de servicios |
-| `/api/services/resumen` | ✅ | Resumen de servicios |
-| `/api/recent_activity/global` | ✅ | Actividad reciente |
-| `/api/employees/licencias/por-vencer` | ✅ | Licencias por vencer |
+| Endpoint                                       | Estado | Respuesta                  |
+| ---------------------------------------------- | ------ | -------------------------- |
+| `/api/auth/login`                              | ✅     | JWT Token válido           |
+| `/api/future_cleanings`                        | ✅     | Array vacío/datos          |
+| `/api/vehicles/total_vehicles`                 | ✅     | Estadísticas de vehículos  |
+| `/api/employees/total_employees`               | ✅     | Estadísticas de empleados  |
+| `/api/chemical_toilets/total_chemical_toilets` | ✅     | Estadísticas de sanitarios |
+| `/api/services/proximos`                       | ✅     | Servicios próximos         |
+| `/api/services/stats`                          | ✅     | Estadísticas de servicios  |
+| `/api/services/resumen`                        | ✅     | Resumen de servicios       |
+| `/api/recent_activity/global`                  | ✅     | Actividad reciente         |
+| `/api/employees/licencias/por-vencer`          | ✅     | Licencias por vencer       |
 
 ---
 
 ## 🚀 COMANDOS PM2 PARA GESTIÓN
 
 ### **Verificar estado**
+
 ```bash
 pm2 status
 ```
 
 ### **Reiniciar aplicaciones**
+
 ```bash
 pm2 restart mva-frontend
 pm2 restart mva-backend
@@ -154,6 +169,7 @@ pm2 restart all
 ```
 
 ### **Ver logs**
+
 ```bash
 pm2 logs mva-frontend
 pm2 logs mva-backend
@@ -161,6 +177,7 @@ pm2 logs --lines 50
 ```
 
 ### **Detener/Iniciar**
+
 ```bash
 pm2 stop all
 pm2 start ecosystem.config.js
@@ -171,8 +188,9 @@ pm2 start ecosystem.config.js
 ## 🔄 FLUJO DE DESPLIEGUE FUTURO
 
 ### **Para cambios en Frontend:**
+
 ```bash
-cd /root/mva-admin
+cd /root/AR-Frontend
 git pull origin main
 npm install
 npm run build-ignore-lint
@@ -180,6 +198,7 @@ pm2 restart mva-frontend
 ```
 
 ### **Para cambios en Backend:**
+
 ```bash
 cd /root/mva-backend
 git pull origin [rama]
@@ -213,16 +232,19 @@ pm2 restart mva-backend
 ## 📋 CHECKLIST DE MANTENIMIENTO
 
 ### **Diario**
+
 - [ ] Verificar `pm2 status`
 - [ ] Comprobar logs en caso de errores
 - [ ] Verificar acceso web https://mvasrl.com
 
 ### **Semanal**
+
 - [ ] Revisar logs de nginx `/var/log/nginx/`
 - [ ] Verificar espacio en disco
 - [ ] Comprobar certificados SSL (auto-renovables)
 
 ### **Mensual**
+
 - [ ] Actualizar dependencias npm
 - [ ] Backup de base de datos
 - [ ] Revisar métricas de rendimiento
@@ -232,6 +254,7 @@ pm2 restart mva-backend
 ## 🆘 CONTACTO Y SOPORTE
 
 En caso de problemas, verificar:
+
 1. Estado de PM2: `pm2 status`
 2. Logs de aplicación: `pm2 logs`
 3. Estado de Nginx: `systemctl status nginx`
