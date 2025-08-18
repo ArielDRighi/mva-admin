@@ -2,7 +2,7 @@
 
 import { setCookie } from "cookies-next";
 import { toast } from "sonner";
-import { getErrorMessage } from "@/lib/errors";
+import { handleApiError } from "@/lib/errors";
 
 /**
  * Función para autenticar al usuario y establecer las cookies de sesión
@@ -37,9 +37,17 @@ export async function loginUser(email: string, password: string) {
 
     return data;
   } catch (error) {
-    // Utilizamos getErrorMessage para mantener consistencia con el manejo
+    // Utilizamos handleApiError para mantener consistencia con el manejo
     // de errores del resto del sistema
-    const message = getErrorMessage(error) || "Error al iniciar sesión";
+    const message = handleApiError(
+      error,
+      {
+        file: "app/actions/login.ts",
+        endpoint: "/api/auth/login",
+        method: "POST",
+      },
+      "Error al iniciar sesión"
+    );
 
     toast.error("Error", {
       description: message,
@@ -80,7 +88,15 @@ export async function forgotPassword(email: string): Promise<{
     const data = await res.json();
     return data;
   } catch (error) {
-    const message = getErrorMessage(error) || "Error al enviar el email";
+    const message = handleApiError(
+      error,
+      {
+        file: "app/actions/login.ts",
+        endpoint: "/api/auth/forgot-password",
+        method: "POST",
+      },
+      "Error al enviar el email"
+    );
     console.error("Error en forgot password:", error);
     throw new Error(message);
   }
@@ -129,7 +145,15 @@ export async function changePassword(
 
     return data; // Retornar los datos para cumplir con la Promise
   } catch (error) {
-    const message = getErrorMessage(error) || "Error al cambiar la contraseña";
+    const message = handleApiError(
+      error,
+      {
+        file: "app/actions/login.ts",
+        endpoint: "/api/auth/change-password",
+        method: "POST",
+      },
+      "Error al cambiar la contraseña"
+    );
     toast.error("Error", { description: message });
     console.error("Error en change password:", error);
     throw error;

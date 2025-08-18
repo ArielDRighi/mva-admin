@@ -21,9 +21,18 @@ export const getLicenciaByEmpleadoId = createServerAction(
       }
     );
 
-    return handleApiResponse(res, "Error al obtener licencias de conducir");
+    return handleApiResponse(res, "Error al obtener licencias de conducir", {
+      file: "app/actions/LicenciasConducir.ts",
+      endpoint: `/api/employees/licencia/${empleadoId}`,
+      method: "GET",
+    });
   },
-  "Error al obtener licencia de conducir del empleado"
+  "Error al obtener licencia de conducir del empleado",
+  {
+    file: "app/actions/LicenciasConducir.ts",
+    endpoint: "/api/employees/licencia/:id",
+    method: "GET",
+  }
 );
 
 export interface UpdateLicenciaConducir {

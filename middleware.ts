@@ -3,6 +3,21 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
 export function middleware(request: NextRequest) {
+  const startTime = Date.now();
+  const { pathname, searchParams } = request.nextUrl;
+  const method = request.method;
+
+  // Log mejorado de petición entrante
+  const ip =
+    request.headers.get("x-forwarded-for") ||
+    request.headers.get("x-real-ip") ||
+    "unknown";
+  console.log(
+    `🌐 ${method} ${pathname}${
+      searchParams.toString() ? `?${searchParams.toString()}` : ""
+    } - IP: ${ip.slice(0, 10)}...`
+  );
+
   const token = request.cookies.get("token")?.value;
   const userCookie = request.cookies.get("user")?.value;
 
@@ -86,7 +101,25 @@ export function middleware(request: NextRequest) {
     }
   }
 
-  return NextResponse.next();
+  // Crear respuesta con headers de debugging
+  const response = NextResponse.next();
+
+  // Agregar headers personalizados para debugging
+  response.headers.set("x-request-id", generateRequestId());
+  response.headers.set("x-timestamp", new Date().toISOString());
+
+  // Log de respuesta con duración
+  const duration = Date.now() - startTime;
+  console.log(`✅ ${method} ${pathname} - ${duration}ms`);
+
+  return response;
+}
+
+/**
+ * Genera un ID único para cada petición
+ */
+function generateRequestId(): string {
+  return `req_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 }
 
 export const config = {

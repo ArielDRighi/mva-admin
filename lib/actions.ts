@@ -1,6 +1,6 @@
 // filepath: lib/actions.ts
 import { cookies } from "next/headers";
-import { handleApiError } from "./errors";
+import { handleApiError, ApiErrorContext } from "./errors";
 
 /**
  * Tipo para representar una acción de servidor con manejo de errores
@@ -15,18 +15,20 @@ type ActionWithErrorHandling<Args extends unknown[], Result> = (
  *
  * @param action Función que implementa la lógica de la acción del servidor
  * @param defaultErrorMessage Mensaje de error por defecto
+ * @param context Contexto adicional para el error (archivo, endpoint, etc.)
  * @returns Una nueva función que envuelve la acción original con manejo de errores
  */
 export function createServerAction<Args extends unknown[], Result>(
   action: (...args: Args) => Promise<Result>,
-  defaultErrorMessage: string
+  defaultErrorMessage: string,
+  context?: ApiErrorContext
 ): ActionWithErrorHandling<Args, Result> {
   return async (...args: Args): Promise<Result> => {
     try {
       return await action(...args);
     } catch (error) {
       // Gestionar el error y obtener el mensaje
-      const errorMessage = handleApiError(error, defaultErrorMessage);
+      const errorMessage = handleApiError(error, context, defaultErrorMessage);
       // Creamos un nuevo error con el mensaje procesado
       const enhancedError = new Error(errorMessage);
       // Adjuntamos la información original para debugging
@@ -147,13 +149,27 @@ export async function createAuthHeaders(
  * Función para manejar respuestas de API de manera consistente
  * @param response Respuesta de fetch
  * @param errorMessage Mensaje de error por defecto
+ * @param context Contexto del error (archivo, endpoint, etc.)
  * @returns Datos de la respuesta ya procesados
  */
 export async function handleApiResponse<T>(
   response: Response,
-  errorMessage: string
+  errorMessage: string,
+  context?: ApiErrorContext
 ): Promise<T> {
   if (!response.ok) {
+    // Agregar el código de estado al contexto
+    const errorContext = context
+      ? {
+          ...context,
+          statusCode: response.status,
+        }
+      : {
+          file: "unknown",
+          endpoint: response.url,
+          statusCode: response.status,
+        };
+
     // Si la respuesta no es exitosa, intentar obtener el mensaje de error del servidor
     const errorData = await response.text();
     let parsedError: unknown;
@@ -168,7 +184,14 @@ export async function handleApiResponse<T>(
       console.error("Error parsing error response:", e);
     }
 
-    throw parsedError || errorMessage;
+    // Usar handleApiError para consistencia
+    const enhancedError = handleApiError(
+      parsedError || { message: errorMessage, statusCode: response.status },
+      errorContext,
+      errorMessage
+    );
+
+    throw new Error(enhancedError);
   }
 
   // Para respuestas exitosas, verificar si hay contenido
@@ -186,16 +209,17 @@ export async function handleApiResponse<T>(
     contentLength === "0" ||
     (contentType?.includes("application/json") && contentLength === "0")
   ) {
-    return {} as T;  }
+    return {} as T;
+  }
   // Para respuestas con contenido, intentar leer como texto primero
   try {
     const text = await response.text();
-    
+
     // Si no hay contenido, retornar objeto vacío
     if (!text.trim()) {
       return {} as T;
     }
-    
+
     // Intentar parsear como JSON solo si el content-type indica JSON
     if (contentType?.includes("application/json")) {
       try {
@@ -207,7 +231,7 @@ export async function handleApiResponse<T>(
       }
     } else {
       // Si no es JSON, tratar como texto plano y envolver en un objeto
-      return { message: text.replace(/"/g, '') } as T;
+      return { message: text.replace(/"/g, "") } as T;
     }
   } catch (error) {
     console.error("Error reading response:", error);

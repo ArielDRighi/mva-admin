@@ -72,9 +72,22 @@ export const getAllContractualConditions = createServerAction(
       }
     );
 
-    return handleApiResponse(res, "Error al obtener condiciones contractuales");
+    return handleApiResponse(
+      res,
+      "Error al obtener condiciones contractuales",
+      {
+        file: "app/actions/contractualConditions.ts",
+        endpoint: "/api/contractual_conditions",
+        method: "GET",
+      }
+    );
   },
-  "Error al obtener las condiciones contractuales"
+  "Error al obtener las condiciones contractuales",
+  {
+    file: "app/actions/contractualConditions.ts",
+    endpoint: "/api/contractual_conditions",
+    method: "GET",
+  }
 );
 
 /**

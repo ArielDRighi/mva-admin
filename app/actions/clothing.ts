@@ -47,30 +47,52 @@ export const createMyClothing = createServerAction(
       }
     );
 
-    return handleApiResponse(response, "Error al crear la vestimenta");
+    return handleApiResponse(response, "Error al crear la vestimenta", {
+      file: "app/actions/clothing.ts",
+      endpoint: `/api/clothing/create/${employeeId}`,
+      method: "POST",
+    });
   },
-  "Error al crear la vestimenta"
+  "Error al crear la vestimenta",
+  {
+    file: "app/actions/clothing.ts",
+    endpoint: "/api/clothing/create/:id",
+    method: "POST",
+  }
 );
 
 /**
  * Obtiene la información de tallas para mi usuario
  */
-export const getMyClothing = createServerAction(async (employeeId: number) => {
-  const headers = await createAuthHeaders();
+export const getMyClothing = createServerAction(
+  async (employeeId: number) => {
+    const headers = await createAuthHeaders();
 
-  const response = await fetch(
-    `${process.env.NEXT_PUBLIC_API_URL}/api/clothing/${employeeId}`,
-    {
-      method: "GET",
-      headers,
-    }
-  );
+    const response = await fetch(
+      `${process.env.NEXT_PUBLIC_API_URL}/api/clothing/${employeeId}`,
+      {
+        method: "GET",
+        headers,
+      }
+    );
 
-  return handleApiResponse(
-    response,
-    "Error al obtener la información de vestimenta"
-  );
-}, "Error al obtener la información de vestimenta");
+    return handleApiResponse(
+      response,
+      "Error al obtener la información de vestimenta",
+      {
+        file: "app/actions/clothing.ts",
+        endpoint: `/api/clothing/${employeeId}`,
+        method: "GET",
+      }
+    );
+  },
+  "Error al obtener la información de vestimenta",
+  {
+    file: "app/actions/clothing.ts",
+    endpoint: "/api/clothing/:id",
+    method: "GET",
+  }
+);
 
 /**
  * Actualiza la información de tallas para mi usuario
@@ -88,9 +110,18 @@ export const updateMyClothing = createServerAction(
       }
     );
 
-    return handleApiResponse(response, "Error al actualizar la vestimenta");
+    return handleApiResponse(response, "Error al actualizar la vestimenta", {
+      file: "app/actions/clothing.ts",
+      endpoint: `/api/clothing/modify/${employeeId}`,
+      method: "PUT",
+    });
   },
-  "Error al actualizar la vestimenta"
+  "Error al actualizar la vestimenta",
+  {
+    file: "app/actions/clothing.ts",
+    endpoint: "/api/clothing/modify/:id",
+    method: "PUT",
+  }
 );
 
 /**
@@ -219,10 +250,20 @@ export const getTallesEmpleadoById = createServerAction(
 
     return handleApiResponse(
       response,
-      `Error al obtener los talles del empleado ${empleadoId}`
+      `Error al obtener los talles del empleado ${empleadoId}`,
+      {
+        file: "app/actions/clothing.ts",
+        endpoint: `/api/clothing/${empleadoId}`,
+        method: "GET",
+      }
     );
   },
-  "Error al obtener los talles del empleado"
+  "Error al obtener los talles del empleado",
+  {
+    file: "app/actions/clothing.ts",
+    endpoint: "/api/clothing/:id",
+    method: "GET",
+  }
 );
 
 /**
@@ -243,10 +284,20 @@ export const createTallesEmpleado = createServerAction(
 
     return handleApiResponse(
       response,
-      `Error al crear los talles del empleado ${empleadoId}`
+      `Error al crear los talles del empleado ${empleadoId}`,
+      {
+        file: "app/actions/clothing.ts",
+        endpoint: `/api/clothing/create/${empleadoId}`,
+        method: "POST",
+      }
     );
   },
-  "Error al crear los talles del empleado"
+  "Error al crear los talles del empleado",
+  {
+    file: "app/actions/clothing.ts",
+    endpoint: "/api/clothing/create/:id",
+    method: "POST",
+  }
 );
 
 /**

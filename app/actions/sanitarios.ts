@@ -27,9 +27,18 @@ export const getSanitarios = createServerAction(
       }
     );
 
-    return handleApiResponse(res, "Error al obtener los sanitarios");
+    return handleApiResponse(res, "Error al obtener los sanitarios", {
+      file: "app/actions/sanitarios.ts",
+      endpoint: "/api/chemical_toilets",
+      method: "GET",
+    });
   },
-  "Error al obtener los sanitarios"
+  "Error al obtener los sanitarios",
+  {
+    file: "app/actions/sanitarios.ts",
+    endpoint: "/api/chemical_toilets",
+    method: "GET",
+  }
 );
 
 /**

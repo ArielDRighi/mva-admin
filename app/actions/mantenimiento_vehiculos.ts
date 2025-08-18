@@ -32,10 +32,20 @@ export const getMantenimientosVehiculos = createServerAction(
 
     return handleApiResponse(
       res,
-      "Error al obtener mantenimientos de vehículos"
+      "Error al obtener mantenimientos de vehículos",
+      {
+        file: "app/actions/mantenimiento_vehiculos.ts",
+        endpoint: "/api/vehicle_maintenance",
+        method: "GET",
+      }
     );
   },
-  "Error al obtener mantenimientos de vehículos"
+  "Error al obtener mantenimientos de vehículos",
+  {
+    file: "app/actions/mantenimiento_vehiculos.ts",
+    endpoint: "/api/vehicle_maintenance",
+    method: "GET",
+  }
 );
 
 /**
@@ -230,8 +240,5 @@ export async function fetchMantenimientosVehiculos(
       cache: "no-store",
     }
   );
-  return handleApiResponse(
-    res,
-    "Error al obtener mantenimientos de vehículos"
-  );
+  return handleApiResponse(res, "Error al obtener mantenimientos de vehículos");
 }

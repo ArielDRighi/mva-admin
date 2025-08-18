@@ -3,7 +3,7 @@
 
 import { deleteCookie } from "cookies-next";
 import { toast } from "sonner";
-import { getErrorMessage } from "@/lib/errors";
+import { handleApiError } from "@/lib/errors";
 
 /**
  * Función para cerrar la sesión del usuario eliminando las cookies
@@ -16,8 +16,15 @@ export function logoutUser() {
     deleteCookie("token");
     deleteCookie("user");
   } catch (error) {
-    const message =
-      getErrorMessage(error) || "Ocurrió un problema al cerrar la sesión";
+    const message = handleApiError(
+      error,
+      {
+        file: "app/actions/logout.ts",
+        endpoint: "client-side",
+        method: "LOCAL",
+      },
+      "Ocurrió un problema al cerrar la sesión"
+    );
 
     console.error("Error al cerrar sesión:", error);
     toast.error("Error", {

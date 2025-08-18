@@ -11,7 +11,7 @@ import {
  * Obtiene una lista paginada de servicios con posibilidad de filtrado
  */
 export const getServices = createServerAction(
-  async (page: number = 1, limit: number = 10, search: string = "") => {
+  async (search: string = "") => {
     const headers = await createAuthHeaders();
 
     const queryParams = new URLSearchParams();
@@ -29,27 +29,48 @@ export const getServices = createServerAction(
       }
     );
 
-    return handleApiResponse(res, "Error al obtener los servicios");
+    return handleApiResponse(res, "Error al obtener los servicios", {
+      file: "app/actions/services.ts",
+      endpoint: "/api/services",
+      method: "GET",
+    });
   },
-  "Error al obtener los servicios"
+  "Error al obtener los servicios",
+  {
+    file: "app/actions/services.ts",
+    endpoint: "/api/services",
+    method: "GET",
+  }
 );
 
 /**
  * Obtiene un servicio específico por su ID
  */
-export const getServiceById = createServerAction(async (id: number) => {
-  const headers = await createAuthHeaders();
+export const getServiceById = createServerAction(
+  async (id: number) => {
+    const headers = await createAuthHeaders();
 
-  const res = await fetch(
-    `${process.env.NEXT_PUBLIC_API_URL}/api/services/${id}`,
-    {
-      headers,
-      cache: "no-store",
-    }
-  );
+    const res = await fetch(
+      `${process.env.NEXT_PUBLIC_API_URL}/api/services/${id}`,
+      {
+        headers,
+        cache: "no-store",
+      }
+    );
 
-  return handleApiResponse(res, `Error al obtener el servicio con ID ${id}`);
-}, "Error al obtener el servicio");
+    return handleApiResponse(res, `Error al obtener el servicio con ID ${id}`, {
+      file: "app/actions/services.ts",
+      endpoint: `/api/services/${id}`,
+      method: "GET",
+    });
+  },
+  "Error al obtener el servicio",
+  {
+    file: "app/actions/services.ts",
+    endpoint: "/api/services/:id",
+    method: "GET",
+  }
+);
 
 /**
  * Obtiene servicios filtrados por un rango de fechas
@@ -68,10 +89,20 @@ export const getServicesByDateRange = createServerAction(
 
     return handleApiResponse(
       res,
-      "Error al obtener servicios por rango de fechas"
+      "Error al obtener servicios por rango de fechas",
+      {
+        file: "app/actions/services.ts",
+        endpoint: "/api/services/date-range",
+        method: "GET",
+      }
     );
   },
-  "Error al obtener servicios por rango de fechas"
+  "Error al obtener servicios por rango de fechas",
+  {
+    file: "app/actions/services.ts",
+    endpoint: "/api/services/date-range",
+    method: "GET",
+  }
 );
 
 /**

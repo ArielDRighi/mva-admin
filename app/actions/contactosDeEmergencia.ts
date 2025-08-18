@@ -1,9 +1,9 @@
 "use server";
 
-import { 
-  createAuthHeaders, 
+import {
+  createAuthHeaders,
   handleApiResponse,
-  createServerAction 
+  createServerAction,
 } from "@/lib/actions";
 
 export interface CreateContactDto {
@@ -34,7 +34,7 @@ export type ContactoEmergencia = {
 export const createMyEmergencyContact = createServerAction(
   async (empleadoId: number, data: CreateContactDto) => {
     const headers = await createAuthHeaders();
-    
+
     const response = await fetch(
       `${process.env.NEXT_PUBLIC_API_URL}/api/employees/emergency/${empleadoId}`,
       {
@@ -44,9 +44,22 @@ export const createMyEmergencyContact = createServerAction(
       }
     );
 
-    return handleApiResponse(response, "Error al crear el contacto de emergencia");
+    return handleApiResponse(
+      response,
+      "Error al crear el contacto de emergencia",
+      {
+        file: "app/actions/contactosDeEmergencia.ts",
+        endpoint: `/api/employees/emergency/${empleadoId}`,
+        method: "POST",
+      }
+    );
   },
-  "Error al crear el contacto de emergencia"
+  "Error al crear el contacto de emergencia",
+  {
+    file: "app/actions/contactosDeEmergencia.ts",
+    endpoint: "/api/employees/emergency/:id",
+    method: "POST",
+  }
 );
 
 /**
@@ -55,7 +68,7 @@ export const createMyEmergencyContact = createServerAction(
 export const getMyEmergencyContacts = createServerAction(
   async (employeeId: number) => {
     const headers = await createAuthHeaders();
-    
+
     const response = await fetch(
       `${process.env.NEXT_PUBLIC_API_URL}/api/employees/emergency/${employeeId}`,
       {
@@ -63,9 +76,22 @@ export const getMyEmergencyContacts = createServerAction(
       }
     );
 
-    return handleApiResponse(response, "Error al obtener los contactos de emergencia");
+    return handleApiResponse(
+      response,
+      "Error al obtener los contactos de emergencia",
+      {
+        file: "app/actions/contactosDeEmergencia.ts",
+        endpoint: `/api/employees/emergency/${employeeId}`,
+        method: "GET",
+      }
+    );
   },
-  "Error al obtener los contactos de emergencia"
+  "Error al obtener los contactos de emergencia",
+  {
+    file: "app/actions/contactosDeEmergencia.ts",
+    endpoint: "/api/employees/emergency/:id",
+    method: "GET",
+  }
 );
 
 /**
@@ -74,7 +100,7 @@ export const getMyEmergencyContacts = createServerAction(
 export const deleteMyEmergencyContact = createServerAction(
   async (contactoId: number) => {
     const headers = await createAuthHeaders();
-    
+
     const response = await fetch(
       `${process.env.NEXT_PUBLIC_API_URL}/api/employees/emergency/delete/${contactoId}`,
       {
@@ -83,9 +109,22 @@ export const deleteMyEmergencyContact = createServerAction(
       }
     );
 
-    return handleApiResponse(response, "Error al eliminar el contacto de emergencia");
+    return handleApiResponse(
+      response,
+      "Error al eliminar el contacto de emergencia",
+      {
+        file: "app/actions/contactosDeEmergencia.ts",
+        endpoint: `/api/employees/emergency/delete/${contactoId}`,
+        method: "DELETE",
+      }
+    );
   },
-  "Error al eliminar el contacto de emergencia"
+  "Error al eliminar el contacto de emergencia",
+  {
+    file: "app/actions/contactosDeEmergencia.ts",
+    endpoint: "/api/employees/emergency/delete/:id",
+    method: "DELETE",
+  }
 );
 
 /**
@@ -94,7 +133,7 @@ export const deleteMyEmergencyContact = createServerAction(
 export const updateMyEmergencyContact = createServerAction(
   async (contactoId: number, data: UpdateContactDto) => {
     const headers = await createAuthHeaders();
-    
+
     const response = await fetch(
       `${process.env.NEXT_PUBLIC_API_URL}/api/employees/emergency/modify/${contactoId}`,
       {
@@ -104,7 +143,20 @@ export const updateMyEmergencyContact = createServerAction(
       }
     );
 
-    return handleApiResponse(response, "Error al actualizar el contacto de emergencia");
+    return handleApiResponse(
+      response,
+      "Error al actualizar el contacto de emergencia",
+      {
+        file: "app/actions/contactosDeEmergencia.ts",
+        endpoint: `/api/employees/emergency/modify/${contactoId}`,
+        method: "PUT",
+      }
+    );
   },
-  "Error al actualizar el contacto de emergencia"
+  "Error al actualizar el contacto de emergencia",
+  {
+    file: "app/actions/contactosDeEmergencia.ts",
+    endpoint: "/api/employees/emergency/modify/:id",
+    method: "PUT",
+  }
 );

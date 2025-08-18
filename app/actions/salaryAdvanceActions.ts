@@ -27,12 +27,22 @@ export const createAdvanceAction = createServerAction(
 
     const result = await handleApiResponse<SalaryAdvance>(
       response,
-      "Error creating salary advance"
+      "Error creating salary advance",
+      {
+        file: "app/actions/salaryAdvanceActions.ts",
+        endpoint: "/api/salary-advances",
+        method: "POST",
+      }
     );
 
     return result;
   },
-  "Failed to create salary advance request"
+  "Failed to create salary advance request",
+  {
+    file: "app/actions/salaryAdvanceActions.ts",
+    endpoint: "/api/salary-advances",
+    method: "POST",
+  }
 );
 
 // Get all salary advances (admin only) - matches backend: GET /api/salary-advances

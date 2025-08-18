@@ -9,68 +9,112 @@ export interface ApiErrorResponse {
 }
 
 /**
+ * Información de contexto para errores de API
+ */
+export interface ApiErrorContext {
+  file: string;
+  endpoint: string;
+  method?: string;
+  statusCode?: number;
+}
+
+/**
  * Función para extraer el mensaje de error de una respuesta de API
  * @param error Error capturado (puede ser cualquier tipo)
+ * @param context Información de contexto del error (archivo, endpoint, etc.)
  * @returns Un string con el mensaje de error más descriptivo disponible
  */
-export function getErrorMessage(error: unknown): string {
-  if (error instanceof Error) {
-    return error.message;
-  }
+export function getErrorMessage(
+  error: unknown,
+  context?: ApiErrorContext
+): string {
+  let errorMessage = "";
+  let statusCode = "";
 
-  if (typeof error === "object" && error !== null) {
+  if (error instanceof Error) {
+    errorMessage = error.message;
+  } else if (typeof error === "object" && error !== null) {
     // Intentar extraer mensajes de error de respuestas de API
     const errorResponse = error as ApiErrorResponse;
 
     // Verifica si hay propiedad message directamente
     if (errorResponse.message) {
-      return String(errorResponse.message);
+      errorMessage = String(errorResponse.message);
     }
-
     // Verifica si hay propiedad error directamente
-    if (errorResponse.error) {
-      return String(errorResponse.error);
+    else if (errorResponse.error) {
+      errorMessage = String(errorResponse.error);
     }
-
     // Si hay errores de validación, formatearlos
-    if (errorResponse.errors) {
+    else if (errorResponse.errors) {
       const errorMessages = Object.values(errorResponse.errors).flat();
       if (errorMessages.length > 0) {
-        return errorMessages.join(", ");
+        errorMessage = errorMessages.join(", ");
+      }
+    }
+    // Si error es un objeto pero no tiene propiedades reconocibles, intenta convertirlo a string
+    else {
+      try {
+        errorMessage = JSON.stringify(error);
+      } catch {
+        errorMessage = "Error desconocido";
       }
     }
 
-    // Si error es un objeto pero no tiene propiedades reconocibles, intenta convertirlo a string
-    try {
-      return JSON.stringify(error);
-    } catch {
-      // Si no se puede convertir a JSON
+    // Extraer código de estado si está disponible
+    if (errorResponse.statusCode) {
+      statusCode = String(errorResponse.statusCode);
     }
+  } else if (typeof error === "string") {
+    errorMessage = error;
+  } else {
+    errorMessage = "Ha ocurrido un error inesperado";
   }
 
-  if (typeof error === "string") {
-    return error;
+  // Si tenemos contexto, construir mensaje detallado
+  if (context) {
+    const parts = [];
+
+    if (errorMessage) {
+      parts.push(errorMessage);
+    }
+
+    parts.push(`\n📁 Archivo: ${context.file}`);
+    parts.push(`🔗 Endpoint: ${context.endpoint}`);
+
+    if (context.method) {
+      parts.push(`📝 Método: ${context.method}`);
+    }
+
+    if (statusCode || context.statusCode) {
+      parts.push(`❌ Código: ${statusCode || context.statusCode}`);
+    }
+
+    return parts.join("\n");
   }
 
-  // Si no se puede determinar, enviar un mensaje genérico
-  return "Ha ocurrido un error inesperado";
+  return errorMessage || "Ha ocurrido un error inesperado";
 }
 
 /**
  * Procesa errores HTTP y extrae el mensaje adecuado para presentar al usuario
  * @param error El error capturado
+ * @param context Información de contexto del error
  * @param defaultMessage Mensaje predeterminado si no se puede extraer uno del error
  * @returns El mensaje de error procesado para mostrar al usuario
  */
 export function handleApiError(
   error: unknown,
+  context?: ApiErrorContext,
   defaultMessage: string = "Ha ocurrido un error en la operación"
 ): string {
-  const message = getErrorMessage(error) || defaultMessage;
-  console.log("Mensaje de error procesado:", message);
+  const message = getErrorMessage(error, context) || defaultMessage;
 
   // Siempre registramos el error en la consola para depuración
   console.error("API Error:", error);
+  if (context) {
+    console.error("Error Context:", context);
+  }
 
   return message;
 }
@@ -96,7 +140,7 @@ export async function withErrorHandling<T>(
 
     return result;
   } catch (error) {
-    handleApiError(error, errorMessage);
+    handleApiError(error, undefined, errorMessage);
     return undefined;
   }
 }

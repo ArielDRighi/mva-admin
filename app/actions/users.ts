@@ -22,27 +22,48 @@ export const getUsers = createServerAction(
       }
     );
 
-    return handleApiResponse(res, "Error al obtener usuarios");
+    return handleApiResponse(res, "Error al obtener usuarios", {
+      file: "app/actions/users.ts",
+      endpoint: "/api/users",
+      method: "GET",
+    });
   },
-  "Error al obtener usuarios"
+  "Error al obtener usuarios",
+  {
+    file: "app/actions/users.ts",
+    endpoint: "/api/users",
+    method: "GET",
+  }
 );
 
 /**
  * Obtiene un usuario específico por su ID
  * @returns La información completa del usuario con el ID especificado
  */
-export const getUserById = createServerAction(async (id: number) => {
-  const headers = await createAuthHeaders();
-  const res = await fetch(
-    `${process.env.NEXT_PUBLIC_API_URL}/api/users/${id}`,
-    {
-      headers,
-      cache: "no-store",
-    }
-  );
+export const getUserById = createServerAction(
+  async (id: number) => {
+    const headers = await createAuthHeaders();
+    const res = await fetch(
+      `${process.env.NEXT_PUBLIC_API_URL}/api/users/${id}`,
+      {
+        headers,
+        cache: "no-store",
+      }
+    );
 
-  return handleApiResponse(res, "Error al obtener usuario");
-}, "Error al obtener usuario");
+    return handleApiResponse(res, "Error al obtener usuario", {
+      file: "app/actions/users.ts",
+      endpoint: `/api/users/${id}`,
+      method: "GET",
+    });
+  },
+  "Error al obtener usuario",
+  {
+    file: "app/actions/users.ts",
+    endpoint: "/api/users/:id",
+    method: "GET",
+  }
+);
 
 /**
  * Crea un nuevo usuario en el sistema

@@ -26,27 +26,48 @@ export const getEmployees = createServerAction(
       }
     );
 
-    return handleApiResponse(res, "Error al obtener empleados");
+    return handleApiResponse(res, "Error al obtener empleados", {
+      file: "app/actions/empleados.ts",
+      endpoint: "/api/employees",
+      method: "GET",
+    });
   },
-  "Error al obtener los empleados"
+  "Error al obtener los empleados",
+  {
+    file: "app/actions/empleados.ts",
+    endpoint: "/api/employees",
+    method: "GET",
+  }
 );
 
 /**
  * Obtiene un empleado específico por su ID
  */
-export const getEmployeeById = createServerAction(async (id: string) => {
-  const headers = await createAuthHeaders();
+export const getEmployeeById = createServerAction(
+  async (id: string) => {
+    const headers = await createAuthHeaders();
 
-  const res = await fetch(
-    `${process.env.NEXT_PUBLIC_API_URL}/api/employees/${id}`,
-    {
-      headers,
-      cache: "no-store",
-    }
-  );
+    const res = await fetch(
+      `${process.env.NEXT_PUBLIC_API_URL}/api/employees/${id}`,
+      {
+        headers,
+        cache: "no-store",
+      }
+    );
 
-  return handleApiResponse(res, "Error al obtener el empleado");
-}, `Error al obtener el empleado`);
+    return handleApiResponse(res, "Error al obtener el empleado", {
+      file: "app/actions/empleados.ts",
+      endpoint: `/api/employees/${id}`,
+      method: "GET",
+    });
+  },
+  `Error al obtener el empleado`,
+  {
+    file: "app/actions/empleados.ts",
+    endpoint: "/api/employees/:id",
+    method: "GET",
+  }
+);
 
 /**
  * Obtiene un empleado por su número de documento

@@ -29,10 +29,20 @@ export const getEmployeeLeaves = createServerAction(
 
     return handleApiResponse<LicenciasEmpleadosResponse>(
       res,
-      "Error al obtener las licencias de los empleados"
+      "Error al obtener las licencias de los empleados",
+      {
+        file: "app/actions/LicenciasEmpleados.ts",
+        endpoint: "/api/employee-leaves",
+        method: "GET",
+      }
     );
   },
-  "Error al obtener las licencias de los empleados"
+  "Error al obtener las licencias de los empleados",
+  {
+    file: "app/actions/LicenciasEmpleados.ts",
+    endpoint: "/api/employee-leaves",
+    method: "GET",
+  }
 );
 
 /**

@@ -58,10 +58,20 @@ export const getEmployeeEmergencyContacts = createServerAction(
 
     return handleApiResponse(
       response,
-      `Error al obtener los contactos del empleado ${empleadoId}`
+      `Error al obtener los contactos del empleado ${empleadoId}`,
+      {
+        file: "app/actions/contactosEmergenciaAdmin.ts",
+        endpoint: `/api/employees/emergency/${empleadoId}`,
+        method: "GET",
+      }
     );
   },
-  "Error al obtener los contactos del empleado"
+  "Error al obtener los contactos del empleado",
+  {
+    file: "app/actions/contactosEmergenciaAdmin.ts",
+    endpoint: "/api/employees/emergency/:id",
+    method: "GET",
+  }
 );
 
 /**
@@ -85,10 +95,20 @@ export const createEmployeeEmergencyContact = createServerAction(
 
     return handleApiResponse(
       response,
-      "Error al crear el contacto de emergencia"
+      "Error al crear el contacto de emergencia",
+      {
+        file: "app/actions/contactosEmergenciaAdmin.ts",
+        endpoint: `/api/employees/emergency/${empleadoId}`,
+        method: "POST",
+      }
     );
   },
-  "Error al crear el contacto de emergencia"
+  "Error al crear el contacto de emergencia",
+  {
+    file: "app/actions/contactosEmergenciaAdmin.ts",
+    endpoint: "/api/employees/emergency/:id",
+    method: "POST",
+  }
 );
 
 /**

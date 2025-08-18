@@ -29,9 +29,18 @@ export const getVehicles = createServerAction(
       }
     );
 
-    return handleApiResponse(res, "Error al obtener los vehículos");
+    return handleApiResponse(res, "Error al obtener los vehículos", {
+      file: "app/actions/vehiculos.ts",
+      endpoint: "/api/vehicles",
+      method: "GET",
+    });
   },
-  "Error al obtener los vehículos"
+  "Error al obtener los vehículos",
+  {
+    file: "app/actions/vehiculos.ts",
+    endpoint: "/api/vehicles",
+    method: "GET",
+  }
 );
 
 /**
@@ -39,38 +48,62 @@ export const getVehicles = createServerAction(
  * @param id ID del vehículo
  * @returns Datos del vehículo
  */
-export const getVehicleById = createServerAction(async (id: number) => {
-  const headers = await createAuthHeaders();
+export const getVehicleById = createServerAction(
+  async (id: number) => {
+    const headers = await createAuthHeaders();
 
-  const res = await fetch(
-    `${process.env.NEXT_PUBLIC_API_URL}/api/vehicles/${id}`,
-    {
-      headers,
-      cache: "no-store",
-    }
-  );
+    const res = await fetch(
+      `${process.env.NEXT_PUBLIC_API_URL}/api/vehicles/${id}`,
+      {
+        headers,
+        cache: "no-store",
+      }
+    );
 
-  return handleApiResponse(res, "Error al obtener el vehículo");
-}, "Error al obtener el vehículo");
+    return handleApiResponse(res, "Error al obtener el vehículo", {
+      file: "app/actions/vehiculos.ts",
+      endpoint: `/api/vehicles/${id}`,
+      method: "GET",
+    });
+  },
+  "Error al obtener el vehículo",
+  {
+    file: "app/actions/vehiculos.ts",
+    endpoint: "/api/vehicles/:id",
+    method: "GET",
+  }
+);
 
 /**
  * Obtiene un vehículo por su número de placa
  * @param placa Número de placa del vehículo
  * @returns Datos del vehículo
  */
-export const getVehicleByPlaca = createServerAction(async (placa: string) => {
-  const headers = await createAuthHeaders();
+export const getVehicleByPlaca = createServerAction(
+  async (placa: string) => {
+    const headers = await createAuthHeaders();
 
-  const res = await fetch(
-    `${process.env.NEXT_PUBLIC_API_URL}/api/vehicles/placa/${placa}`,
-    {
-      headers,
-      cache: "no-store",
-    }
-  );
+    const res = await fetch(
+      `${process.env.NEXT_PUBLIC_API_URL}/api/vehicles/placa/${placa}`,
+      {
+        headers,
+        cache: "no-store",
+      }
+    );
 
-  return handleApiResponse(res, "Error al obtener el vehículo por placa");
-}, "Error al obtener el vehículo por placa");
+    return handleApiResponse(res, "Error al obtener el vehículo por placa", {
+      file: "app/actions/vehiculos.ts",
+      endpoint: `/api/vehicles/placa/${placa}`,
+      method: "GET",
+    });
+  },
+  "Error al obtener el vehículo por placa",
+  {
+    file: "app/actions/vehiculos.ts",
+    endpoint: "/api/vehicles/placa/:placa",
+    method: "GET",
+  }
+);
 
 /**
  * Edita la información de un vehículo existente
