@@ -3,6 +3,7 @@
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { createEmailSchema } from "@/lib/formValidation";
 import {
   Dialog,
   DialogContent,
@@ -25,7 +26,7 @@ import { toast } from "sonner";
 import { forgotPassword } from "@/app/actions/login";
 
 const forgotPasswordSchema = z.object({
-  email: z.string().email({ message: "Email inválido" }),
+  email: createEmailSchema("Email inválido"),
 });
 
 interface ForgotPasswordModalProps {

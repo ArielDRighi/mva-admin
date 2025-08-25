@@ -3,6 +3,8 @@
 import { useRouter, useSearchParams } from "next/navigation";
 import React, { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
+import { processErrorForToast } from "@/lib/errorUtils";
+import { createEmailSchema } from "@/lib/formValidation";
 import {
   Card,
   CardContent,
@@ -41,7 +43,7 @@ import { EmpleadoSelector } from "@/components/ui/local/SearchSelector/Selectors
 // Definir esquema de validación con zod
 const userFormSchema = z.object({
   nombre: z.string().min(3, "El nombre debe tener al menos 3 caracteres"),
-  email: z.string().email("Debe ser un email válido"),
+  email: createEmailSchema("Debe ser un email válido"),
   password: z.string().optional(),
   roles: z.array(z.nativeEnum(Role)).min(1, "Debe seleccionar al menos un rol"),
   empleadoId: z.number().nullable().optional(),
@@ -150,19 +152,11 @@ const ListadoUsuariosComponent: React.FC<ListadoUsuariosComponentProps> = ({
         description: "El usuario ha sido eliminado correctamente.",
       });
       await fetchUsers();    } catch (error) {
-      console.error("Error al eliminar el usuario:", error);
+      const errorConfig = processErrorForToast(error, 'eliminar usuario');
       
-      // Extraer el mensaje de error para mostrar información más precisa
-      let errorMessage = "No se pudo eliminar el usuario.";
-      
-      // Si es un error con mensaje personalizado, lo usamos
-      if (error instanceof Error) {
-        errorMessage = error.message || errorMessage;
-      }
-      
-      toast.error("Error al eliminar usuario", {
-        description: errorMessage,
-        duration: 5000, // Duración aumentada para mejor visibilidad
+      toast.error(errorConfig.title, {
+        description: errorConfig.description,
+        duration: errorConfig.duration,
       });
     } finally {
       setUserToDelete(null);
@@ -181,19 +175,11 @@ const ListadoUsuariosComponent: React.FC<ListadoUsuariosComponentProps> = ({
         } correctamente.`,
       });
       await fetchUsers();    } catch (error) {
-      console.error("Error al cambiar el estado del usuario:", error);
+      const errorConfig = processErrorForToast(error, 'cambiar estado de usuario');
       
-      // Extraer el mensaje de error para mostrar información más precisa
-      let errorMessage = "No se pudo cambiar el estado del usuario.";
-      
-      // Si es un error con mensaje personalizado, lo usamos
-      if (error instanceof Error) {
-        errorMessage = error.message || errorMessage;
-      }
-      
-      toast.error("Error al actualizar estado", {
-        description: errorMessage,
-        duration: 5000, // Duración aumentada para mejor visibilidad
+      toast.error(errorConfig.title, {
+        description: errorConfig.description,
+        duration: errorConfig.duration,
       });
     } finally {
       setUserToChangeStatus(null);
@@ -263,17 +249,14 @@ const ListadoUsuariosComponent: React.FC<ListadoUsuariosComponentProps> = ({
       await fetchUsers();
       setIsCreating(false);
       setSelectedUser(null);    } catch (error) {
-      console.error("Error en el envío del formulario:", error);
-        // Ya se está haciendo una buena extracción del mensaje de error, solo mejoramos el formato del toast
-      const errorMessage = error instanceof Error
-        ? error.message
-        : selectedUser
-        ? "No se pudo actualizar el usuario."
-        : "No se pudo crear el usuario.";
+      const errorConfig = processErrorForToast(
+        error, 
+        selectedUser ? 'actualizar usuario' : 'crear usuario'
+      );
       
-      toast.error(selectedUser ? "Error al actualizar usuario" : "Error al crear usuario", {
-        description: errorMessage,
-        duration: 5000, // Duración aumentada para mejor visibilidad
+      toast.error(errorConfig.title, {
+        description: errorConfig.description,
+        duration: errorConfig.duration,
       });
     }
   };  const fetchUsers = useCallback(async () => {
@@ -298,19 +281,11 @@ const ListadoUsuariosComponent: React.FC<ListadoUsuariosComponentProps> = ({
         setPage(typedResponse.currentPage || 1);
       }
     } catch (error) {
-      console.error("Error al cargar los usuarios:", error);
+      const errorConfig = processErrorForToast(error, 'cargar usuarios');
       
-      // Extraer el mensaje de error para mostrar información más precisa
-      let errorMessage = "No se pudieron cargar los usuarios.";
-      
-      // Si es un error con mensaje personalizado, lo usamos
-      if (error instanceof Error) {
-        errorMessage = error.message || errorMessage;
-      }
-      
-      toast.error("Error al cargar usuarios", {
-        description: errorMessage,
-        duration: 5000, // Duración aumentada para mejor visibilidad
+      toast.error(errorConfig.title, {
+        description: errorConfig.description,
+        duration: errorConfig.duration,
       });
     } finally {
       setLoading(false);

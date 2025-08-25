@@ -17,6 +17,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
+import { processErrorForToast } from "@/lib/errorUtils";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { getTotalVehicles } from "@/app/actions/vehiculos";
 import { getTotalEmployees } from "@/app/actions/empleados";
@@ -245,9 +246,11 @@ const DashboardComponent = () => {
             errorMessage.includes("Unauthorized");
 
           if (criticalResources.includes(name) && !isPermissionError) {
-            toast.error(`Error al cargar datos importantes`, {
-              description: errorMessage,
-              duration: 5000,
+            const errorConfig = processErrorForToast(result.reason, `cargar ${name}`);
+            
+            toast.error(errorConfig.title, {
+              description: errorConfig.description,
+              duration: errorConfig.duration,
             });
           }
         }

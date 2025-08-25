@@ -6,6 +6,7 @@ import { z } from "zod";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Toaster, toast } from "sonner";
+import { processErrorForToast } from "@/lib/errorUtils";
 
 import {
   Card,
@@ -225,11 +226,11 @@ export default function ContactosDeEmergenciaComponent() {
         });
       }
     } catch (error) {
-      console.error("Error al eliminar el contacto de emergencia:", error);
-      toast.error("Error", {
-        description: error instanceof Error 
-          ? error.message 
-          : "No se pudo eliminar el contacto de emergencia",
+      const errorConfig = processErrorForToast(error, 'eliminar contacto de emergencia');
+      
+      toast.error(errorConfig.title, {
+        description: errorConfig.description,
+        duration: errorConfig.duration,
       });
     } finally {
       setLoading(false);
@@ -329,13 +330,14 @@ export default function ContactosDeEmergenciaComponent() {
       setIsCreating(false);
       setSelectedContacto(null);
     } catch (error) {
-      console.error("Error en el envío del formulario:", error);
-      toast.error("Error", {
-        description: error instanceof Error 
-          ? error.message 
-          : (selectedContacto
-              ? "No se pudo actualizar el contacto."
-              : "No se pudo crear el contacto."),
+      const errorConfig = processErrorForToast(
+        error, 
+        selectedContacto ? 'actualizar contacto de emergencia' : 'crear contacto de emergencia'
+      );
+      
+      toast.error(errorConfig.title, {
+        description: errorConfig.description,
+        duration: errorConfig.duration,
       });
     } finally {
       setLoading(false);

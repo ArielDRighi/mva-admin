@@ -9,9 +9,10 @@ import {
 import { UpdateVehiculo, Vehiculo } from "@/types/types";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter, useSearchParams } from "next/navigation";
-import React, { useCallback, useEffect, useState, useMemo } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { toast } from "sonner";
+import { processErrorForToast } from "@/lib/errorUtils";
 import { z } from "zod";
 import Loader from "../ui/local/Loader";
 import { ListadoTabla } from "../ui/local/ListadoTabla";
@@ -210,17 +211,11 @@ const ListadoVehiculosComponent = ({
       });
       await fetchVehiculos();
     } catch (error) {
-      console.error("Error al eliminar el vehículo:", error);
-
-      // Extraer el mensaje de error
-      let errorMessage = "No se pudo eliminar el vehículo.";
-      if (error instanceof Error) {
-        errorMessage = error.message;
-      }
-
-      toast.error("Error", {
-        description: errorMessage,
-        duration: 5000,
+      const errorConfig = processErrorForToast(error, 'eliminar vehículo');
+      
+      toast.error(errorConfig.title, {
+        description: errorConfig.description,
+        duration: errorConfig.duration,
       });
     } finally {
       setConfirmDialogOpen(false);
@@ -236,17 +231,11 @@ const ListadoVehiculosComponent = ({
       });
       await fetchVehiculos();
     } catch (error) {
-      console.error("Error al cambiar el estado:", error);
-
-      // Extraer el mensaje de error
-      let errorMessage = "No se pudo cambiar el estado.";
-      if (error instanceof Error) {
-        errorMessage = error.message;
-      }
-
-      toast.error("Error", {
-        description: errorMessage,
-        duration: 5000,
+      const errorConfig = processErrorForToast(error, 'cambiar estado de vehículo');
+      
+      toast.error(errorConfig.title, {
+        description: errorConfig.description,
+        duration: errorConfig.duration,
       });
     }
   };

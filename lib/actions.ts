@@ -1,6 +1,7 @@
 // filepath: lib/actions.ts
 import { cookies } from "next/headers";
 import { handleApiError } from "./errors";
+import { extractErrorMessage, errorLogger } from "./errorUtils";
 
 /**
  * Tipo para representar una acción de servidor con manejo de errores
@@ -154,6 +155,12 @@ export async function handleApiResponse<T>(
   errorMessage: string
 ): Promise<T> {
   if (!response.ok) {
+    errorLogger.log(`handleApiResponse - Status ${response.status}`, {
+      status: response.status,
+      statusText: response.statusText,
+      url: response.url,
+    });
+
     // Si la respuesta no es exitosa, intentar obtener el mensaje de error del servidor
     const errorData = await response.text();
     let parsedError: unknown;
@@ -162,13 +169,42 @@ export async function handleApiResponse<T>(
       // Intentar analizar como JSON solo si hay contenido
       if (errorData) {
         parsedError = JSON.parse(errorData);
+        errorLogger.log("handleApiResponse - Parsed Error", parsedError);
       }
     } catch (e) {
       // Si no se puede analizar como JSON, usar el texto tal cual
-      console.error("Error parsing error response:", e);
+      errorLogger.log("handleApiResponse - JSON Parse Error", {
+        error: e,
+        rawText: errorData.substring(0, 200),
+      });
+
+      // Si el texto contiene información útil, usarlo
+      if (errorData && errorData.trim()) {
+        parsedError = { message: errorData.replace(/"/g, "").trim() };
+      }
     }
 
-    throw parsedError || errorMessage;
+    // Usar la nueva función extractErrorMessage para obtener el mensaje más específico
+    const specificErrorMessage = extractErrorMessage(
+      parsedError || errorMessage
+    );
+
+    // Crear un error estructurado que mantenga tanto el mensaje específico como la información original
+    const enhancedError = new Error(specificErrorMessage);
+    (
+      enhancedError as unknown as {
+        originalError?: unknown;
+        statusCode?: number;
+      }
+    ).originalError = parsedError;
+    (
+      enhancedError as unknown as {
+        originalError?: unknown;
+        statusCode?: number;
+      }
+    ).statusCode = response.status;
+
+    throw enhancedError;
   }
 
   // Para respuestas exitosas, verificar si hay contenido
@@ -186,31 +222,34 @@ export async function handleApiResponse<T>(
     contentLength === "0" ||
     (contentType?.includes("application/json") && contentLength === "0")
   ) {
-    return {} as T;  }
+    return {} as T;
+  }
   // Para respuestas con contenido, intentar leer como texto primero
   try {
     const text = await response.text();
-    
+
     // Si no hay contenido, retornar objeto vacío
     if (!text.trim()) {
       return {} as T;
     }
-    
+
     // Intentar parsear como JSON solo si el content-type indica JSON
     if (contentType?.includes("application/json")) {
       try {
         return JSON.parse(text) as T;
       } catch (parseError) {
-        console.error("Error parsing JSON response:", parseError);
-        console.error("Response text:", text.substring(0, 200));
+        errorLogger.log("handleApiResponse - Success JSON Parse Error", {
+          error: parseError,
+          rawText: text.substring(0, 200),
+        });
         throw new Error(`Invalid JSON response: Error parsing response`);
       }
     } else {
       // Si no es JSON, tratar como texto plano y envolver en un objeto
-      return { message: text.replace(/"/g, '') } as T;
+      return { message: text.replace(/"/g, "") } as T;
     }
   } catch (error) {
-    console.error("Error reading response:", error);
+    errorLogger.log("handleApiResponse - Response Read Error", error);
     throw new Error("Failed to read response");
   }
 }

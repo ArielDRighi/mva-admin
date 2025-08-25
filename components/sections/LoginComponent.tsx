@@ -3,6 +3,7 @@
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { createEmailSchema } from "@/lib/formValidation";
 import {
   Form,
   FormControl,
@@ -22,7 +23,7 @@ import { toast } from "sonner";
 import ForgotPasswordModal from "../ui/ForgotPasswordModal";
 
 const formSchema = z.object({
-  email: z.string().min(3, { message: "El mail es obligatorio" }),
+  email: createEmailSchema("El mail es obligatorio"),
   password: z.string().min(6, { message: "Mínimo 6 caracteres" }),
 });
 

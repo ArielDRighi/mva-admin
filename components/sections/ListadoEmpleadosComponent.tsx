@@ -18,6 +18,7 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { FormDialog } from "../ui/local/FormDialog";
 import { FormField } from "../ui/local/FormField";
+import { createEmailSchema } from "@/lib/formValidation";
 import Loader from "../ui/local/Loader";
 import { z } from "zod";
 import { Controller, useForm } from "react-hook-form";
@@ -119,12 +120,7 @@ export default function ListadoEmpleadosComponent({
       .min(1, "La fecha de nacimiento es obligatoria"),
     direccion: z.string().min(1, "La dirección es obligatoria"),
     telefono: z.string().min(1, "El teléfono es obligatorio"),
-    email: z
-      .string()
-      .regex(
-        /^[^@]+@[^@]+\.[^@]+$/,
-        "Formato de email inválido, ejemplo: empleado@empresa.com"
-      ),
+    email: createEmailSchema("Formato de email inválido, ejemplo: empleado@empresa.com"),
     cargo: z.string().min(1, "El puesto es obligatorio"),
     estado: z.enum(["ASIGNADO", "DISPONIBLE", "SUSPENDIDO"], {
       errorMap: () => ({ message: "El estado es obligatorio" }),

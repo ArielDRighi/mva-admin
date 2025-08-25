@@ -5,7 +5,7 @@ import { ListadoTabla } from "@/components/ui/local/ListadoTabla";
 import { Badge } from "@/components/ui/badge";
 import { Cliente, ClienteFormulario } from "@/types/types";
 import { TableCell } from "../ui/table";
-import { useCallback, useEffect, useState, useMemo } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { FormDialog } from "../ui/local/FormDialog";
@@ -13,8 +13,10 @@ import { FormField } from "../ui/local/FormField";
 import Loader from "../ui/local/Loader";
 import { z } from "zod";
 import { Controller, useForm } from "react-hook-form";
+import { createEmailSchema, createCUITSchema, createPhoneSchema } from "@/lib/formValidation";
 import { zodResolver } from "@hookform/resolvers/zod";
 import React from "react";
+import { processErrorForToast } from "@/lib/errorUtils";
 import {
   UserCheck,
   UserPlus,
@@ -29,7 +31,6 @@ import {
   CreditCard,
   MapPin,
   User2,
-  X,
 } from "lucide-react";
 import {
   Card,
@@ -91,31 +92,16 @@ export default function ListadoClientesComponent({
   );
   const createClientSchema = z.object({
     nombre: z.string().min(1, "El nombre es obligatorio"),
-
-    cuit: z
-      .string()
-      .regex(
-        /^\d{2}-\d{8}-\d$/,
-        "Formato de CUIT incorrecto, debe ser xx-xxxxxxxx-x"
-      )
-      .or(z.string().regex(/^\d{11}$/, "Debe tener 11 dígitos, sin guiones")),
+    cuit: createCUITSchema(),
     direccion: z.string().min(1, "La dirección es obligatoria"),
-    telefono: z.string().min(1, "El teléfono es obligatorio"),
-
-    email: z
-      .string()
-      .regex(
-        /^[^@]+@[^@]+\.[^@]+$/,
-        "Formato de email inválido, ejemplo: contacto@empresa.com"
-      ),
-
+    telefono: createPhoneSchema(),
+    email: createEmailSchema("Formato de email inválido, ejemplo: contacto@empresa.com"),
     contacto_principal: z.string().min(1, "El contacto es obligatorio"),
     contacto_principal_telefono: z.string().optional(),
     contactoObra1: z.string().optional(),
     contacto_obra1_telefono: z.string().optional(),
     contactoObra2: z.string().optional(),
     contacto_obra2_telefono: z.string().optional(),
-
     estado: z.enum(["ACTIVO", "INACTIVO"], {
       errorMap: () => ({ message: "El estado es obligatorio" }),
     }),
@@ -241,15 +227,11 @@ export default function ListadoClientesComponent({
 
       await fetchClients();
     } catch (error) {
-      console.error("Error al eliminar el cliente:", error);
-
-      // Extraer el mensaje de error para mostrar información más precisa
-      const errorMessage =
-        error instanceof Error ? error.message : "Error desconocido";
-
-      toast.error("Error al eliminar cliente", {
-        description: errorMessage,
-        duration: 5000,
+      const errorConfig = processErrorForToast(error, 'eliminar cliente');
+      
+      toast.error(errorConfig.title, {
+        description: errorConfig.description,
+        duration: errorConfig.duration,
       });
     } finally {
       setLoading(false);
@@ -286,21 +268,15 @@ export default function ListadoClientesComponent({
       setIsCreating(false);
       setSelectedClient(null);
     } catch (error) {
-      console.error("Error en el envío del formulario:", error);
-
-      // Extraer el mensaje de error para mostrar información más precisa
-      const errorMessage =
-        error instanceof Error ? error.message : "Error desconocido";
-
-      toast.error(
-        selectedClient
-          ? "Error al actualizar cliente"
-          : "Error al crear cliente",
-        {
-          description: errorMessage,
-          duration: 5000,
-        }
+      const errorConfig = processErrorForToast(
+        error, 
+        selectedClient ? 'actualizar cliente' : 'crear cliente'
       );
+      
+      toast.error(errorConfig.title, {
+        description: errorConfig.description,
+        duration: errorConfig.duration,
+      });
     } finally {
       setLoading(false);
     }
@@ -321,15 +297,11 @@ export default function ListadoClientesComponent({
       setTotal(fetchedClients.total);
       setPage(fetchedClients.page);
     } catch (error) {
-      console.error("Error al cargar los clientes:", error);
-
-      // Extraer el mensaje de error para mostrar información más precisa
-      const errorMessage =
-        error instanceof Error ? error.message : "Error desconocido";
-
-      toast.error("Error al cargar clientes", {
-        description: errorMessage,
-        duration: 5000,
+      const errorConfig = processErrorForToast(error, 'cargar clientes');
+      
+      toast.error(errorConfig.title, {
+        description: errorConfig.description,
+        duration: errorConfig.duration,
       });
     } finally {
       setLoading(false);
@@ -547,8 +519,9 @@ export default function ListadoClientesComponent({
                     size="sm"
                     onClick={(e) => {
                       e.stopPropagation();
-                      cliente.clienteId &&
+                      if (cliente.clienteId) {
                         handleDeleteClick(cliente.clienteId.toString());
+                      }
                     }}
                     className="cursor-pointer bg-red-100 text-red-700 hover:bg-red-200 hover:text-red-800"
                   >
