@@ -20,6 +20,7 @@ import {
   rejectEmployeeLeave,
 } from "@/app/actions/LicenciasEmpleados";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { FormDialog } from "../ui/local/FormDialog";
 import { FormField } from "../ui/local/FormField";
@@ -44,6 +45,7 @@ import {
   Calendar,
   FileText,
   Plus,
+  X,
 } from "lucide-react";
 import { LicenciaEmpleado } from "@/types/licenciasTypes";
 
@@ -72,6 +74,7 @@ export default function LicenciasEmpleadosComponent({
   const [isCreating, setIsCreating] = useState<boolean>(false);
   const [isFirstLoad, setIsFirstLoad] = useState<boolean>(true);
   const [activeTab, setActiveTab] = useState<string>("todos");
+  const [searchTerm, setSearchTerm] = useState("");
   // Estados para los diálogos de confirmación
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<boolean>(false);
   const [licenciaToDelete, setLicenciaToDelete] = useState<number | null>(null);
@@ -131,6 +134,10 @@ export default function LicenciasEmpleadosComponent({
     params.set("search", search);
     params.set("page", "1");
     router.replace(`?${params.toString()}`);
+  };
+
+  const handleClearSearch = () => {
+    setSearchTerm("");
   };
 
   const handleEditClick = (licencia: LicenciaEmpleado) => {
@@ -491,19 +498,25 @@ export default function LicenciasEmpleadosComponent({
     }
   };
 
-  // Filtrar licencias según la pestaña activa
-  const filteredLicencias =
-    activeTab === "todos"
-      ? licencias
-      : licencias.filter((licencia) => {
-          try {
-            const status = getApprovalStatus(licencia);
-            return status === activeTab.toUpperCase();
-          } catch (error) {
-            console.error("Error al filtrar licencia:", error);
-            return false; // Omitir esta licencia en caso de error
-          }
-        });
+  // Filtrar licencias según la pestaña activa y búsqueda
+  const filteredLicencias = licencias.filter((licencia) => {
+    try {
+      // Filtro por tab activo
+      const matchesTab = activeTab === "todos" || getApprovalStatus(licencia) === activeTab.toUpperCase();
+      
+      // Filtro por término de búsqueda
+      const matchesSearch = !searchTerm || 
+        licencia.tipoLicencia.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (licencia.employee?.nombre || licencia.empleado?.nombre || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (licencia.employee?.apellido || licencia.empleado?.apellido || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (licencia.notas || "").toLowerCase().includes(searchTerm.toLowerCase());
+      
+      return matchesTab && matchesSearch;
+    } catch (error) {
+      console.error("Error al filtrar licencia:", error);
+      return false; // Omitir esta licencia en caso de error
+    }
+  });
 
   // Función para formatear fechas de manera segura
   const formatDate = (dateString: string) => {
@@ -530,9 +543,9 @@ export default function LicenciasEmpleadosComponent({
   return (
     <Card className="w-full shadow-md">
       <CardHeader className="bg-slate-50 dark:bg-slate-900 border-b">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
           <div>
-            <CardTitle className="text-2xl font-bold">
+            <CardTitle className="text-xl md:text-2xl font-bold">
               Licencias de Empleados
             </CardTitle>
             <CardDescription className="text-muted-foreground mt-1">
@@ -543,8 +556,9 @@ export default function LicenciasEmpleadosComponent({
             onClick={handleCreateClick}
             className="cursor-pointer bg-indigo-600 hover:bg-indigo-700"
           >
-            <Plus className="mr-2 h-4 w-4" />
-            Nueva Licencia
+            <Plus className="mr-1 md:mr-2 h-4 w-4" />
+            <span className="hidden md:inline">Nueva Licencia</span>
+            <span className="inline md:hidden">Nueva</span>
           </Button>
         </div>
 
@@ -554,42 +568,66 @@ export default function LicenciasEmpleadosComponent({
             value={activeTab}
             onValueChange={handleTabChange}
           >
-            <TabsList className="grid grid-cols-4 w-[500px]">
-              <TabsTrigger value="todos" className="flex items-center">
-                <UserRound className="mr-2 h-4 w-4" />
-                Todas
+            <TabsList className="grid grid-cols-2 md:grid-cols-4 w-full max-w-none md:max-w-[500px] h-auto gap-1 p-1">
+              <TabsTrigger value="todos" className="flex items-center justify-center text-xs md:text-sm">
+                <UserRound className="mr-1 md:mr-2 h-3 w-3 md:h-4 md:w-4" />
+                <span className="block md:hidden">Todas</span>
+                <span className="hidden md:block">Todas</span>
               </TabsTrigger>
-              <TabsTrigger value="pending" className="flex items-center">
-                <PauseCircle className="mr-2 h-4 w-4" />
-                Pendientes
+              <TabsTrigger value="pending" className="flex items-center justify-center text-xs md:text-sm">
+                <PauseCircle className="mr-1 md:mr-2 h-3 w-3 md:h-4 md:w-4" />
+                <span className="block md:hidden">Pend.</span>
+                <span className="hidden md:block">Pendientes</span>
               </TabsTrigger>
-              <TabsTrigger value="approved" className="flex items-center">
-                <CheckCircle className="mr-2 h-4 w-4" />
-                Aprobadas
+              <TabsTrigger value="approved" className="flex items-center justify-center text-xs md:text-sm">
+                <CheckCircle className="mr-1 md:mr-2 h-3 w-3 md:h-4 md:w-4" />
+                <span className="block md:hidden">Aprob.</span>
+                <span className="hidden md:block">Aprobadas</span>
               </TabsTrigger>
-              <TabsTrigger value="rejected" className="flex items-center">
-                <Trash2 className="mr-2 h-4 w-4" />
-                Rechazadas
+              <TabsTrigger value="rejected" className="flex items-center justify-center text-xs md:text-sm">
+                <Trash2 className="mr-1 md:mr-2 h-3 w-3 md:h-4 md:w-4" />
+                <span className="block md:hidden">Rech.</span>
+                <span className="hidden md:block">Rechazadas</span>
               </TabsTrigger>
             </TabsList>
           </Tabs>
         </div>
       </CardHeader>
 
-      <CardContent className="p-6">
+      <CardContent className="p-4 md:p-6">
+        {/* Input de búsqueda externo */}
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 mb-4">
+          <form onSubmit={(e) => {
+            e.preventDefault();
+            handleSearchChange(searchTerm);
+          }} className="flex gap-2 flex-1">
+            <Input
+              placeholder="Buscar por empleado, tipo de licencia o notas... (presiona Enter)"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="flex-1 min-w-0"
+            />
+            <Button type="submit" className="shrink-0">Buscar</Button>
+          </form>
+          {searchTerm && (
+            <Button
+              variant="outline"
+              onClick={handleClearSearch}
+              className="shrink-0"
+            >
+              <X className="h-4 w-4 mr-1" />
+              Limpiar
+            </Button>
+          )}
+        </div>
+        
         <div className="rounded-md border">
           <ListadoTabla
             title=""
             data={filteredLicencias}
             itemsPerPage={itemsPerPage}
-            searchableKeys={[
-              "tipoLicencia",
-              "employee.nombre",
-              "employee.apellido",
-              "empleado.nombre",
-              "empleado.apellido",
-            ]}
-            searchPlaceholder="Buscar por empleado o tipo..."
+            searchableKeys={[]}
+            searchPlaceholder=""
             remotePagination
             totalItems={total}
             currentPage={page}
@@ -597,35 +635,39 @@ export default function LicenciasEmpleadosComponent({
             onSearchChange={handleSearchChange}
             columns={[
               { title: "Empleado", key: "employee" },
-              { title: "Tipo", key: "tipoLicencia" },
-              { title: "Periodo", key: "fechas" },
+              { title: "Tipo", key: "tipoLicencia", className: "hidden sm:table-cell" },
+              { title: "Periodo", key: "fechas", className: "hidden md:table-cell" },
               { title: "Estado", key: "status" },
               { title: "Acciones", key: "acciones" },
             ]}
             renderRow={(licencia) => (
               <>
-                <TableCell className="min-w-[250px]">
-                  <div className="flex items-center gap-3">
-                    <div className="h-10 w-10 rounded-full bg-slate-100 flex items-center justify-center">
-                      <UserRound className="h-5 w-5 text-slate-600" />
+                <TableCell className="min-w-[200px] md:min-w-[250px]">
+                  <div className="flex items-center gap-2 md:gap-3">
+                    <div className="h-8 w-8 md:h-10 md:w-10 rounded-full bg-slate-100 flex items-center justify-center">
+                      <UserRound className="h-4 w-4 md:h-5 md:w-5 text-slate-600" />
                     </div>
                     <div>
-                      <div className="font-medium">
+                      <div className="font-medium text-sm md:text-base">
                         {/* Intenta primero con employee (estructura actual) */}
                         {licencia.employee?.nombre ||
                           licencia.empleado?.nombre}{" "}
                         {licencia.employee?.apellido ||
                           licencia.empleado?.apellido}
                       </div>
-                      <div className="text-sm text-muted-foreground">
+                      <div className="text-xs md:text-sm text-muted-foreground">
                         {licencia.employee?.cargo ||
                           licencia.empleado?.cargo ||
                           ""}
                       </div>
+                      {/* Mostrar tipo de licencia en móvil */}
+                      <div className="text-xs text-blue-600 sm:hidden">
+                        {licencia.tipoLicencia}
+                      </div>
                     </div>
                   </div>
                 </TableCell>
-                <TableCell className="min-w-[180px]">
+                <TableCell className="min-w-[180px] hidden sm:table-cell">
                   <div className="space-y-1">
                     <div className="flex items-center text-sm font-medium">
                       <FileText className="h-3.5 w-3.5 mr-2 text-muted-foreground" />
@@ -638,7 +680,7 @@ export default function LicenciasEmpleadosComponent({
                     )}
                   </div>
                 </TableCell>
-                <TableCell className="min-w-[200px]">
+                <TableCell className="min-w-[200px] hidden md:table-cell">
                   <div className="space-y-1">
                     <div className="flex items-center text-sm">
                       <Calendar className="h-3.5 w-3.5 mr-2 text-muted-foreground" />
@@ -678,15 +720,15 @@ export default function LicenciasEmpleadosComponent({
                       : "Pendiente"}
                   </Badge>
                 </TableCell>
-                <TableCell className="flex gap-2">
+                <TableCell className="flex flex-wrap gap-1 md:gap-2">
                   <Button
                     variant="outline"
                     size="sm"
                     onClick={() => handleEditClick(licencia)}
                     className="cursor-pointer border-slate-200 hover:bg-slate-50 hover:text-slate-900"
                   >
-                    <Edit2 className="h-3.5 w-3.5 mr-1" />
-                    Editar
+                    <Edit2 className="h-3.5 w-3.5 mr-0 md:mr-1" />
+                    <span className="hidden md:inline">Editar</span>
                   </Button>
 
                   {getApprovalStatus(licencia) === "PENDING" && (
@@ -699,8 +741,8 @@ export default function LicenciasEmpleadosComponent({
                         }
                         className="cursor-pointer bg-green-100 text-green-700 hover:bg-green-200 hover:text-green-800"
                       >
-                        <CheckCircle className="h-3.5 w-3.5 mr-1" />
-                        Aprobar
+                        <CheckCircle className="h-3.5 w-3.5 mr-0 md:mr-1" />
+                        <span className="hidden lg:inline">Aprobar</span>
                       </Button>
 
                       <Button
@@ -711,8 +753,8 @@ export default function LicenciasEmpleadosComponent({
                         }
                         className="cursor-pointer bg-red-100 text-red-700 hover:bg-red-200 hover:text-red-800"
                       >
-                        <PauseCircle className="h-3.5 w-3.5 mr-1" />
-                        Rechazar
+                        <PauseCircle className="h-3.5 w-3.5 mr-0 md:mr-1" />
+                        <span className="hidden lg:inline">Rechazar</span>
                       </Button>
                     </>
                   )}
@@ -725,8 +767,8 @@ export default function LicenciasEmpleadosComponent({
                     }
                     className="cursor-pointer bg-red-100 text-red-700 hover:bg-red-200 hover:text-red-800"
                   >
-                    <Trash2 className="h-3.5 w-3.5 mr-1" />
-                    Eliminar
+                    <Trash2 className="h-3.5 w-3.5 mr-0 md:mr-1" />
+                    <span className="hidden md:inline">Eliminar</span>
                   </Button>
                 </TableCell>
               </>

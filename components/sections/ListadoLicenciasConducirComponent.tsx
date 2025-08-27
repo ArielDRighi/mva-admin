@@ -15,6 +15,8 @@ import Loader from "../ui/local/Loader";
 import { ListadoTabla } from "../ui/local/ListadoTabla";
 import { TableCell } from "../ui/table";
 import { Badge } from "../ui/badge";
+import { Button } from "../ui/button";
+import { Input } from "../ui/input";
 import {
   Card,
   CardContent,
@@ -30,6 +32,7 @@ import {
   ShieldCheck,
   FileText,
   Car,
+  X,
 } from "lucide-react";
 import { format, differenceInDays } from "date-fns";
 
@@ -64,6 +67,7 @@ export default function ListadoLicenciasConducirComponent({
   const [total, setTotal] = useState(totalItems || 0);
   const [page, setPage] = useState(currentPage || 1);
   const [activeTab, setActiveTab] = useState("todos");
+  const [searchTerm, setSearchTerm] = useState("");
   const [isFirstLoad, setIsFirstLoad] = useState(true);
   const matchesStatusTerm = (
     licencia: LicenciaConducir,
@@ -233,6 +237,11 @@ export default function ListadoLicenciasConducirComponent({
     },
     [searchParams, router]
   );
+
+  const handleClearSearch = () => {
+    setSearchTerm("");
+  };
+
   const handleTabChange = useCallback(
     (value: string) => {
       setActiveTab(value);
@@ -358,24 +367,33 @@ export default function ListadoLicenciasConducirComponent({
     return categorias[categoria] || categoria;
   };
 
-  const filteredLicencias = useMemo(
-    () =>
-      activeTab === "todos"
-        ? licencias
-        : licencias.filter((licencia) => {
-            try {
-              const diasRestantes = differenceInDays(
-                new Date(licencia.fecha_vencimiento),
-                new Date()
-              );
-              return diasRestantes < 60 && diasRestantes > -30;
-            } catch (error) {
-              console.error("Error al filtrar licencias:", error);
-              return false;
-            }
-          }),
-    [licencias, activeTab]
-  );
+  const filteredLicencias = useMemo(() => {
+    return licencias.filter((licencia) => {
+      try {
+        // Filtro por tab activo
+        let matchesTab = true;
+        if (activeTab === "por-vencer") {
+          const diasRestantes = differenceInDays(
+            new Date(licencia.fecha_vencimiento),
+            new Date()
+          );
+          matchesTab = diasRestantes < 60 && diasRestantes > -30;
+        }
+        
+        // Filtro por término de búsqueda
+        const matchesSearch = !searchTerm || 
+          (licencia.empleado?.nombre || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+          (licencia.empleado?.apellido || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+          (licencia.empleado?.documento || "").toString().includes(searchTerm) ||
+          licencia.categoria.toLowerCase().includes(searchTerm.toLowerCase());
+        
+        return matchesTab && matchesSearch;
+      } catch (error) {
+        console.error("Error al filtrar licencias:", error);
+        return false;
+      }
+    });
+  }, [licencias, activeTab, searchTerm]);
 
   // Añadir esta función antes del return para crear una versión "plana" de los datos
   const enhancedLicencias = useMemo(() => {
@@ -442,41 +460,74 @@ export default function ListadoLicenciasConducirComponent({
       {/* Contenido principal */}
       <Card className="w-full shadow-md">
         <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950 dark:to-indigo-950 border-b">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
             <div>
-              <CardTitle className="text-2xl font-bold text-blue-800 dark:text-blue-300">
+              <CardTitle className="text-xl md:text-2xl font-bold text-blue-800 dark:text-blue-300">
                 <div className="flex items-center">
-                  <Car className="mr-2 h-6 w-6" />
-                  Licencias de Conducir
+                  <Car className="mr-2 h-5 w-5 md:h-6 md:w-6" />
+                  <span className="hidden md:inline">Licencias de Conducir</span>
+                  <span className="inline md:hidden">Licencias</span>
                 </div>
               </CardTitle>
               <CardDescription className="text-muted-foreground mt-1">
-                Listado completo de licencias de conducir registradas
+                <span className="hidden md:inline">Listado completo de licencias de conducir registradas</span>
+                <span className="inline md:hidden">Licencias de conducir</span>
               </CardDescription>
             </div>
           </div>
         </CardHeader>
 
-        <CardContent className="p-6">
+        <CardContent className="p-4 md:p-6">
           <Tabs
             defaultValue="todos"
             value={activeTab}
             onValueChange={handleTabChange}
             className="mb-6"
           >
-            <TabsList>
-              <TabsTrigger value="todos">Todas</TabsTrigger>
-              <TabsTrigger value="por-vencer">Por vencer</TabsTrigger>
+            <TabsList className="grid grid-cols-2 w-full max-w-none md:max-w-[300px] h-auto gap-1 p-1">
+              <TabsTrigger value="todos" className="flex items-center justify-center text-xs md:text-sm">
+                <span className="block">Todas</span>
+              </TabsTrigger>
+              <TabsTrigger value="por-vencer" className="flex items-center justify-center text-xs md:text-sm">
+                <span className="block md:hidden">Por vencer</span>
+                <span className="hidden md:block">Por vencer</span>
+              </TabsTrigger>
             </TabsList>
           </Tabs>
+
+          {/* Input de búsqueda externo */}
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 mb-4">
+            <form onSubmit={(e) => {
+              e.preventDefault();
+              handleSearchChange(searchTerm);
+            }} className="flex gap-2 flex-1">
+              <Input
+                placeholder="Buscar por nombre, apellido, documento o categoría... (presiona Enter)"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="flex-1 min-w-0"
+              />
+              <Button type="submit" className="shrink-0">Buscar</Button>
+            </form>
+            {searchTerm && (
+              <Button
+                variant="outline"
+                onClick={handleClearSearch}
+                className="shrink-0"
+              >
+                <X className="h-4 w-4 mr-1" />
+                Limpiar
+              </Button>
+            )}
+          </div>
 
           <div className="rounded-md border">
             <ListadoTabla
               title=""
               data={enhancedLicencias}
               itemsPerPage={itemsPerPage}
-              searchableKeys={searchableKeys}
-              searchPlaceholder="Buscar por nombre, apellido o DNI... (presiona Enter)"
+              searchableKeys={[]}
+              searchPlaceholder=""
               remotePagination
               totalItems={total}
               currentPage={page}
@@ -484,20 +535,20 @@ export default function ListadoLicenciasConducirComponent({
               onSearchChange={handleSearchChange}
               columns={[
                 { title: "Empleado", key: "empleado" },
-                { title: "Categoría", key: "categoria" },
-                { title: "Fechas", key: "fechas" },
+                { title: "Categoría", key: "categoria", className: "hidden sm:table-cell" },
+                { title: "Fechas", key: "fechas", className: "hidden md:table-cell" },
                 { title: "Estado", key: "estado" },
               ]}
               renderRow={(licencia) => (
                 <>
-                  <TableCell className="min-w-[200px]">
+                  <TableCell className="min-w-[180px] md:min-w-[200px]">
                     <div className="flex items-center gap-2">
                       <div className="flex flex-col">
-                        <div className="font-medium">
+                        <div className="font-medium text-sm md:text-base">
                           {licencia.empleado?.nombre}{" "}
                           {licencia.empleado?.apellido}
                         </div>
-                        <div className="text-sm text-muted-foreground">
+                        <div className="text-xs md:text-sm text-muted-foreground">
                           {licencia.empleado?.documento}
                         </div>
                         {licencia.empleado?.cargo && (
@@ -505,11 +556,15 @@ export default function ListadoLicenciasConducirComponent({
                             {licencia.empleado?.cargo}
                           </div>
                         )}
+                        {/* Mostrar categoría en móvil cuando la columna está oculta */}
+                        <div className="text-xs text-blue-600 font-medium sm:hidden mt-1">
+                          {licencia.categoria}
+                        </div>
                       </div>
                     </div>
                   </TableCell>
 
-                  <TableCell className="min-w-[180px]">
+                  <TableCell className="min-w-[180px] hidden sm:table-cell">
                     <div className="space-y-1">
                       <div className="flex items-center text-sm font-medium">
                         <FileText className="h-3.5 w-3.5 mr-2 text-muted-foreground" />
@@ -518,7 +573,7 @@ export default function ListadoLicenciasConducirComponent({
                     </div>
                   </TableCell>
 
-                  <TableCell className="min-w-[180px]">
+                  <TableCell className="min-w-[180px] hidden md:table-cell">
                     <div className="space-y-1">
                       <div className="flex items-center text-sm">
                         <Calendar className="h-3.5 w-3.5 mr-2 text-muted-foreground" />

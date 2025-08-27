@@ -1017,12 +1017,12 @@ export default function CrearInstalacionComponent() {
   return (
     <Card className="w-full shadow-md">
       <CardHeader className="bg-slate-50 dark:bg-slate-900 border-b">
-        <div className="flex items-center justify-between">
-          <div>
-            <CardTitle className="text-2xl font-bold">
+        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+          <div className="flex-1 min-w-0">
+            <CardTitle className="text-xl md:text-2xl font-bold truncate">
               Crear Nuevo Servicio
             </CardTitle>
-            <CardDescription className="text-muted-foreground mt-1">
+            <CardDescription className="text-muted-foreground mt-1 text-sm">
               {step === 1 && "Seleccione el cliente para el nuevo servicio"}
               {step === 2 && "Seleccione la condición contractual aplicable"}
               {step === 3 && "Defina la fecha y detalles del servicio"}
@@ -1031,49 +1031,57 @@ export default function CrearInstalacionComponent() {
           </div>
           <Badge
             variant="outline"
-            className="bg-slate-100 text-slate-700 text-base px-3 py-1"
+            className="bg-slate-100 text-slate-700 text-sm md:text-base px-2 md:px-3 py-1 whitespace-nowrap"
           >
             Paso {step} de 4
           </Badge>
         </div>
       </CardHeader>
 
-      <CardContent className="p-6">
+      <CardContent className="p-4 md:p-6">
         {/* Progress indicator */}
-        <div className="mb-8">
-          <div className="flex justify-between mb-2">
+        <div className="mb-6 md:mb-8">
+          <div className="flex flex-col sm:flex-row justify-between mb-2 gap-2">
             <span
-              className={`font-medium flex items-center gap-1 ${
+              className={`font-medium flex items-center gap-1 text-sm ${
                 step >= 1 ? "text-indigo-600" : "text-slate-500"
               }`}
             >
-              <FileText className="h-4 w-4" /> Cliente
+              <FileText className="h-3 w-3 md:h-4 md:w-4" /> 
+              <span className="hidden sm:inline">Cliente</span>
+              <span className="sm:hidden">1</span>
             </span>
             <span
-              className={`font-medium flex items-center gap-1 ${
+              className={`font-medium flex items-center gap-1 text-sm ${
                 step >= 2 ? "text-indigo-600" : "text-slate-500"
               }`}
             >
-              <Calendar className="h-4 w-4" /> Contrato
+              <Calendar className="h-3 w-3 md:h-4 md:w-4" /> 
+              <span className="hidden sm:inline">Contrato</span>
+              <span className="sm:hidden">2</span>
             </span>
             <span
-              className={`font-medium flex items-center gap-1 ${
+              className={`font-medium flex items-center gap-1 text-sm ${
                 step >= 3 ? "text-indigo-600" : "text-slate-500"
               }`}
             >
-              <MapPin className="h-4 w-4" /> Programación
+              <MapPin className="h-3 w-3 md:h-4 md:w-4" /> 
+              <span className="hidden sm:inline">Programación</span>
+              <span className="sm:hidden">3</span>
             </span>
             <span
-              className={`font-medium flex items-center gap-1 ${
+              className={`font-medium flex items-center gap-1 text-sm ${
                 step >= 4 ? "text-indigo-600" : "text-slate-500"
               }`}
             >
-              <Users className="h-4 w-4" /> Recursos
+              <Users className="h-3 w-3 md:h-4 md:w-4" /> 
+              <span className="hidden sm:inline">Recursos</span>
+              <span className="sm:hidden">4</span>
             </span>
           </div>
-          <div className="w-full bg-slate-200 rounded-full h-2.5">
+          <div className="w-full bg-slate-200 rounded-full h-2 md:h-2.5">
             <div
-              className="bg-indigo-600 h-2.5 rounded-full"
+              className="bg-indigo-600 h-2 md:h-2.5 rounded-full transition-all duration-300"
               style={{ width: `${(step / 4) * 100}%` }}
             ></div>
           </div>
@@ -1148,7 +1156,7 @@ export default function CrearInstalacionComponent() {
                       <Loader className="h-8 w-8 text-indigo-500" />
                     </div>
                   ) : (
-                    <div className="border rounded-md max-h-[350px] overflow-y-auto">
+                    <div className="border rounded-md max-h-[300px] md:max-h-[350px] overflow-y-auto">
                       {filteredClientes.length > 0 ? (
                         filteredClientes.map((cliente) => (
                           <div
@@ -1264,7 +1272,7 @@ export default function CrearInstalacionComponent() {
                       <Loader className="h-8 w-8 text-indigo-500" />
                     </div>
                   ) : (
-                    <div className="max-h-[450px] overflow-y-auto px-1 py-2">
+                    <div className="max-h-[350px] md:max-h-[450px] overflow-y-auto px-1 py-2">
                       {filteredCondiciones.length > 0 ? (
                         filteredCondiciones.map((condicion) => (
                           <div
@@ -1380,8 +1388,8 @@ export default function CrearInstalacionComponent() {
         )}
         {/* Step 3: Service scheduling */}
         {step === 3 && (
-          <div className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="space-y-4 md:space-y-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
               <Controller
                 name="fechaProgramada"
                 control={control}
@@ -1459,7 +1467,7 @@ export default function CrearInstalacionComponent() {
         )}{" "}
         {/* Step 4: Resource assignment */}
         {step === 4 && (
-          <div className="space-y-6">
+          <div className="space-y-4 md:space-y-6">
             <div>
               <h3 className="font-medium mb-1 flex items-center justify-between">
                 Empleados Disponibles
@@ -1535,15 +1543,17 @@ export default function CrearInstalacionComponent() {
               {/* Información de roles */}
               <div className="bg-blue-50 p-3 rounded-md mb-3 text-sm">
                 <p className="font-medium mb-1">Asignación de roles:</p>
-                <p>
-                  <span className="font-medium">Empleado A (azul):</span>{" "}
-                  Conductor principal con vehículo asignado
-                </p>
-                <p>
-                  <span className="font-medium">Empleado B (verde):</span>{" "}
-                  Asistente/colaborador
-                </p>
-                <p className="mt-1 text-xs text-gray-500">
+                <div className="space-y-1">
+                  <p>
+                    <span className="font-medium">Empleado A (azul):</span>{" "}
+                    <span className="block sm:inline">Conductor principal con vehículo asignado</span>
+                  </p>
+                  <p>
+                    <span className="font-medium">Empleado B (verde):</span>{" "}
+                    <span className="block sm:inline">Asistente/colaborador</span>
+                  </p>
+                </div>
+                <p className="mt-2 text-xs text-gray-500">
                   Después de seleccionar empleados, puede asignarles roles
                   haciendo clic en los botones "Rol A" o "Rol B"
                 </p>
@@ -1599,7 +1609,7 @@ export default function CrearInstalacionComponent() {
                   <Loader className="h-6 w-6 text-indigo-500" />
                 </div>
               ) : filteredEmpleados.length > 0 ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
                   {filteredEmpleados.map((empleado) => {
                     const isSelected = watch("empleadosIds").includes(
                       empleado.id
@@ -1808,7 +1818,7 @@ export default function CrearInstalacionComponent() {
                   ];
                   if (vehiculosParaMostrar.length > 0) {
                     return (
-                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
                         {vehiculosParaMostrar.map((vehiculo) => {
                           const isSelected = vehiculosIdsSeleccionados.includes(
                             vehiculo.id
@@ -2031,7 +2041,7 @@ export default function CrearInstalacionComponent() {
                   const banosParaMostrar = [...banosSeleccionados, ...banosNoSeleccionados];
                   if (banosParaMostrar.length > 0) {
                     return (
-                      <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-2">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
                         {banosParaMostrar.map((bano) => {
                           const banosIds = banosIdsSeleccionados;
                           const isSelected = banosIds.includes(
@@ -2140,24 +2150,24 @@ export default function CrearInstalacionComponent() {
           </div>
         )}
         {/* Navigation buttons */}
-        <div className="mt-8 flex justify-between">
+        <div className="mt-6 md:mt-8 flex flex-col sm:flex-row justify-between gap-3">
           {step > 1 && (
             <Button
               variant="outline"
               onClick={handleBack}
               disabled={isSubmitting}
-              className="border-slate-200 hover:bg-slate-50 hover:text-slate-900"
+              className="border-slate-200 hover:bg-slate-50 hover:text-slate-900 w-full sm:w-auto"
             >
               <ChevronLeft className="mr-2 h-4 w-4" /> Anterior
             </Button>
           )}
 
-          <div className={step > 1 ? "ml-auto" : ""}>
+          <div className={`${step > 1 ? "sm:ml-auto" : ""} w-full sm:w-auto`}>
             {step < 4 && (
               <Button
                 onClick={handleNext}
                 disabled={isSubmitting}
-                className="bg-indigo-600 hover:bg-indigo-700"
+                className="bg-indigo-600 hover:bg-indigo-700 w-full sm:w-auto"
               >
                 Siguiente <ChevronRight className="ml-2 h-4 w-4" />
               </Button>
@@ -2258,7 +2268,7 @@ export default function CrearInstalacionComponent() {
                   });
                 }}
                 disabled={isSubmitting}
-                className="bg-indigo-600 hover:bg-indigo-700"
+                className="bg-indigo-600 hover:bg-indigo-700 w-full sm:w-auto"
               >
                 {isSubmitting ? (
                   <>

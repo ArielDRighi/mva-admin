@@ -347,21 +347,22 @@ export default function ListadoClientesComponent({
   return (
     <Card className="w-full shadow-md">
       <CardHeader className="bg-slate-50 dark:bg-slate-900 border-b">
-        <div className="flex items-center justify-between">
-          <div>
-            <CardTitle className="text-2xl font-bold">
+        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+          <div className="flex-1 min-w-0">
+            <CardTitle className="text-xl md:text-2xl font-bold truncate">
               Gestión de Clientes
             </CardTitle>
-            <CardDescription className="text-muted-foreground mt-1">
+            <CardDescription className="text-muted-foreground mt-1 text-sm">
               Administra la información de clientes de la empresa
             </CardDescription>
           </div>
           <Button
             onClick={handleCreateClick}
-            className="cursor-pointer bg-indigo-600 hover:bg-indigo-700"
+            className="cursor-pointer bg-indigo-600 hover:bg-indigo-700 w-full md:w-auto"
           >
-            <UserPlus className="mr-2 h-4 w-4" />
-            Nuevo Cliente
+            <UserPlus className="mr-0 md:mr-2 h-4 w-4" />
+            <span className="hidden sm:inline">Nuevo Cliente</span>
+            <span className="sm:hidden">Nuevo</span>
           </Button>
         </div>
 
@@ -371,24 +372,27 @@ export default function ListadoClientesComponent({
             value={activeTab}
             onValueChange={handleTabChange}
           >
-            <TabsList className="grid grid-cols-3 w-[400px]">
+            <TabsList className="grid grid-cols-3 w-full md:w-[400px]">
               <TabsTrigger value="todos" className="flex items-center">
-                <UserCheck className="mr-2 h-4 w-4" />
-                Todos
+                <UserCheck className="mr-1 md:mr-2 h-4 w-4" />
+                <span className="hidden sm:inline">Todos</span>
+                <span className="sm:hidden">Todo</span>
               </TabsTrigger>
               <TabsTrigger value="activo" className="flex items-center">
-                <CheckCircle className="mr-2 h-4 w-4" />
-                Activos
+                <CheckCircle className="mr-1 md:mr-2 h-4 w-4" />
+                <span className="hidden sm:inline">Activos</span>
+                <span className="sm:hidden">Act.</span>
               </TabsTrigger>
               <TabsTrigger value="inactivo" className="flex items-center">
-                <XCircle className="mr-2 h-4 w-4" />
-                Inactivos
+                <XCircle className="mr-1 md:mr-2 h-4 w-4" />
+                <span className="hidden sm:inline">Inactivos</span>
+                <span className="sm:hidden">Inac.</span>
               </TabsTrigger>
             </TabsList>
           </Tabs>
         </div>
       </CardHeader>{" "}
-      <CardContent className="p-6">
+      <CardContent className="p-4 md:p-6">
         <div className="rounded-md border">
           {" "}
           <ListadoTabla
@@ -412,61 +416,88 @@ export default function ListadoClientesComponent({
             searchPlaceholder="Buscar por nombre, CUIT, email, contacto o dirección... (presiona Enter)"
             columns={[
               { title: "Cliente", key: "cliente" },
-              { title: "Contacto", key: "contacto" },
-              { title: "Información", key: "informacion" },
-              { title: "Estado", key: "estado" },
+              { title: "Contacto", key: "contacto", className: "hidden md:table-cell" },
+              { title: "Información", key: "informacion", className: "hidden lg:table-cell" },
+              { title: "Estado", key: "estado", className: "hidden sm:table-cell" },
               { title: "Acciones", key: "acciones" },
             ]}
             renderRow={(cliente) => (
               <>
                 <TableCell
-                  className="min-w-[250px] cursor-pointer hover:bg-slate-50"
+                  className="min-w-[180px] md:min-w-[250px] cursor-pointer hover:bg-slate-50"
                   onClick={() => handleViewClick(cliente)}
                 >
-                  <div className="flex items-center gap-3">
-                    <div className="h-10 w-10 rounded-full bg-slate-100 flex items-center justify-center">
-                      <Building className="h-5 w-5 text-slate-600" />
+                  <div className="flex items-center gap-2 md:gap-3">
+                    <div className="h-8 w-8 md:h-10 md:w-10 rounded-full bg-slate-100 flex items-center justify-center">
+                      <Building className="h-4 w-4 md:h-5 md:w-5 text-slate-600" />
                     </div>
-                    <div>
-                      <div className="font-medium">{cliente.nombre}</div>
-                      <div className="text-sm text-muted-foreground">
+                    <div className="min-w-0 flex-1">
+                      <div className="font-medium text-sm md:text-base truncate">{cliente.nombre}</div>
+                      <div className="text-xs md:text-sm text-muted-foreground">
                         <span className="flex items-center">
-                          <CreditCard className="h-3.5 w-3.5 mr-1 text-muted-foreground" />
-                          {cliente.cuit}
+                          <CreditCard className="h-3 w-3 md:h-3.5 md:w-3.5 mr-1 text-muted-foreground" />
+                          <span className="truncate">{cliente.cuit}</span>
                         </span>
+                      </div>
+                      {/* Información adicional en móvil */}
+                      <div className="md:hidden text-xs text-muted-foreground mt-1 space-y-0.5">
+                        <div className="sm:hidden">
+                          <Badge
+                            variant={cliente.estado === "ACTIVO" ? "default" : "outline"}
+                            className={`text-xs ${
+                              cliente.estado === "ACTIVO"
+                                ? "bg-green-100 text-green-800"
+                                : "bg-gray-100 text-gray-800"
+                            }`}
+                          >
+                            {cliente.estado === "ACTIVO" ? "Act." : "Inac."}
+                          </Badge>
+                        </div>
+                        <div className="flex items-center">
+                          <Mail className="h-3 w-3 mr-1" />
+                          <span className="truncate">{cliente.email}</span>
+                        </div>
+                        <div className="flex items-center">
+                          <Phone className="h-3 w-3 mr-1" />
+                          <span className="truncate">{cliente.telefono}</span>
+                        </div>
+                        <div className="lg:hidden flex items-center">
+                          <User2 className="h-3 w-3 mr-1" />
+                          <span className="truncate">{cliente.contacto_principal}</span>
+                        </div>
                       </div>
                     </div>
                   </div>
                 </TableCell>
 
                 <TableCell
-                  className="min-w-[220px] cursor-pointer hover:bg-slate-50"
+                  className="min-w-[200px] md:min-w-[220px] cursor-pointer hover:bg-slate-50 hidden md:table-cell"
                   onClick={() => handleViewClick(cliente)}
                 >
                   <div className="space-y-1">
                     <div className="flex items-center text-sm">
                       <Mail className="h-3.5 w-3.5 mr-2 text-muted-foreground" />
-                      <span>{cliente.email}</span>
+                      <span className="truncate">{cliente.email}</span>
                     </div>
                     <div className="flex items-center text-sm">
                       <Phone className="h-3.5 w-3.5 mr-2 text-muted-foreground" />
-                      <span>{cliente.telefono}</span>
+                      <span className="truncate">{cliente.telefono}</span>
                     </div>
                   </div>
                 </TableCell>
 
                 <TableCell
-                  className="min-w-[200px] cursor-pointer hover:bg-slate-50"
+                  className="min-w-[180px] lg:min-w-[200px] cursor-pointer hover:bg-slate-50 hidden lg:table-cell"
                   onClick={() => handleViewClick(cliente)}
                 >
                   <div className="space-y-1">
                     <div className="flex items-center text-sm">
                       <User2 className="h-3.5 w-3.5 mr-2 text-muted-foreground" />
-                      <span>{cliente.contacto_principal}</span>
+                      <span className="truncate">{cliente.contacto_principal}</span>
                     </div>
                     <div className="flex items-center text-sm">
                       <MapPin className="h-3.5 w-3.5 mr-2 text-muted-foreground" />
-                      <span className="truncate max-w-[180px]">
+                      <span className="truncate max-w-[150px]">
                         {cliente.direccion}
                       </span>
                     </div>
@@ -483,7 +514,7 @@ export default function ListadoClientesComponent({
                 </TableCell>
 
                 <TableCell
-                  className="cursor-pointer hover:bg-slate-50"
+                  className="cursor-pointer hover:bg-slate-50 hidden sm:table-cell"
                   onClick={() => handleViewClick(cliente)}
                 >
                   <Badge
@@ -500,7 +531,7 @@ export default function ListadoClientesComponent({
                   </Badge>
                 </TableCell>
 
-                <TableCell className="flex gap-2">
+                <TableCell className="flex flex-wrap gap-1 md:gap-2">
                   <Button
                     variant="outline"
                     size="sm"
@@ -510,8 +541,8 @@ export default function ListadoClientesComponent({
                     }}
                     className="cursor-pointer border-slate-200 hover:bg-slate-50 hover:text-slate-900"
                   >
-                    <Edit2 className="h-3.5 w-3.5 mr-1" />
-                    Editar
+                    <Edit2 className="h-3.5 w-3.5 mr-0 md:mr-1" />
+                    <span className="hidden md:inline">Editar</span>
                   </Button>
 
                   <Button
@@ -525,8 +556,8 @@ export default function ListadoClientesComponent({
                     }}
                     className="cursor-pointer bg-red-100 text-red-700 hover:bg-red-200 hover:text-red-800"
                   >
-                    <Trash2 className="h-3.5 w-3.5 mr-1" />
-                    Eliminar
+                    <Trash2 className="h-3.5 w-3.5 mr-0 md:mr-1" />
+                    <span className="hidden md:inline">Eliminar</span>
                   </Button>
                 </TableCell>
               </>

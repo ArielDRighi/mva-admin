@@ -516,21 +516,23 @@ const MantenimientoVehiculosComponent = ({
   return (
     <Card className="w-full shadow-md">
       <CardHeader className="bg-slate-50 dark:bg-slate-900 border-b">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col md:flex-row items-start md:items-center justify-between">
           <div>
-            <CardTitle className="text-2xl font-bold">
+            <CardTitle className="text-xl md:text-2xl font-bold">
               Mantenimiento de Vehículos
             </CardTitle>
-            <CardDescription className="text-muted-foreground mt-1">
+            <CardDescription className="text-muted-foreground mt-1 text-sm md:text-base">
               Gestión y programación de mantenimientos para los vehículos
             </CardDescription>
           </div>
           <Button
             onClick={handleCreateClick}
-            className="cursor-pointer bg-indigo-600 hover:bg-indigo-700"
+            className="cursor-pointer bg-indigo-600 hover:bg-indigo-700 mt-3 md:mt-0"
+            size="sm"
           >
             <PlusCircle className="mr-2 h-4 w-4" />
-            Programar Mantenimiento
+            <span className="hidden sm:inline">Programar Mantenimiento</span>
+            <span className="sm:hidden">Programar</span>
           </Button>
         </div>
 
@@ -540,67 +542,97 @@ const MantenimientoVehiculosComponent = ({
             value={activeTab}
             onValueChange={handleTabChange}
           >
-            <TabsList className="grid grid-cols-3 w-[400px]">
-              <TabsTrigger value="todos" className="flex items-center">
-                <Wrench className="mr-2 h-4 w-4" />
-                Todos
+            <TabsList className="grid grid-cols-3 w-full h-auto p-1 bg-gray-100 rounded-lg">
+              <TabsTrigger 
+                value="todos" 
+                className="flex items-center text-xs py-1.5 px-2 data-[state=active]:bg-white data-[state=active]:shadow-sm"
+              >
+                <Wrench className="mr-1 md:mr-2 h-3 w-3 md:h-4 md:w-4" />
+                <span>Todos</span>
               </TabsTrigger>
-              <TabsTrigger value="pendientes" className="flex items-center">
-                <PauseCircle className="mr-2 h-4 w-4" />
-                Pendientes
+              <TabsTrigger 
+                value="pendientes" 
+                className="flex items-center text-xs py-1.5 px-2 data-[state=active]:bg-white data-[state=active]:shadow-sm"
+              >
+                <PauseCircle className="mr-1 md:mr-2 h-3 w-3 md:h-4 md:w-4" />
+                <span className="hidden sm:inline">Pendientes</span>
+                <span className="sm:hidden">Pend.</span>
               </TabsTrigger>
-              <TabsTrigger value="completados" className="flex items-center">
-                <CheckCircle className="mr-2 h-4 w-4" />
-                Completados
+              <TabsTrigger 
+                value="completados" 
+                className="flex items-center text-xs py-1.5 px-2 data-[state=active]:bg-white data-[state=active]:shadow-sm"
+              >
+                <CheckCircle className="mr-1 md:mr-2 h-3 w-3 md:h-4 md:w-4" />
+                <span className="hidden sm:inline">Completados</span>
+                <span className="sm:hidden">Comp.</span>
               </TabsTrigger>
             </TabsList>
           </Tabs>
         </div>
       </CardHeader>
       <CardContent className="p-6">
+        {/* Agregar buscador responsivo antes de la tabla */}
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 mb-4">
+          <form onSubmit={(e) => {
+            e.preventDefault();
+            handleSearchChange(searchTerm);
+          }} className="flex gap-2 flex-1">
+            <input
+              type="text"
+              placeholder="Buscar por marca, placa, modelo, tipo o descripción... (presiona Enter)"
+              value={searchTerm}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchTerm(e.target.value)}
+              className="flex-1 min-w-0 px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            />
+            <Button type="submit" className="shrink-0">Buscar</Button>
+          </form>
+          {searchTerm && (
+            <Button
+              variant="outline"
+              onClick={handleClearSearch}
+              className="shrink-0"
+            >
+              <X className="h-4 w-4 mr-1" />
+              Limpiar
+            </Button>
+          )}
+        </div>
+        
         <div className="rounded-md border">
           <ListadoTabla
             title=""
             data={filteredMantenimientos}
             itemsPerPage={itemsPerPage}
-            searchableKeys={[
-              "tipoMantenimiento",
-              "descripcion",
-              "vehiculoId",
-              "vehicle.placa",
-              "vehicle.marca",
-              "vehicle.modelo",
-              "vehicle.numeroInterno",
-            ]}
-            searchPlaceholder="Buscar por marca, placa, modelo, tipo o descripción"
-            searchValue={searchTerm}
+            searchableKeys={[]} // Removemos la búsqueda interna ya que tenemos el buscador externo
+            searchPlaceholder=""
+            searchValue=""
             remotePagination
             totalItems={total}
             currentPage={page}
             onPageChange={handlePageChange}
-            onSearchChange={handleSearchChange}
-            onSearchClear={handleClearSearch}
+            onSearchChange={() => {}} // Función vacía ya que manejamos la búsqueda externamente
+            onSearchClear={() => {}}
             columns={[
               { title: "Vehículo", key: "vehiculo" },
-              { title: "Detalles", key: "detalles" },
-              { title: "Tipo", key: "tipo" },
+              { title: "Detalles", key: "detalles", className: "hidden sm:table-cell" },
+              { title: "Tipo", key: "tipo", className: "hidden lg:table-cell" },
               { title: "Estado", key: "estado" },
               { title: "Acciones", key: "acciones" },
             ]}
             renderRow={(mantenimiento) => (
               <>
-                <TableCell className="min-w-[200px]">
+                <TableCell className="min-w-[250px]">
                   <div className="flex items-center gap-3">
-                    <div className="h-10 w-10 rounded-full bg-slate-100 flex items-center justify-center">
-                      <Car className="h-5 w-5 text-slate-600" />
+                    <div className="h-8 w-8 sm:h-10 sm:w-10 rounded-full bg-slate-100 flex items-center justify-center">
+                      <Car className="h-4 w-4 sm:h-5 sm:w-5 text-slate-600" />
                     </div>
-                    <div>
+                    <div className="flex-1 min-w-0">
                       {mantenimiento.vehicle ? (
                         <>
-                          <div className="font-medium">
+                          <div className="font-medium text-sm sm:text-base">
                             {mantenimiento.vehicle.placa}
                           </div>
-                          <div className="text-sm text-muted-foreground">
+                          <div className="text-xs sm:text-sm text-muted-foreground">
                             {mantenimiento.vehicle.marca}{" "}
                             {mantenimiento.vehicle.modelo}
                           </div>
@@ -612,10 +644,10 @@ const MantenimientoVehiculosComponent = ({
                         </>
                       ) : vehiculosInfo[mantenimiento.vehiculoId] ? (
                         <>
-                          <div className="font-medium">
+                          <div className="font-medium text-sm sm:text-base">
                             {vehiculosInfo[mantenimiento.vehiculoId].placa}
                           </div>
-                          <div className="text-sm text-muted-foreground">
+                          <div className="text-xs sm:text-sm text-muted-foreground">
                             {vehiculosInfo[mantenimiento.vehiculoId].marca}{" "}
                             {vehiculosInfo[mantenimiento.vehiculoId].modelo}
                           </div>
@@ -631,18 +663,55 @@ const MantenimientoVehiculosComponent = ({
                           )}
                         </>
                       ) : (
-                        <div className="font-medium">
+                        <div className="font-medium text-sm sm:text-base">
                           ID Vehículo: {mantenimiento.vehiculoId}
                         </div>
                       )}
-                      <div className="text-sm text-muted-foreground flex items-center">
-                        <Tag className="h-3.5 w-3.5 mr-1" />#{mantenimiento.id}
+                      <div className="text-xs sm:text-sm text-muted-foreground flex items-center">
+                        <Tag className="h-3 w-3 sm:h-3.5 sm:w-3.5 mr-1" />#{mantenimiento.id}
+                      </div>
+                      
+                      {/* Información adicional para móvil */}
+                      <div className="mt-2 sm:hidden space-y-1">
+                        <div className="flex items-center text-xs">
+                          <Calendar className="h-3 w-3 mr-1 text-muted-foreground" />
+                          <span>
+                            {mantenimiento.fechaMantenimiento &&
+                              new Date(
+                                mantenimiento.fechaMantenimiento
+                              ).toLocaleDateString("es-AR")}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Badge
+                            variant={
+                              mantenimiento.tipoMantenimiento === "Preventivo"
+                                ? "default"
+                                : "outline"
+                            }
+                            className={`text-xs ${
+                              mantenimiento.tipoMantenimiento === "Preventivo"
+                                ? "bg-blue-100 text-blue-800"
+                                : "bg-amber-100 text-amber-800"
+                            }`}
+                          >
+                            {mantenimiento.tipoMantenimiento}
+                          </Badge>
+                          <span className="text-xs">
+                            ${mantenimiento.costo}
+                          </span>
+                        </div>
+                        {mantenimiento.descripcion && (
+                          <div className="text-xs text-gray-500 truncate">
+                            {mantenimiento.descripcion}
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>
                 </TableCell>
 
-                <TableCell className="min-w-[250px]">
+                <TableCell className="min-w-[200px] hidden sm:table-cell">
                   <div className="space-y-1">
                     <div className="flex items-center text-sm">
                       <Calendar className="h-3.5 w-3.5 mr-2 text-muted-foreground" />
@@ -660,7 +729,7 @@ const MantenimientoVehiculosComponent = ({
                   </div>
                 </TableCell>
 
-                <TableCell>
+                <TableCell className="hidden lg:table-cell">
                   <Badge
                     variant={
                       mantenimiento.tipoMantenimiento === "Preventivo"
@@ -706,39 +775,44 @@ const MantenimientoVehiculosComponent = ({
                   </div>
                 </TableCell>
 
-                <TableCell className="flex gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleEditClick(mantenimiento)}
-                    className="cursor-pointer border-slate-200 hover:bg-slate-50 hover:text-slate-900"
-                  >
-                    <Edit2 className="h-3.5 w-3.5 mr-1" />
-                    Editar
-                  </Button>
+                <TableCell className="min-w-[200px]">
+                  <div className="flex flex-col sm:flex-row gap-1 sm:gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleEditClick(mantenimiento)}
+                      className="cursor-pointer border-slate-200 hover:bg-slate-50 hover:text-slate-900 text-xs"
+                    >
+                      <Edit2 className="h-3 w-3 sm:h-3.5 sm:w-3.5 mr-1" />
+                      <span className="hidden sm:inline">Editar</span>
+                      <span className="sm:hidden">Edit</span>
+                    </Button>
 
-                  <Button
-                    variant="destructive"
-                    size="sm"
-                    onClick={() => handleDeleteClick(mantenimiento.id)}
-                    className="cursor-pointer bg-red-100 text-red-700 hover:bg-red-200 hover:text-red-800"
-                  >
-                    <Trash2 className="h-3.5 w-3.5 mr-1" />
-                    Eliminar
-                  </Button>
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      onClick={() => handleDeleteClick(mantenimiento.id)}
+                      className="cursor-pointer bg-red-100 text-red-700 hover:bg-red-200 hover:text-red-800 text-xs"
+                    >
+                      <Trash2 className="h-3 w-3 sm:h-3.5 sm:w-3.5 mr-1" />
+                      <span className="hidden sm:inline">Eliminar</span>
+                      <span className="sm:hidden">Del</span>
+                    </Button>
 
-                  <div className="ml-1">
-                    {!mantenimiento.completado && (
-                      <Button
-                        variant="default"
-                        size="sm"
-                        onClick={() => handleCompletarClick(mantenimiento.id)}
-                        className="cursor-pointer bg-green-100 text-green-700 hover:bg-green-200 hover:text-green-800"
-                      >
-                        <CheckCircle className="h-3.5 w-3.5 mr-1" />
-                        Completar
-                      </Button>
-                    )}
+                    <div className="flex gap-1">
+                      {!mantenimiento.completado && (
+                        <Button
+                          variant="default"
+                          size="sm"
+                          onClick={() => handleCompletarClick(mantenimiento.id)}
+                          className="cursor-pointer bg-green-100 text-green-700 hover:bg-green-200 hover:text-green-800 text-xs"
+                        >
+                          <CheckCircle className="h-3 w-3 sm:h-3.5 sm:w-3.5 mr-1" />
+                          <span className="hidden sm:inline">Completar</span>
+                          <span className="sm:hidden">Comp</span>
+                        </Button>
+                      )}
+                    </div>
                   </div>
                 </TableCell>
               </>

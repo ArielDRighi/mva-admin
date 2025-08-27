@@ -21,6 +21,7 @@ import { Badge } from "../ui/badge";
 import { Button } from "../ui/button";
 import { FormDialog } from "../ui/local/FormDialog";
 import { FormField } from "../ui/local/FormField";
+import { Input } from "../ui/input";
 import {
   Card,
   CardContent,
@@ -372,62 +373,64 @@ const ListadoVehiculosComponent = ({
   return (
     <Card className="w-full shadow-md">
       <CardHeader className="bg-slate-50 dark:bg-slate-900 border-b">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col md:flex-row items-start md:items-center justify-between">
           <div>
-            <CardTitle className="text-2xl font-bold">
+            <CardTitle className="text-xl md:text-2xl font-bold">
               Gestión de Vehículos
             </CardTitle>
-            <CardDescription className="text-muted-foreground mt-1">
+            <CardDescription className="text-muted-foreground mt-1 text-sm md:text-base">
               Administra la información de los vehículos de la empresa
             </CardDescription>
           </div>
           <Button
             onClick={handleCreateClick}
-            className="cursor-pointer bg-indigo-600 hover:bg-indigo-700"
+            className="cursor-pointer bg-indigo-600 hover:bg-indigo-700 mt-3 md:mt-0"
+            size="sm"
           >
             <PlusCircle className="mr-2 h-4 w-4" />
-            Nuevo Vehículo
+            <span className="hidden sm:inline">Nuevo Vehículo</span>
+            <span className="sm:hidden">Nuevo</span>
           </Button>
         </div>
 
         {/* Agregar esta sección de información de estados */}
-        <div className="mt-4 p-4 bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-lg">
+        <div className="mt-4 p-3 md:p-4 bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-lg">
           <div className="flex items-start gap-2">
-            <Info className="h-5 w-5 text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" />
-            <div className="space-y-2">
-              <h4 className="font-semibold text-blue-900 dark:text-blue-100">
+            <Info className="h-4 w-4 md:h-5 md:w-5 text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" />
+            <div className="space-y-2 w-full">
+              <h4 className="font-semibold text-blue-900 dark:text-blue-100 text-sm md:text-base">
                 Estados de Vehículos
               </h4>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 text-sm">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 md:gap-3 text-xs md:text-sm">
                 <div className="flex items-center gap-2">
-                  <Badge className="bg-green-100 text-green-800 hover:bg-green-100">
+                  <Badge className="bg-green-100 text-green-800 hover:bg-green-100 text-xs">
                     DISPONIBLE
                   </Badge>
-                  <span className="text-blue-800 dark:text-blue-200">
+                  <span className="text-blue-800 dark:text-blue-200 text-xs md:text-sm">
                     Disponible para comenzar un servicio
                   </span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-100">
+                  <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-100 text-xs">
                     ASIGNADO
                   </Badge>
-                  <span className="text-blue-800 dark:text-blue-200">
+                  <span className="text-blue-800 dark:text-blue-200 text-xs md:text-sm">
                     Reservado para un servicio específico
                   </span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <Badge className="bg-gray-100 text-gray-800 hover:bg-gray-100">
+                  <Badge className="bg-gray-100 text-gray-800 hover:bg-gray-100 text-xs">
                     INACTIVO
                   </Badge>
-                  <span className="text-blue-800 dark:text-blue-200">
+                  <span className="text-blue-800 dark:text-blue-200 text-xs md:text-sm">
                     No está activo para servicios
                   </span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <Badge className="bg-red-100 text-red-800 hover:bg-red-100">
+                  <Badge className="bg-red-100 text-red-800 hover:bg-red-100 text-xs">
                     BAJA
                   </Badge>
-                  <span className="text-blue-800 dark:text-blue-200">
+                  <span className="text-blue-800 dark:text-blue-200 text-xs md:text-sm">
                     Ya no pertenece a la compañía
                   </span>
                 </div>
@@ -442,77 +445,134 @@ const ListadoVehiculosComponent = ({
             value={activeTab}
             onValueChange={handleTabChange}
           >
-            <TabsList className="grid grid-cols-5 w-[600px]">
-              <TabsTrigger value="todos" className="flex items-center">
-                <Truck className="mr-2 h-4 w-4" />
-                Todos
+            <TabsList className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 w-full h-auto p-1 bg-gray-100 rounded-lg">
+              <TabsTrigger 
+                value="todos" 
+                className="flex items-center text-xs py-1.5 px-2 data-[state=active]:bg-white data-[state=active]:shadow-sm"
+              >
+                <Truck className="mr-1 md:mr-2 h-3 w-3 md:h-4 md:w-4" />
+                <span className="hidden sm:inline">Todos</span>
               </TabsTrigger>
-              <TabsTrigger value="disponible" className="flex items-center">
-                <CheckCircle className="mr-2 h-4 w-4" />
-                Disponibles
+              <TabsTrigger 
+                value="disponible" 
+                className="flex items-center text-xs py-1.5 px-2 data-[state=active]:bg-white data-[state=active]:shadow-sm"
+              >
+                <CheckCircle className="mr-1 md:mr-2 h-3 w-3 md:h-4 md:w-4" />
+                <span className="hidden sm:inline">Disponibles</span>
+                <span className="sm:hidden">Disp.</span>
               </TabsTrigger>
-              <TabsTrigger value="asignado" className="flex items-center">
-                <BadgeInfo className="mr-2 h-4 w-4" />
-                Asignados
+              <TabsTrigger 
+                value="asignado" 
+                className="flex items-center text-xs py-1.5 px-2 data-[state=active]:bg-white data-[state=active]:shadow-sm"
+              >
+                <BadgeInfo className="mr-1 md:mr-2 h-3 w-3 md:h-4 md:w-4" />
+                <span className="hidden sm:inline">Asignados</span>
+                <span className="sm:hidden">Asig.</span>
               </TabsTrigger>
-              <TabsTrigger value="mantenimiento" className="flex items-center">
-                <PauseCircle className="mr-2 h-4 w-4" />
-                Mantenimiento
+              <TabsTrigger 
+                value="mantenimiento" 
+                className="flex items-center text-xs py-1.5 px-2 data-[state=active]:bg-white data-[state=active]:shadow-sm col-span-2 sm:col-span-1"
+              >
+                <PauseCircle className="mr-1 md:mr-2 h-3 w-3 md:h-4 md:w-4" />
+                <span className="hidden sm:inline">Mantenimiento</span>
+                <span className="sm:hidden">Mant.</span>
               </TabsTrigger>
-              <TabsTrigger value="baja" className="flex items-center">
-                <Trash2 className="mr-2 h-4 w-4" />
-                Baja
+              <TabsTrigger 
+                value="baja" 
+                className="flex items-center text-xs py-1.5 px-2 data-[state=active]:bg-white data-[state=active]:shadow-sm"
+              >
+                <Trash2 className="mr-1 md:mr-2 h-3 w-3 md:h-4 md:w-4" />
+                <span className="hidden sm:inline">Baja</span>
               </TabsTrigger>
             </TabsList>
           </Tabs>
         </div>
       </CardHeader>
       <CardContent className="p-6">
+        {/* Agregar buscador responsivo antes de la tabla */}
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 mb-4">
+          <form onSubmit={(e) => {
+            e.preventDefault();
+            handleSearchChange(searchTerm);
+          }} className="flex gap-2 flex-1">
+            <Input
+              placeholder="Buscar por placa, marca o modelo... (presiona Enter)"
+              value={searchTerm}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchTerm(e.target.value)}
+              className="flex-1 min-w-0"
+            />
+            <Button type="submit" className="shrink-0">Buscar</Button>
+          </form>
+          {searchTerm && (
+            <Button
+              variant="outline"
+              onClick={handleClearSearch}
+              className="shrink-0"
+            >
+              <X className="h-4 w-4 mr-1" />
+              Limpiar
+            </Button>
+          )}
+        </div>
+        
         <div className="rounded-md border">
           {" "}
           <ListadoTabla
             title=""
             data={filteredVehiculos}
             itemsPerPage={itemsPerPage}
-            searchableKeys={["placa", "marca", "modelo"]}
-            searchPlaceholder="Buscar por placa, marca o modelo... (presiona Enter)"
-            searchValue={searchTerm}
-            onSearchClear={handleClearSearch}
+            searchableKeys={[]} // Removemos la búsqueda interna ya que tenemos el buscador externo
+            searchPlaceholder=""
+            searchValue=""
+            onSearchClear={() => {}}
             remotePagination={useRemotePagination}
             totalItems={effectiveTotalItems}
             currentPage={effectiveCurrentPage}
             onPageChange={handlePageChangeUnified}
-            onSearchChange={handleSearchChange}
+            onSearchChange={() => {}} // Función vacía ya que manejamos la búsqueda externamente
             columns={[
               { title: "Vehículo", key: "vehiculo" },
-              { title: "Información", key: "informacion" },
-              { title: "Vencimientos", key: "vencimientos" },
+              { title: "Información", key: "informacion", className: "hidden sm:table-cell" },
+              { title: "Vencimientos", key: "vencimientos", className: "hidden lg:table-cell" },
               { title: "Estado", key: "estado" },
               { title: "Acciones", key: "acciones" },
             ]}
             renderRow={(vehiculo) => (
               <>
-                <TableCell className="min-w-[250px]">
-                  <div className="flex items-center gap-3">
-                    <div className="h-10 w-10 rounded-full bg-slate-100 flex items-center justify-center">
-                      <Truck className="h-5 w-5 text-slate-600" />
+                <TableCell className="min-w-[200px] sm:min-w-[250px]">
+                  <div className="flex items-center gap-2 sm:gap-3">
+                    <div className="h-8 w-8 sm:h-10 sm:w-10 rounded-full bg-slate-100 flex items-center justify-center">
+                      <Truck className="h-4 w-4 sm:h-5 sm:w-5 text-slate-600" />
                     </div>
                     <div>
                       {" "}
-                      <div className="font-medium">{vehiculo.placa}</div>
+                      <div className="font-medium text-sm sm:text-base">{vehiculo.placa}</div>
                       {vehiculo.numeroInterno && (
                         <div className="text-xs font-medium text-gray-500">
                           N° Interno: {vehiculo.numeroInterno}
                         </div>
                       )}
-                      <div className="text-sm text-muted-foreground flex items-center">
-                        <Tag className="h-3.5 w-3.5 mr-1" />
+                      <div className="text-xs sm:text-sm text-muted-foreground flex items-center">
+                        <Tag className="h-3 w-3 sm:h-3.5 sm:w-3.5 mr-1" />
                         {vehiculo.marca} {vehiculo.modelo}
+                      </div>
+                      {/* Mostrar información adicional en móvil */}
+                      <div className="sm:hidden mt-1 space-y-1">
+                        <div className="text-xs text-muted-foreground">
+                          Año: {vehiculo.anio} | Cabina: {vehiculo.tipoCabina.charAt(0).toUpperCase() + vehiculo.tipoCabina.slice(1)}
+                        </div>
+                        {(vehiculo.fechaVencimientoVTV || vehiculo.fechaVencimientoSeguro) && (
+                          <div className="text-xs text-amber-600">
+                            {vehiculo.fechaVencimientoVTV && `VTV: ${new Date(vehiculo.fechaVencimientoVTV).toLocaleDateString("es-AR")}`}
+                            {vehiculo.fechaVencimientoVTV && vehiculo.fechaVencimientoSeguro && " | "}
+                            {vehiculo.fechaVencimientoSeguro && `Seguro: ${new Date(vehiculo.fechaVencimientoSeguro).toLocaleDateString("es-AR")}`}
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>{" "}
                 </TableCell>
-                <TableCell className="min-w-[150px]">
+                <TableCell className="min-w-[150px] hidden sm:table-cell">
                   <div className="space-y-1">
                     <div className="flex items-center text-sm">
                       <Calendar className="h-3.5 w-3.5 mr-2 text-muted-foreground" />
@@ -529,7 +589,7 @@ const ListadoVehiculosComponent = ({
                   </div>
                 </TableCell>
 
-                <TableCell className="min-w-[180px]">
+                <TableCell className="min-w-[180px] hidden lg:table-cell">
                   {vehiculo.fechaVencimientoVTV ||
                   vehiculo.fechaVencimientoSeguro ? (
                     <div className="flex flex-col gap-1">
@@ -592,73 +652,79 @@ const ListadoVehiculosComponent = ({
                       : "Vehículo propio"}
                   </div>
                 </TableCell>
-                <TableCell className="flex gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleEditClick(vehiculo)}
-                    className="cursor-pointer border-slate-200 hover:bg-slate-50 hover:text-slate-900"
-                  >
-                    <Edit2 className="h-3.5 w-3.5 mr-1" />
-                    Editar
-                  </Button>
-
-                  <Button
-                    variant="destructive"
-                    size="sm"
-                    onClick={() =>
-                      vehiculo.id && handleDeleteClick(vehiculo.id)
-                    }
-                    className="cursor-pointer bg-red-100 text-red-700 hover:bg-red-200 hover:text-red-800"
-                  >
-                    <Trash2 className="h-3.5 w-3.5 mr-1" />
-                    Eliminar
-                  </Button>
-
-                  <div className="ml-1">
-                    {vehiculo.estado !== "DISPONIBLE" && (
-                      <Button
-                        variant="default"
-                        size="sm"
-                        onClick={() =>
-                          vehiculo.id &&
-                          handleChangeStatus(vehiculo.id, "DISPONIBLE")
-                        }
-                        className="cursor-pointer bg-green-100 text-green-700 hover:bg-green-200 hover:text-green-800"
-                      >
-                        <CheckCircle className="h-3.5 w-3.5 mr-1" />
-                        Disponible
-                      </Button>
-                    )}{" "}
+                <TableCell className="min-w-[200px]">
+                  <div className="flex flex-col sm:flex-row gap-1 sm:gap-2">
                     <Button
-                      variant="secondary"
+                      variant="outline"
                       size="sm"
-                      onClick={() => {
-                        if (vehiculo.id) {
-                          // Resetear el store primero para evitar estados residuales
-                          useMaintenanceVehicleStore.getState().reset();
-
-                          // Establecer el vehículo y abrir el modal
-                          useMaintenanceVehicleStore
-                            .getState()
-                            .openCreateModal(vehiculo.id);
-
-                          // Mostrar notificación
-                          toast.info("Programar mantenimiento", {
-                            description: `Creando mantenimiento para el vehículo ${vehiculo.placa}`,
-                          });
-
-                          // Navegar a la página de mantenimiento
-                          router.push(
-                            `/admin/dashboard/vehiculos/mantenimiento`
-                          );
-                        }
-                      }}
-                      className="cursor-pointer"
+                      onClick={() => handleEditClick(vehiculo)}
+                      className="cursor-pointer border-slate-200 hover:bg-slate-50 hover:text-slate-900 text-xs"
                     >
-                      <PauseCircle className="h-3.5 w-3.5 mr-1" />
-                      Mantenimiento
+                      <Edit2 className="h-3 w-3 sm:h-3.5 sm:w-3.5 mr-1" />
+                      <span className="hidden sm:inline">Editar</span>
+                      <span className="sm:hidden">Edit</span>
                     </Button>
+
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      onClick={() =>
+                        vehiculo.id && handleDeleteClick(vehiculo.id)
+                      }
+                      className="cursor-pointer bg-red-100 text-red-700 hover:bg-red-200 hover:text-red-800 text-xs"
+                    >
+                      <Trash2 className="h-3 w-3 sm:h-3.5 sm:w-3.5 mr-1" />
+                      <span className="hidden sm:inline">Eliminar</span>
+                      <span className="sm:hidden">Del</span>
+                    </Button>
+
+                    <div className="flex flex-col sm:flex-row gap-1 sm:gap-2 sm:ml-1">
+                      {vehiculo.estado !== "DISPONIBLE" && (
+                        <Button
+                          variant="default"
+                          size="sm"
+                          onClick={() =>
+                            vehiculo.id &&
+                            handleChangeStatus(vehiculo.id, "DISPONIBLE")
+                          }
+                          className="cursor-pointer bg-green-100 text-green-700 hover:bg-green-200 hover:text-green-800 text-xs"
+                        >
+                          <CheckCircle className="h-3 w-3 sm:h-3.5 sm:w-3.5 mr-1" />
+                          <span className="hidden sm:inline">Disponible</span>
+                          <span className="sm:hidden">Disp</span>
+                        </Button>
+                      )}{" "}
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        onClick={() => {
+                          if (vehiculo.id) {
+                            // Resetear el store primero para evitar estados residuales
+                            useMaintenanceVehicleStore.getState().reset();
+
+                            // Establecer el vehículo y abrir el modal
+                            useMaintenanceVehicleStore
+                              .getState()
+                              .openCreateModal(vehiculo.id);
+
+                            // Mostrar notificación
+                            toast.info("Programar mantenimiento", {
+                              description: `Creando mantenimiento para el vehículo ${vehiculo.placa}`,
+                            });
+
+                            // Navegar a la página de mantenimiento
+                            router.push(
+                              `/admin/dashboard/vehiculos/mantenimiento`
+                            );
+                          }
+                        }}
+                        className="cursor-pointer text-xs"
+                      >
+                        <PauseCircle className="h-3 w-3 sm:h-3.5 sm:w-3.5 mr-1" />
+                        <span className="hidden sm:inline">Mantenimiento</span>
+                        <span className="sm:hidden">Mant</span>
+                      </Button>
+                    </div>
                   </div>
                 </TableCell>
               </>
