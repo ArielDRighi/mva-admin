@@ -425,9 +425,9 @@ export default function ListadoCondicionesContractualesComponent() {
   return (
     <Card className="w-full shadow-md">
       <CardHeader className="bg-slate-50 dark:bg-slate-900 border-b">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
-            <CardTitle className="text-2xl font-bold">
+            <CardTitle className="text-xl md:text-2xl font-bold">
               Gestión de Condiciones Contractuales
             </CardTitle>
             <CardDescription className="text-muted-foreground mt-1">
@@ -439,10 +439,11 @@ export default function ListadoCondicionesContractualesComponent() {
               onClick={() =>
                 router.push("/admin/dashboard/condiciones-contractuales/crear")
               }
-              className="cursor-pointer bg-indigo-600 hover:bg-indigo-700"
+              className="cursor-pointer bg-indigo-600 hover:bg-indigo-700 w-full md:w-auto"
             >
               <Plus className="mr-2 h-4 w-4" />
-              Nueva Condición Contractual
+              <span className="hidden sm:inline">Nueva Condición Contractual</span>
+              <span className="sm:hidden">Nueva Condición</span>
             </Button>
           )}
         </div>
@@ -453,29 +454,33 @@ export default function ListadoCondicionesContractualesComponent() {
             value={activeTab}
             onValueChange={handleTabChange}
           >
-            <TabsList className="grid grid-cols-4 w-[500px]">
+            <TabsList className="grid grid-cols-2 md:grid-cols-4 w-full md:w-[500px]">
               <TabsTrigger value="todos" className="flex items-center">
-                <FileText className="mr-2 h-4 w-4" />
-                Todos
+                <FileText className="mr-1 md:mr-2 h-4 w-4" />
+                <span className="hidden sm:inline">Todos</span>
+                <span className="sm:hidden">Todos</span>
               </TabsTrigger>
               <TabsTrigger value="Activo" className="flex items-center">
-                <CheckCircle className="mr-2 h-4 w-4" />
-                Activos
+                <CheckCircle className="mr-1 md:mr-2 h-4 w-4" />
+                <span className="hidden sm:inline">Activos</span>
+                <span className="sm:hidden">Activos</span>
               </TabsTrigger>
               <TabsTrigger value="Inactivo" className="flex items-center">
-                <AlertCircle className="mr-2 h-4 w-4" />
-                Inactivos
+                <AlertCircle className="mr-1 md:mr-2 h-4 w-4" />
+                <span className="hidden sm:inline">Inactivos</span>
+                <span className="sm:hidden">Inact.</span>
               </TabsTrigger>
               <TabsTrigger value="Finalizado" className="flex items-center">
-                <FileCheck className="mr-2 h-4 w-4" />
-                Finalizados
+                <FileCheck className="mr-1 md:mr-2 h-4 w-4" />
+                <span className="hidden sm:inline">Finalizados</span>
+                <span className="sm:hidden">Final.</span>
               </TabsTrigger>
             </TabsList>
           </Tabs>
         </div>
       </CardHeader>
 
-      <CardContent className="p-6">
+      <CardContent className="p-4 md:p-6">
         <div className="rounded-md border">
           {" "}
           <ListadoTabla
@@ -495,8 +500,8 @@ export default function ListadoCondicionesContractualesComponent() {
             columns={[
               { title: "Cliente", key: "cliente" },
               { title: "Detalles", key: "detalles" },
-              { title: "Información del Contrato", key: "informacion" },
-              { title: "Financieros", key: "financieros" },
+              { title: "Información del Contrato", key: "informacion", className: "hidden lg:table-cell" },
+              { title: "Financieros", key: "financieros", className: "hidden xl:table-cell" },
               { title: "Estado", key: "estado" },
               { title: "Acciones", key: "acciones" },
             ]}
@@ -518,7 +523,7 @@ export default function ListadoCondicionesContractualesComponent() {
                     )}
                   </div>
                 </TableCell>
-                <TableCell className="min-w-[250px]">
+                <TableCell className="min-w-[200px] md:min-w-[250px]">
                   <div
                     className="space-y-1 cursor-pointer hover:bg-slate-50 p-2 rounded-md transition-colors"
                     onClick={() => handleViewDetails(condicion)}
@@ -530,9 +535,28 @@ export default function ListadoCondicionesContractualesComponent() {
                     <div className="text-sm text-muted-foreground line-clamp-2">
                       {condicion.condiciones_especificas}
                     </div>
+                    {/* Información móvil - mostrar en pantallas pequeñas */}
+                    <div className="lg:hidden mt-2 space-y-1">
+                      <div className="flex items-center text-xs text-muted-foreground">
+                        <Calendar className="h-3 w-3 mr-1" />
+                        <span>
+                          {formatDate(condicion.fecha_inicio)} - {formatDate(condicion.fecha_fin)}
+                        </span>
+                      </div>
+                      <div className="flex items-center text-xs text-muted-foreground">
+                        <Clock className="h-3 w-3 mr-1" />
+                        <span>{condicion.periodicidad}</span>
+                        {isAdmin && (
+                          <>
+                            <DollarSign className="h-3 w-3 ml-2 mr-1" />
+                            <span>${condicion.tarifa}</span>
+                          </>
+                        )}
+                      </div>
+                    </div>
                   </div>
                 </TableCell>
-                <TableCell className="min-w-[220px]">
+                <TableCell className="hidden lg:table-cell min-w-[220px]">
                   <div
                     className="space-y-1 cursor-pointer hover:bg-slate-50 p-2 rounded-md transition-colors"
                     onClick={() => handleViewDetails(condicion)}
@@ -546,7 +570,7 @@ export default function ListadoCondicionesContractualesComponent() {
                     </div>
                   </div>
                 </TableCell>
-                <TableCell className="min-w-[200px]">
+                <TableCell className="hidden xl:table-cell min-w-[200px]">
                   <div
                     className="space-y-1 cursor-pointer hover:bg-slate-50 p-2 rounded-md transition-colors"
                     onClick={() => handleViewDetails(condicion)}
@@ -566,44 +590,46 @@ export default function ListadoCondicionesContractualesComponent() {
                 <TableCell>
                   <Badge
                     variant={getStatusBadgeVariant(condicion.estado)}
-                    className={getStatusBadgeClass(condicion.estado)}
+                    className={`${getStatusBadgeClass(condicion.estado)} text-xs`}
                   >
                     {condicion.estado}
                   </Badge>
                 </TableCell>
-                <TableCell className="flex gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleViewDetails(condicion)}
-                    className="cursor-pointer border-slate-200 hover:bg-slate-50 hover:text-slate-900"
-                  >
-                    <Info className="h-3.5 w-3.5 mr-1" />
-                    Ver detalles
-                  </Button>
+                <TableCell>
+                  <div className="flex flex-wrap gap-1 md:gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleViewDetails(condicion)}
+                      className="cursor-pointer border-slate-200 hover:bg-slate-50 hover:text-slate-900 text-xs px-2 py-1"
+                    >
+                      <Info className="h-3 w-3 md:h-3.5 md:w-3.5 md:mr-1" />
+                      <span className="hidden md:inline">Ver detalles</span>
+                    </Button>
 
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleEditClick(condicion)}
-                    className="cursor-pointer border-slate-200 hover:bg-slate-50 hover:text-slate-900"
-                  >
-                    <Edit2 className="h-3.5 w-3.5 mr-1" />
-                    Editar
-                  </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleEditClick(condicion)}
+                      className="cursor-pointer border-slate-200 hover:bg-slate-50 hover:text-slate-900 text-xs px-2 py-1"
+                    >
+                      <Edit2 className="h-3 w-3 md:h-3.5 md:w-3.5 md:mr-1" />
+                      <span className="hidden md:inline">Editar</span>
+                    </Button>
 
-                  <Button
-                    variant="destructive"
-                    size="sm"
-                    onClick={() =>
-                      condicion.condicionContractualId &&
-                      handleDeleteClick(condicion.condicionContractualId)
-                    }
-                    className="cursor-pointer bg-red-100 text-red-700 hover:bg-red-200 hover:text-red-800"
-                  >
-                    <Trash2 className="h-3.5 w-3.5 mr-1" />
-                    Eliminar
-                  </Button>
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      onClick={() =>
+                        condicion.condicionContractualId &&
+                        handleDeleteClick(condicion.condicionContractualId)
+                      }
+                      className="cursor-pointer bg-red-100 text-red-700 hover:bg-red-200 hover:text-red-800 text-xs px-2 py-1"
+                    >
+                      <Trash2 className="h-3 w-3 md:h-3.5 md:w-3.5 md:mr-1" />
+                      <span className="hidden md:inline">Eliminar</span>
+                    </Button>
+                  </div>
                 </TableCell>
               </>
             )}
@@ -631,8 +657,8 @@ export default function ListadoCondicionesContractualesComponent() {
         }
         onSubmit={handleSubmit(onSubmit)}
       >
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
-          <div className="md:col-span-2">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-x-6 gap-y-4">
+          <div className="lg:col-span-2">
             <Controller
               name="condiciones_especificas"
               control={control}
@@ -741,7 +767,7 @@ export default function ListadoCondicionesContractualesComponent() {
       <Dialog open={isViewModalOpen} onOpenChange={setIsViewModalOpen}>
         <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="text-xl">
+            <DialogTitle className="text-lg md:text-xl">
               Detalles de Condición Contractual
             </DialogTitle>
             <DialogDescription>
@@ -750,8 +776,8 @@ export default function ListadoCondicionesContractualesComponent() {
           </DialogHeader>
 
           {selectedCondicion && (
-            <div className="space-y-6">
-              <div className="flex items-center justify-between">
+            <div className="space-y-4 md:space-y-6">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                 <div>
                   <h3 className="text-lg font-semibold">
                     Contrato #{selectedCondicion.condicionContractualId}
@@ -771,12 +797,12 @@ export default function ListadoCondicionesContractualesComponent() {
               </div>
 
               {/* Sección: Información General */}
-              <div className="border rounded-lg p-4">
+              <div className="border rounded-lg p-3 md:p-4">
                 <h4 className="font-medium text-md mb-3 flex items-center">
                   <FileText className="h-4 w-4 mr-2 text-indigo-600" />
                   Información General
                 </h4>{" "}
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {selectedCondicion.tipo_servicio && (
                     <div>
                       <h5 className="text-xs uppercase font-medium text-muted-foreground">
@@ -833,12 +859,12 @@ export default function ListadoCondicionesContractualesComponent() {
 
               {/* Sección: Información Financiera - Solo para administradores */}
               {isAdmin && (
-                <div className="border rounded-lg p-4">
+                <div className="border rounded-lg p-3 md:p-4">
                   <h4 className="font-medium text-md mb-3 flex items-center">
                     <DollarSign className="h-4 w-4 mr-2 text-indigo-600" />
                     Información Financiera
                   </h4>
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <h5 className="text-xs uppercase font-medium text-muted-foreground">
                         Tarifa Total
@@ -887,7 +913,7 @@ export default function ListadoCondicionesContractualesComponent() {
 
               {/* Sección: Datos del Cliente */}
               {selectedCondicion.cliente && (
-                <div className="border rounded-lg p-4">
+                <div className="border rounded-lg p-3 md:p-4">
                   <h4 className="font-medium text-md mb-3 flex items-center">
                     <User className="h-4 w-4 mr-2 text-indigo-600" />
                     Datos del Cliente
@@ -928,7 +954,7 @@ export default function ListadoCondicionesContractualesComponent() {
               )}
 
               {/* Sección: Condiciones Específicas */}
-              <div className="border rounded-lg p-4">
+              <div className="border rounded-lg p-3 md:p-4">
                 <h4 className="font-medium text-md mb-3 flex items-center">
                   <FileCheck className="h-4 w-4 mr-2 text-indigo-600" />
                   Condiciones Específicas
@@ -940,8 +966,8 @@ export default function ListadoCondicionesContractualesComponent() {
                 </div>
               </div>
 
-              <DialogFooter className="flex justify-between mt-6">
-                <div className="flex space-x-2">
+              <DialogFooter className="flex flex-col sm:flex-row justify-between mt-6 gap-2">
+                <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2 order-2 sm:order-1">
                   <Button
                     variant="outline"
                     size="sm"
@@ -949,7 +975,7 @@ export default function ListadoCondicionesContractualesComponent() {
                       setIsViewModalOpen(false);
                       handleEditClick(selectedCondicion);
                     }}
-                    className="cursor-pointer border-slate-200 hover:bg-slate-50 hover:text-slate-900"
+                    className="cursor-pointer border-slate-200 hover:bg-slate-50 hover:text-slate-900 w-full sm:w-auto"
                   >
                     <Edit2 className="h-3.5 w-3.5 mr-1" />
                     Editar
@@ -966,7 +992,7 @@ export default function ListadoCondicionesContractualesComponent() {
                         );
                       }
                     }}
-                    className="cursor-pointer bg-red-100 text-red-700 hover:bg-red-200 hover:text-red-800"
+                    className="cursor-pointer bg-red-100 text-red-700 hover:bg-red-200 hover:text-red-800 w-full sm:w-auto"
                   >
                     <Trash2 className="h-3.5 w-3.5 mr-1" />
                     Eliminar
@@ -975,6 +1001,7 @@ export default function ListadoCondicionesContractualesComponent() {
                 <Button
                   variant="outline"
                   onClick={() => setIsViewModalOpen(false)}
+                  className="order-1 sm:order-2 w-full sm:w-auto"
                 >
                   Cerrar
                 </Button>

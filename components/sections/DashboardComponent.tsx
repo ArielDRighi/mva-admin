@@ -318,21 +318,22 @@ const DashboardComponent = () => {
       ]
     : [];
   return (
-    <div className="container mx-auto p-4">
-      <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-8">
+    <div className="container mx-auto p-3 md:p-4">
+      <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-6 md:mb-8">
         <div>
           {" "}
-          <h1 className="text-3xl font-bold">
+          <h1 className="text-2xl md:text-3xl font-bold">
             Bienvenido, {user?.name || "Administrador"}
           </h1>
-          <p className="text-gray-500 mt-1">
+          <p className="text-gray-500 mt-1 text-sm md:text-base">
             Panel de control MVA - {new Date().toLocaleDateString()}
           </p>
         </div>{" "}
-        <div className="mt-4 md:mt-0 flex space-x-2">
+        <div className="mt-3 md:mt-0 flex space-x-2">
           <Button
             onClick={() => router.push("/admin/dashboard/servicios/listado")}
-            className="bg-primary hover:bg-primary/90"
+            className="bg-primary hover:bg-primary/90 text-sm md:text-base px-3 md:px-4"
+            size="sm"
           >
             Ver Servicios
           </Button>
@@ -363,7 +364,7 @@ const DashboardComponent = () => {
         </div>
       )}
       {/* Resource summary cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 mb-6 md:mb-8">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium">Vehículos</CardTitle>
@@ -495,19 +496,20 @@ const DashboardComponent = () => {
         </Card>
       </div>
       {/* Today's services and summary */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        <div className="col-span-2">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+        <div className="lg:col-span-2">
           <Card className="h-full">
             <CardHeader>
               {" "}
               <div className="flex items-center justify-between">
-                <CardTitle>Servicios proximos</CardTitle>
+                <CardTitle className="text-base md:text-lg">Servicios proximos</CardTitle>
                 <Button
                   variant="ghost"
                   size="sm"
                   onClick={() =>
                     router.push("/admin/dashboard/servicios/listado")
                   }
+                  className="text-xs md:text-sm"
                 >
                   Ver todos
                 </Button>
@@ -519,36 +521,38 @@ const DashboardComponent = () => {
                   proximosServicios.map((servicio) => (
                     <div
                       key={servicio.id}
-                      className="flex items-center p-3 border rounded-md"
+                      className="flex flex-col sm:flex-row sm:items-center p-3 border rounded-md gap-3 sm:gap-0"
                     >
-                      <div className="w-14 h-14 rounded-full bg-gray-100 flex items-center justify-center">
-                        <span className="font-semibold text-lg">
-                          {new Date(servicio.fechaProgramada)
-                            .getHours()
-                            .toString()
-                            .padStart(2, "0")}
-                          :
-                          {new Date(servicio.fechaProgramada)
-                            .getMinutes()
-                            .toString()
-                            .padStart(2, "0")}
-                        </span>
+                      <div className="flex items-center sm:block">
+                        <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-gray-100 flex items-center justify-center">
+                          <span className="font-semibold text-sm sm:text-lg">
+                            {new Date(servicio.fechaProgramada)
+                              .getHours()
+                              .toString()
+                              .padStart(2, "0")}
+                            :
+                            {new Date(servicio.fechaProgramada)
+                              .getMinutes()
+                              .toString()
+                              .padStart(2, "0")}
+                          </span>
+                        </div>
                       </div>
-                      <div className="ml-4 flex-1">
-                        <div className="font-medium">
+                      <div className="sm:ml-4 flex-1">
+                        <div className="font-medium text-sm sm:text-base">
                           {servicio.cliente?.nombre ||
                             `Cliente ID: ${servicio.clienteId}`}
                         </div>
-                        <div className="text-sm text-muted-foreground">
+                        <div className="text-xs sm:text-sm text-muted-foreground">
                           {servicio.ubicacion}
                         </div>
                       </div>
-                      <div className="flex flex-col items-end">
-                        <Badge variant="secondary">
+                      <div className="flex flex-row sm:flex-col items-start sm:items-end gap-2 sm:gap-1">
+                        <Badge variant="secondary" className="text-xs">
                           {servicio.tipoServicio}
                         </Badge>
                         <span
-                          className={`mt-1 text-xs px-2 py-1 rounded ${getStatusColor(
+                          className={`text-xs px-2 py-1 rounded ${getStatusColor(
                             servicio.estado
                           )}`}
                         >
@@ -567,10 +571,10 @@ const DashboardComponent = () => {
           </Card>
         </div>
 
-        <div className="col-span-1">
+        <div className="lg:col-span-1">
           <Card className="h-full">
             <CardHeader>
-              <CardTitle>Resumen de Servicios</CardTitle>
+              <CardTitle className="text-base md:text-lg">Resumen de Servicios</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="flex items-center mb-6">
@@ -624,14 +628,26 @@ const DashboardComponent = () => {
       {/* Tabs with upcoming maintenance and recent activity */}
       <div className="grid grid-cols-1 gap-6 mb-8">
         <Tabs defaultValue="maintenance" className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="maintenance">
-              <Clock className="mr-2 h-4 w-4" />
-              Mantenimientos Programados
+          <TabsList className="grid w-full grid-cols-2 h-auto p-1 md:h-10 md:p-1">
+            <TabsTrigger 
+              value="maintenance" 
+              className="flex-col md:flex-row gap-1 md:gap-2 py-2 md:py-2 px-1 md:px-3 text-xs md:text-sm"
+            >
+              <Clock className="h-4 w-4 md:mr-2 md:ml-0" />
+              <span className="text-center leading-tight md:leading-normal">
+                <span className="block md:inline">Mantenimientos</span>
+                <span className="block md:inline md:ml-1">Programados</span>
+              </span>
             </TabsTrigger>
-            <TabsTrigger value="activity">
-              <Activity className="mr-2 h-4 w-4" />
-              Actividad Reciente
+            <TabsTrigger 
+              value="activity" 
+              className="flex-col md:flex-row gap-1 md:gap-2 py-2 md:py-2 px-1 md:px-3 text-xs md:text-sm"
+            >
+              <Activity className="h-4 w-4 md:mr-2 md:ml-0" />
+              <span className="text-center leading-tight md:leading-normal">
+                <span className="block md:inline">Actividad</span>
+                <span className="block md:inline md:ml-1">Reciente</span>
+              </span>
             </TabsTrigger>
           </TabsList>
 
@@ -639,13 +655,14 @@ const DashboardComponent = () => {
             <Card>
               <CardHeader>
                 <div className="flex items-center justify-between">
-                  <CardTitle>Próximas Limpiezas</CardTitle>
+                  <CardTitle className="text-base md:text-lg">Próximas Limpiezas</CardTitle>
                   <Button
                     variant="ghost"
                     size="sm"
                     onClick={() =>
                       router.push("/admin/dashboard/servicios/limpiezas")
                     }
+                    className="text-xs md:text-sm"
                   >
                     Ver todas
                   </Button>
@@ -655,26 +672,26 @@ const DashboardComponent = () => {
                 {futuresCleanings &&
                 futuresCleanings.items &&
                 futuresCleanings.items.length > 0 ? (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     {futuresCleanings.items
                       .slice(0, 4)
                       .map((item: Cleaning) => (
                         <div
                           key={item.id}
-                          className="border rounded-md p-4 relative"
+                          className="border rounded-md p-3 sm:p-4 relative"
                         >
                           <div className="flex items-center justify-between mb-2">
-                            <Badge variant="outline" className="bg-gray-50">
+                            <Badge variant="outline" className="bg-gray-50 text-xs">
                               Limpieza
                             </Badge>
-                            <Badge className="bg-blue-100 text-blue-800">
+                            <Badge className="bg-blue-100 text-blue-800 text-xs">
                               #{item.numero_de_limpieza}
                             </Badge>
                           </div>
-                          <h3 className="font-medium">
+                          <h3 className="font-medium text-sm sm:text-base">
                             {item.cliente?.nombre}
                           </h3>
-                          <p className="text-sm text-gray-600">
+                          <p className="text-xs sm:text-sm text-gray-600">
                             Servicio ID: {item.servicio?.id}
                           </p>
                           <div className="flex items-center mt-2 text-xs text-gray-500">
@@ -698,7 +715,7 @@ const DashboardComponent = () => {
           <TabsContent value="activity">
             <Card>
               <CardHeader>
-                <CardTitle>Actividad Reciente</CardTitle>
+                <CardTitle className="text-base md:text-lg">Actividad Reciente</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
@@ -707,14 +724,14 @@ const DashboardComponent = () => {
                       {" "}
                       {/* Servicio completado */}
                       {activityRecent.latestCompletedService && (
-                        <div className="flex items-start pb-4 border-b">
-                          <div className="w-10 h-10 rounded bg-gray-100 flex items-center justify-center">
-                            <TruckIcon className="h-5 w-5" />
+                        <div className="flex items-start pb-3 sm:pb-4 border-b">
+                          <div className="w-8 h-8 sm:w-10 sm:h-10 rounded bg-gray-100 flex items-center justify-center flex-shrink-0">
+                            <TruckIcon className="h-4 w-4 sm:h-5 sm:w-5" />
                           </div>
-                          <div className="ml-4 flex-1">
-                            <div className="flex items-center">
-                              <span className="font-medium">COMPLETADO</span>
-                              <span className="ml-2 text-xs text-gray-500">
+                          <div className="ml-3 sm:ml-4 flex-1 min-w-0">
+                            <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
+                              <span className="font-medium text-sm sm:text-base">COMPLETADO</span>
+                              <span className="text-xs text-gray-500">
                                 {activityRecent?.timestamp
                                   ? new Date(
                                       activityRecent.timestamp
@@ -722,7 +739,7 @@ const DashboardComponent = () => {
                                   : "-"}
                               </span>
                             </div>
-                            <p className="text-sm">
+                            <p className="text-xs sm:text-sm">
                               {
                                 activityRecent.latestCompletedService
                                   .tipoServicio
@@ -733,7 +750,7 @@ const DashboardComponent = () => {
                                   ?.nombre
                               }
                             </p>
-                            <p className="text-xs text-gray-500 mt-1">
+                            <p className="text-xs text-gray-500 mt-1 truncate">
                               Ubicación:{" "}
                               {activityRecent.latestCompletedService.ubicacion}
                             </p>
@@ -743,14 +760,14 @@ const DashboardComponent = () => {
                       {/* Servicio programado */}
                       {activityRecent.latestScheduledService &&
                         activityRecent.timestamp && (
-                          <div className="flex items-start pb-4 border-b">
-                            <div className="w-10 h-10 rounded bg-gray-100 flex items-center justify-center">
-                              <TruckIcon className="h-5 w-5" />
+                          <div className="flex items-start pb-3 sm:pb-4 border-b">
+                            <div className="w-8 h-8 sm:w-10 sm:h-10 rounded bg-gray-100 flex items-center justify-center flex-shrink-0">
+                              <TruckIcon className="h-4 w-4 sm:h-5 sm:w-5" />
                             </div>
-                            <div className="ml-4 flex-1">
-                              <div className="flex items-center">
-                                <span className="font-medium">PROGRAMADO</span>
-                                <span className="ml-2 text-xs text-gray-500">
+                            <div className="ml-3 sm:ml-4 flex-1 min-w-0">
+                              <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
+                                <span className="font-medium text-sm sm:text-base">PROGRAMADO</span>
+                                <span className="text-xs text-gray-500">
                                   {activityRecent.timestamp
                                     ? new Date(
                                         activityRecent.timestamp
@@ -758,7 +775,7 @@ const DashboardComponent = () => {
                                     : "-"}
                                 </span>
                               </div>
-                              <p className="text-sm">
+                              <p className="text-xs sm:text-sm">
                                 {
                                   activityRecent.latestScheduledService
                                     .tipoServicio
@@ -769,7 +786,7 @@ const DashboardComponent = () => {
                                     ?.nombre
                                 }
                               </p>
-                              <p className="text-xs text-gray-500 mt-1">
+                              <p className="text-xs text-gray-500 mt-1 truncate">
                                 Ubicación:{" "}
                                 {
                                   activityRecent.latestScheduledService
@@ -782,25 +799,25 @@ const DashboardComponent = () => {
                       {/* Cliente nuevo */}
                       {activityRecent.latestClient &&
                         activityRecent.timestamp && (
-                          <div className="flex items-start pb-4 border-b">
-                            <div className="w-10 h-10 rounded bg-gray-100 flex items-center justify-center">
-                              <User2Icon className="h-5 w-5" />
+                          <div className="flex items-start pb-3 sm:pb-4 border-b">
+                            <div className="w-8 h-8 sm:w-10 sm:h-10 rounded bg-gray-100 flex items-center justify-center flex-shrink-0">
+                              <User2Icon className="h-4 w-4 sm:h-5 sm:w-5" />
                             </div>
-                            <div className="ml-4 flex-1">
-                              <div className="flex items-center">
-                                <span className="font-medium">
+                            <div className="ml-3 sm:ml-4 flex-1 min-w-0">
+                              <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
+                                <span className="font-medium text-sm sm:text-base">
                                   NUEVO CLIENTE
                                 </span>
-                                <span className="ml-2 text-xs text-gray-500">
+                                <span className="text-xs text-gray-500">
                                   {new Date(
                                     activityRecent.timestamp
                                   ).toLocaleString()}
                                 </span>
                               </div>
-                              <p className="text-sm">
+                              <p className="text-xs sm:text-sm">
                                 {activityRecent.latestClient.nombre}
                               </p>
-                              <p className="text-xs text-gray-500 mt-1">
+                              <p className="text-xs text-gray-500 mt-1 truncate">
                                 Contacto:{" "}
                                 {activityRecent.latestClient
                                   .contacto_principal || "-"}
@@ -811,22 +828,22 @@ const DashboardComponent = () => {
                       {/* Baño nuevo/actualizado */}
                       {activityRecent.latestToilet &&
                         activityRecent.timestamp && (
-                          <div className="flex items-start pb-4 border-b">
-                            <div className="w-10 h-10 rounded bg-gray-100 flex items-center justify-center">
-                              <Toilet className="h-5 w-5" />
+                          <div className="flex items-start pb-3 sm:pb-4 border-b">
+                            <div className="w-8 h-8 sm:w-10 sm:h-10 rounded bg-gray-100 flex items-center justify-center flex-shrink-0">
+                              <Toilet className="h-4 w-4 sm:h-5 sm:w-5" />
                             </div>
-                            <div className="ml-4 flex-1">
-                              <div className="flex items-center">
-                                <span className="font-medium">
+                            <div className="ml-3 sm:ml-4 flex-1 min-w-0">
+                              <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
+                                <span className="font-medium text-sm sm:text-base">
                                   BAÑO REGISTRADO
                                 </span>
-                                <span className="ml-2 text-xs text-gray-500">
+                                <span className="text-xs text-gray-500">
                                   {new Date(
                                     activityRecent.timestamp
                                   ).toLocaleString()}
                                 </span>
                               </div>
-                              <p className="text-sm">
+                              <p className="text-xs sm:text-sm">
                                 Baño{" "}
                                 {activityRecent.latestToilet.codigo_interno} -{" "}
                                 {activityRecent.latestToilet.modelo}
@@ -839,19 +856,19 @@ const DashboardComponent = () => {
                         )}
                       {/* Mantenimiento */}
                       {activityRecent.latestMaintenance && (
-                        <div className="flex items-start pb-4 border-b">
-                          <div className="w-10 h-10 rounded bg-gray-100 flex items-center justify-center">
-                            <Clock className="h-5 w-5" />
+                        <div className="flex items-start pb-3 sm:pb-4 border-b">
+                          <div className="w-8 h-8 sm:w-10 sm:h-10 rounded bg-gray-100 flex items-center justify-center flex-shrink-0">
+                            <Clock className="h-4 w-4 sm:h-5 sm:w-5" />
                           </div>
-                          <div className="ml-4 flex-1">
-                            <div className="flex items-center">
-                              <span className="font-medium">
+                          <div className="ml-3 sm:ml-4 flex-1 min-w-0">
+                            <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
+                              <span className="font-medium text-sm sm:text-base">
                                 MANTENIMIENTO{" "}
                                 {activityRecent.latestMaintenance.completado
                                   ? "COMPLETADO"
                                   : "PROGRAMADO"}
                               </span>
-                              <span className="ml-2 text-xs text-gray-500">
+                              <span className="text-xs text-gray-500">
                                 {activityRecent.latestMaintenance.completado &&
                                 activityRecent.latestMaintenance.fechaCompletado
                                   ? new Date(
@@ -864,14 +881,14 @@ const DashboardComponent = () => {
                                   : "-"}
                               </span>
                             </div>
-                            <p className="text-sm">
+                            <p className="text-xs sm:text-sm">
                               {
                                 activityRecent.latestMaintenance
                                   .tipo_mantenimiento
                               }{" "}
                               - {activityRecent.latestMaintenance.descripcion}
                             </p>
-                            <p className="text-xs text-gray-500 mt-1">
+                            <p className="text-xs text-gray-500 mt-1 truncate">
                               Baño:{" "}
                               {activityRecent.latestMaintenance.toilet
                                 ?.codigo_interno || "-"}{" "}
@@ -885,22 +902,22 @@ const DashboardComponent = () => {
                       {/* Vehículo nuevo */}
                       {activityRecent.latestVehicle &&
                         activityRecent.timestamp && (
-                          <div className="flex items-start pb-4 border-b last:border-0">
-                            <div className="w-10 h-10 rounded bg-gray-100 flex items-center justify-center">
-                              <TruckIcon className="h-5 w-5" />
+                          <div className="flex items-start pb-3 sm:pb-4 border-b last:border-0">
+                            <div className="w-8 h-8 sm:w-10 sm:h-10 rounded bg-gray-100 flex items-center justify-center flex-shrink-0">
+                              <TruckIcon className="h-4 w-4 sm:h-5 sm:w-5" />
                             </div>
-                            <div className="ml-4 flex-1">
-                              <div className="flex items-center">
-                                <span className="font-medium">
+                            <div className="ml-3 sm:ml-4 flex-1 min-w-0">
+                              <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
+                                <span className="font-medium text-sm sm:text-base">
                                   VEHÍCULO REGISTRADO
                                 </span>
-                                <span className="ml-2 text-xs text-gray-500">
+                                <span className="text-xs text-gray-500">
                                   {new Date(
                                     activityRecent.timestamp
                                   ).toLocaleString()}
                                 </span>
                               </div>
-                              <p className="text-sm">
+                              <p className="text-xs sm:text-sm">
                                 {activityRecent.latestVehicle.marca}{" "}
                                 {activityRecent.latestVehicle.modelo} (
                                 {activityRecent.latestVehicle.placa})

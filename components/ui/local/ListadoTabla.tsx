@@ -1,5 +1,6 @@
 import { useMemo, useState, ReactNode, useEffect, useRef } from "react";
 import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import {
   Table,
@@ -10,6 +11,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { PaginationLocal } from "./PaginationLocal";
+import { X } from "lucide-react";
 
 interface Column {
   title: string;
@@ -233,59 +235,32 @@ export function ListadoTabla<T>({
             {addButton}
           </div>{" "}
           {searchableKeys.length > 0 && (
-            <div className="flex items-center gap-2">
-              <form onSubmit={handleSearchSubmit} className="relative">
-                {" "}
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+              <form onSubmit={handleSearchSubmit} className="flex gap-2 flex-1">
                 <Input
                   type="text"
                   placeholder={searchPlaceholder}
                   value={searchTerm}
                   onChange={handleSearchInputChange}
                   onKeyDown={handleKeyDown}
-                  className="w-80 max-w-sm pl-8 pr-10"
+                  className="flex-1 min-w-0"
                 />
-                <span className="absolute left-2.5 top-2.5 text-muted-foreground">
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    width="16"
-                    height="16"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    className="lucide lucide-search"
-                  >
-                    <circle cx="11" cy="11" r="8" />
-                    <path d="m21 21-4.3-4.3" />
-                  </svg>
-                </span>
-                {searchTerm && (
-                  <button
-                    type="button"
-                    onClick={handleClearSearch}
-                    className="absolute right-2.5 top-2.5 text-muted-foreground hover:text-foreground transition-colors"
-                    title="Limpiar búsqueda"
-                  >
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      width="16"
-                      height="16"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      className="lucide lucide-x"
-                    >
-                      <path d="M18 6L6 18" />
-                      <path d="M6 6l12 12" />
-                    </svg>
-                  </button>
-                )}
+                <Button type="submit" className="shrink-0">
+                  Buscar
+                </Button>
               </form>
+              {searchTerm && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={handleClearSearch}
+                  className="shrink-0"
+                  title="Limpiar búsqueda"
+                >
+                  <X className="h-4 w-4 mr-1" />
+                  Limpiar
+                </Button>
+              )}
             </div>
           )}
         </div>

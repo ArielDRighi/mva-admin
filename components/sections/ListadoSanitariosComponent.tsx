@@ -19,6 +19,7 @@ import { ListadoTabla } from "../ui/local/ListadoTabla";
 import { TableCell } from "../ui/table";
 import { Badge } from "../ui/badge";
 import { Button } from "../ui/button";
+import { Input } from "../ui/input";
 import { FormDialog } from "../ui/local/FormDialog";
 import { FormField } from "../ui/local/FormField";
 import {
@@ -323,19 +324,25 @@ const ListadoSanitariosComponent = ({
     router.replace(`?${params.toString()}`);
   };
 
-  const filteredSanitarios =
-    activeTab === "todos"
-      ? sanitarios
-      : sanitarios.filter((san) => {
-          if (activeTab === "disponible") return san.estado === "DISPONIBLE";
-          if (activeTab === "asignado") return san.estado === "ASIGNADO";
-          if (activeTab === "mantenimiento")
-            return san.estado === "MANTENIMIENTO";
-          if (activeTab === "fuera_servicio")
-            return san.estado === "FUERA_DE_SERVICIO";
-          if (activeTab === "baja") return san.estado === "BAJA";
-          return true;
-        });
+  const filteredSanitarios = sanitarios.filter((san) => {
+    // Filtro por tab activo
+    let matchesTab = true;
+    if (activeTab !== "todos") {
+      if (activeTab === "disponible") matchesTab = san.estado === "DISPONIBLE";
+      else if (activeTab === "asignado") matchesTab = san.estado === "ASIGNADO";
+      else if (activeTab === "mantenimiento") matchesTab = san.estado === "MANTENIMIENTO";
+      else if (activeTab === "fuera_servicio") matchesTab = san.estado === "FUERA_DE_SERVICIO";
+      else if (activeTab === "baja") matchesTab = san.estado === "BAJA";
+    }
+    
+    // Filtro por término de búsqueda
+    const matchesSearch = !searchTerm || 
+      san.codigo_interno.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      san.modelo.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      san.estado.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    return matchesTab && matchesSearch;
+  });
 
   // Determinar si usar paginación remota o local
   const useRemotePagination = activeTab === "todos";
@@ -374,70 +381,72 @@ const ListadoSanitariosComponent = ({
   return (
     <Card className="w-full shadow-md">
       <CardHeader className="bg-slate-50 dark:bg-slate-900 border-b">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
           <div>
-            <CardTitle className="text-2xl font-bold">
+            <CardTitle className="text-xl md:text-2xl font-bold">
               Gestión de Sanitarios
             </CardTitle>
             <CardDescription className="text-muted-foreground mt-1">
-              Administra la información de los sanitarios de la empresa
+              <span className="hidden md:inline">Administra la información de los sanitarios de la empresa</span>
+              <span className="inline md:hidden">Gestión de sanitarios</span>
             </CardDescription>
           </div>
           <Button
             onClick={handleCreateClick}
             className="cursor-pointer bg-indigo-600 hover:bg-indigo-700"
           >
-            <PlusCircle className="mr-2 h-4 w-4" />
-            Nuevo Sanitario
+            <PlusCircle className="mr-1 md:mr-2 h-4 w-4" />
+            <span className="hidden md:inline">Nuevo Sanitario</span>
+            <span className="inline md:hidden">Nuevo</span>
           </Button>
         </div>
 
         {/* Agregar esta sección de información de estados */}
-        <div className="mt-4 p-4 bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-lg">
+        <div className="mt-4 p-3 md:p-4 bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-lg">
           <div className="flex items-start gap-2">
-            <Info className="h-5 w-5 text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" />
-            <div className="space-y-2">
-              <h4 className="font-semibold text-blue-900 dark:text-blue-100">
+            <Info className="h-4 w-4 md:h-5 md:w-5 text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" />
+            <div className="space-y-2 w-full">
+              <h4 className="font-semibold text-blue-900 dark:text-blue-100 text-sm md:text-base">
                 Estados de Sanitarios
               </h4>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 text-sm">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 md:gap-3 text-xs md:text-sm">
                 <div className="flex items-center gap-2">
-                  <Badge className="bg-green-100 text-green-800 hover:bg-green-100">
+                  <Badge className="bg-green-100 text-green-800 hover:bg-green-100 text-xs">
                     DISPONIBLE
                   </Badge>
-                  <span className="text-blue-800 dark:text-blue-200">
+                  <span className="text-blue-800 dark:text-blue-200 text-xs md:text-sm">
                     Listo para ser asignado a servicios
                   </span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-100">
+                  <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-100 text-xs">
                     ASIGNADO
                   </Badge>
-                  <span className="text-blue-800 dark:text-blue-200">
+                  <span className="text-blue-800 dark:text-blue-200 text-xs md:text-sm">
                     Actualmente instalado en un cliente
                   </span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <Badge className="bg-amber-100 text-amber-800 hover:bg-amber-100">
+                  <Badge className="bg-amber-100 text-amber-800 hover:bg-amber-100 text-xs">
                     MANTENIMIENTO
                   </Badge>
-                  <span className="text-blue-800 dark:text-blue-200">
+                  <span className="text-blue-800 dark:text-blue-200 text-xs md:text-sm">
                     En proceso de mantenimiento
                   </span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <Badge className="bg-red-50 text-red-600 hover:bg-red-50">
+                  <Badge className="bg-red-50 text-red-600 hover:bg-red-50 text-xs">
                     FUERA DE SERVICIO
                   </Badge>
-                  <span className="text-blue-800 dark:text-blue-200">
+                  <span className="text-blue-800 dark:text-blue-200 text-xs md:text-sm">
                     Temporalmente fuera de servicio
                   </span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <Badge className="bg-red-100 text-red-800 hover:bg-red-100">
+                  <Badge className="bg-red-100 text-red-800 hover:bg-red-100 text-xs">
                     BAJA
                   </Badge>
-                  <span className="text-blue-800 dark:text-blue-200">
+                  <span className="text-blue-800 dark:text-blue-200 text-xs md:text-sm">
                     Dado de baja definitivamente
                   </span>
                 </div>
@@ -451,7 +460,7 @@ const ListadoSanitariosComponent = ({
                     Solo sanitarios <strong>DISPONIBLES</strong> pueden ser
                     asignados a nuevos servicios
                   </li>
-                  <li>
+                  <li className="hidden md:list-item">
                     Sanitarios <strong>ASIGNADOS</strong> solo se usan para
                     servicios de limpieza, retiro o mantenimiento in-situ
                   </li>
@@ -459,7 +468,7 @@ const ListadoSanitariosComponent = ({
                     El estado <strong>MANTENIMIENTO</strong> se asigna
                     automáticamente al programar un mantenimiento
                   </li>
-                  <li>
+                  <li className="hidden md:list-item">
                     Después de un servicio de retiro, los sanitarios pasan
                     automáticamente a <strong>MANTENIMIENTO</strong>
                   </li>
@@ -475,64 +484,100 @@ const ListadoSanitariosComponent = ({
             value={activeTab}
             onValueChange={handleTabChange}
           >
-            <TabsList className="flex flex-wrap gap-1 w-full">
-              <TabsTrigger value="todos" className="flex items-center">
-                <Toilet className="mr-2 h-4 w-4" />
-                Todos
+            <TabsList className="grid grid-cols-3 md:grid-cols-6 w-full h-auto gap-1 p-1">
+              <TabsTrigger value="todos" className="flex items-center justify-center text-xs md:text-sm">
+                <Toilet className="mr-1 md:mr-2 h-3 w-3 md:h-4 md:w-4" />
+                <span className="block md:hidden">Todos</span>
+                <span className="hidden md:block">Todos</span>
               </TabsTrigger>
-              <TabsTrigger value="disponible" className="flex items-center">
-                <CheckCircle className="mr-2 h-4 w-4" />
-                Disponibles
+              <TabsTrigger value="disponible" className="flex items-center justify-center text-xs md:text-sm">
+                <CheckCircle className="mr-1 md:mr-2 h-3 w-3 md:h-4 md:w-4" />
+                <span className="block md:hidden">Disp.</span>
+                <span className="hidden md:block">Disponibles</span>
               </TabsTrigger>
-              <TabsTrigger value="asignado" className="flex items-center">
-                <BadgeInfo className="mr-2 h-4 w-4" />
-                Asignados
+              <TabsTrigger value="asignado" className="flex items-center justify-center text-xs md:text-sm">
+                <BadgeInfo className="mr-1 md:mr-2 h-3 w-3 md:h-4 md:w-4" />
+                <span className="block md:hidden">Asig.</span>
+                <span className="hidden md:block">Asignados</span>
               </TabsTrigger>
-              <TabsTrigger value="mantenimiento" className="flex items-center">
-                <RefreshCcw className="mr-2 h-4 w-4" />
-                Mantenimiento
+              <TabsTrigger value="mantenimiento" className="flex items-center justify-center text-xs md:text-sm">
+                <RefreshCcw className="mr-1 md:mr-2 h-3 w-3 md:h-4 md:w-4" />
+                <span className="block md:hidden">Mant.</span>
+                <span className="hidden md:block">Mantenimiento</span>
               </TabsTrigger>
-              <TabsTrigger value="fuera_servicio" className="flex items-center">
-                <PauseCircle className="mr-2 h-4 w-4" />
-                Fuera de Servicio
+              <TabsTrigger value="fuera_servicio" className="flex items-center justify-center text-xs md:text-sm">
+                <PauseCircle className="mr-1 md:mr-2 h-3 w-3 md:h-4 md:w-4" />
+                <span className="block md:hidden">F.S.</span>
+                <span className="hidden md:block">Fuera de Servicio</span>
               </TabsTrigger>
-              <TabsTrigger value="baja" className="flex items-center">
-                <Trash2 className="mr-2 h-4 w-4" />
-                Baja
+              <TabsTrigger value="baja" className="flex items-center justify-center text-xs md:text-sm">
+                <Trash2 className="mr-1 md:mr-2 h-3 w-3 md:h-4 md:w-4" />
+                <span className="block md:hidden">Baja</span>
+                <span className="hidden md:block">Baja</span>
               </TabsTrigger>
             </TabsList>
           </Tabs>
         </div>
       </CardHeader>
-      <CardContent className="p-6">
+      <CardContent className="p-4 md:p-6">
+        {/* Input de búsqueda externo */}
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 mb-4">
+          <form onSubmit={(e) => {
+            e.preventDefault();
+            handleSearchChange(searchTerm);
+          }} className="flex gap-2 flex-1">
+            <Input
+              placeholder="Buscar por modelo, código interno o estado... (presiona Enter)"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="flex-1 min-w-0"
+            />
+            <Button type="submit" className="shrink-0">Buscar</Button>
+          </form>
+          {searchTerm && (
+            <Button
+              variant="outline"
+              onClick={handleClearSearch}
+              className="shrink-0"
+            >
+              <X className="h-4 w-4 mr-1" />
+              Limpiar
+            </Button>
+          )}
+        </div>
+        
         <div className="rounded-md border">
           <ListadoTabla
             title=""
             data={filteredSanitarios}
             itemsPerPage={itemsPerPage}
-            searchableKeys={["codigo_interno", "modelo", "estado"]}
-            searchValue={searchTerm}
-            onSearchClear={handleClearSearch}
+            searchableKeys={[]}
+            searchValue=""
+            onSearchClear={() => {}}
             remotePagination={useRemotePagination}
             totalItems={effectiveTotalItems}
             currentPage={effectiveCurrentPage}
             onPageChange={handlePageChangeUnified}
-            onSearchChange={handleSearchChange}
-            searchPlaceholder="Buscar por modelo, código interno o estado... (presiona Enter)"
+            onSearchChange={() => {}}
+            searchPlaceholder=""
             columns={[
               { title: "Código interno", key: "codigo_interno" },
-              { title: "Modelo", key: "modelo" },
-              { title: "Fecha adquisición", key: "fecha_adquisicion" },
+              { title: "Modelo", key: "modelo", className: "hidden sm:table-cell" },
+              { title: "Fecha adquisición", key: "fecha_adquisicion", className: "hidden md:table-cell" },
               { title: "Estado", key: "estado" },
               { title: "Acciones", key: "acciones" },
             ]}
             renderRow={(sanitario) => (
               <>
-                <TableCell className="font-medium">
-                  {sanitario.codigo_interno}
+                <TableCell className="font-medium min-w-[120px]">
+                  <div className="flex flex-col">
+                    <span className="text-sm md:text-base">{sanitario.codigo_interno}</span>
+                    {/* Mostrar modelo en móvil cuando la columna está oculta */}
+                    <span className="text-xs text-gray-600 sm:hidden mt-1">{sanitario.modelo}</span>
+                  </div>
                 </TableCell>
-                <TableCell>{sanitario.modelo}</TableCell>
-                <TableCell>
+                <TableCell className="hidden sm:table-cell">{sanitario.modelo}</TableCell>
+                <TableCell className="hidden md:table-cell">
                   {sanitario.fecha_adquisicion &&
                     new Date(sanitario.fecha_adquisicion).toLocaleDateString(
                       "es-AR"
@@ -562,16 +607,16 @@ const ListadoSanitariosComponent = ({
                     {sanitario.estado.replace("_", " ")}
                   </Badge>
                 </TableCell>
-                <TableCell className="flex gap-2">
+                <TableCell className="flex flex-wrap gap-1 md:gap-2">
                   <Button
                     variant="outline"
                     size="sm"
                     onClick={() => handleEditClick(sanitario)}
                     className="cursor-pointer border-slate-200 hover:bg-slate-50 hover:text-slate-900"
                   >
-                    <Edit2 className="h-3.5 w-3.5 mr-1" />
-                    Editar
-                  </Button>{" "}
+                    <Edit2 className="h-3.5 w-3.5 mr-0 md:mr-1" />
+                    <span className="hidden md:inline">Editar</span>
+                  </Button>
                   <Button
                     variant="destructive"
                     size="sm"
@@ -580,33 +625,32 @@ const ListadoSanitariosComponent = ({
                     }
                     className="cursor-pointer bg-red-100 text-red-700 hover:bg-red-200 hover:text-red-800"
                   >
-                    <Trash2 className="h-3.5 w-3.5 mr-1" />
-                    Eliminar
-                  </Button>{" "}
-                  <div className="ml-1">
-                    <Button
-                      variant="secondary"
-                      size="sm"
-                      onClick={() => {
-                        if (sanitario.baño_id) {
-                          // Resetear el store primero para evitar estados residuales
-                          useMaintenanceToiletStore.getState().reset(); // Establecer el sanitario y abrir el modal
-                          useMaintenanceToiletStore
-                            .getState()
-                            .openCreateModal(sanitario.baño_id);
+                    <Trash2 className="h-3.5 w-3.5 mr-0 md:mr-1" />
+                    <span className="hidden md:inline">Eliminar</span>
+                  </Button>
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => {
+                      if (sanitario.baño_id) {
+                        // Resetear el store primero para evitar estados residuales
+                        useMaintenanceToiletStore.getState().reset(); // Establecer el sanitario y abrir el modal
+                        useMaintenanceToiletStore
+                          .getState()
+                          .openCreateModal(sanitario.baño_id);
 
-                          // Navegar a la página de mantenimiento
-                          router.push(
-                            `/admin/dashboard/sanitarios/mantenimiento`
-                          );
-                        }
-                      }}
-                      className="cursor-pointer"
-                    >
-                      <RefreshCcw className="h-3.5 w-3.5 mr-1" />
-                      Mantenimiento
-                    </Button>
-                  </div>
+                        // Navegar a la página de mantenimiento
+                        router.push(
+                          `/admin/dashboard/sanitarios/mantenimiento`
+                        );
+                      }
+                    }}
+                    className="cursor-pointer"
+                  >
+                    <RefreshCcw className="h-3.5 w-3.5 mr-0 md:mr-1" />
+                    <span className="hidden lg:inline">Mantenimiento</span>
+                    <span className="hidden md:inline lg:hidden">Mant.</span>
+                  </Button>
                   {/* Botón para ver servicios asignados */}
                   {sanitario.baño_id && (
                     <ToiletServicesDialog
@@ -614,8 +658,8 @@ const ListadoSanitariosComponent = ({
                       toiletName={`${sanitario.codigo_interno} - ${sanitario.modelo}`}
                     >
                       <Button variant="outline" size="sm">
-                        <Calendar className="h-3.5 w-3.5 mr-1" />
-                        Servicios
+                        <Calendar className="h-3.5 w-3.5 mr-0 md:mr-1" />
+                        <span className="hidden md:inline">Servicios</span>
                       </Button>
                     </ToiletServicesDialog>
                   )}

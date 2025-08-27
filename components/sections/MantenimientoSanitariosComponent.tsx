@@ -469,21 +469,22 @@ const MantenimientoSanitariosComponent = ({
   return (
     <Card className="w-full shadow-md">
       <CardHeader className="bg-slate-50 dark:bg-slate-900 border-b">
-        <div className="flex items-center justify-between">
-          <div>
-            <CardTitle className="text-2xl font-bold">
+        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+          <div className="flex-1 min-w-0">
+            <CardTitle className="text-xl md:text-2xl font-bold truncate">
               Gestión de Mantenimientos
             </CardTitle>
-            <CardDescription className="text-muted-foreground mt-1">
+            <CardDescription className="text-muted-foreground mt-1 text-sm">
               Administra los mantenimientos de sanitarios de la empresa
             </CardDescription>
           </div>
           <Button
             onClick={handleCreateClick}
-            className="cursor-pointer bg-indigo-600 hover:bg-indigo-700"
+            className="cursor-pointer bg-indigo-600 hover:bg-indigo-700 w-full md:w-auto"
           >
-            <PlusCircle className="mr-2 h-4 w-4" />
-            Nuevo Mantenimiento
+            <PlusCircle className="mr-0 md:mr-2 h-4 w-4" />
+            <span className="hidden sm:inline">Nuevo Mantenimiento</span>
+            <span className="sm:hidden">Nuevo</span>
           </Button>
         </div>
 
@@ -493,28 +494,33 @@ const MantenimientoSanitariosComponent = ({
             value={activeTab}
             onValueChange={handleTabChange}
           >
-            <TabsList className="grid grid-cols-4 w-[500px]">
+            <TabsList className="grid grid-cols-2 md:grid-cols-4 w-full md:w-[500px]">
               <TabsTrigger value="todos" className="flex items-center">
-                <Toilet className="mr-2 h-4 w-4" />
-                Todos
+                <Toilet className="mr-1 md:mr-2 h-4 w-4" />
+                <span className="hidden sm:inline">Todos</span>
+                <span className="sm:hidden">Todo</span>
               </TabsTrigger>
               <TabsTrigger value="pendiente" className="flex items-center">
-                <Calendar className="mr-2 h-4 w-4" />
-                Pendientes
+                <Calendar className="mr-1 md:mr-2 h-4 w-4" />
+                <span className="hidden sm:inline">Pendientes</span>
+                <span className="sm:hidden">Pend.</span>
               </TabsTrigger>
               <TabsTrigger value="proceso" className="flex items-center">
-                <RefreshCcw className="mr-2 h-4 w-4" />
-                En Proceso
+                <RefreshCcw className="mr-1 md:mr-2 h-4 w-4" />
+                <span className="hidden lg:inline">En Proceso</span>
+                <span className="hidden sm:inline lg:hidden">Proceso</span>
+                <span className="sm:hidden">Proc.</span>
               </TabsTrigger>
               <TabsTrigger value="completado" className="flex items-center">
-                <CheckCircle className="mr-2 h-4 w-4" />
-                Completados
+                <CheckCircle className="mr-1 md:mr-2 h-4 w-4" />
+                <span className="hidden sm:inline">Completados</span>
+                <span className="sm:hidden">Comp.</span>
               </TabsTrigger>
             </TabsList>
           </Tabs>
         </div>
       </CardHeader>
-      <CardContent className="p-6">
+      <CardContent className="p-4 md:p-6">
         <div className="rounded-md border">
           <ListadoTabla
             title=""
@@ -535,44 +541,70 @@ const MantenimientoSanitariosComponent = ({
             currentPage={page}
             onPageChange={handlePageChange}
             onSearchChange={handleSearchChange}
-            searchPlaceholder="Buscar por tipo, descripción, técnico, ID de baño, código o estado..."
+            searchPlaceholder="Buscar por sanitario, tipo, descripción o técnico..."
             columns={[
               { title: "Sanitario", key: "codigo_interno" },
-              { title: "Fecha", key: "fecha_mantenimiento" },
-              { title: "Tipo", key: "tipo_mantenimiento" },
-              { title: "Descripción", key: "descripcion" },
-              { title: "Técnico", key: "empleado_id" },
+              { title: "Fecha", key: "fecha_mantenimiento", className: "hidden md:table-cell" },
+              { title: "Tipo", key: "tipo_mantenimiento", className: "hidden sm:table-cell" },
+              { title: "Descripción", key: "descripcion", className: "hidden lg:table-cell" },
+              { title: "Técnico", key: "empleado_id", className: "hidden md:table-cell" },
               { title: "Estado", key: "estado" },
               { title: "Acciones", key: "acciones" },
             ]}
             renderRow={(mantenimientoSanitario) => (
               <>
-                <TableCell className="min-w-[220px]">
-                  <div className="flex items-center gap-3">
-                    <div className="h-10 w-10 rounded-full bg-slate-100 flex items-center justify-center">
-                      <Toilet className="h-5 w-5 text-slate-600" />
+                <TableCell className="min-w-[180px] md:min-w-[220px]">
+                  <div className="flex items-center gap-2 md:gap-3">
+                    <div className="h-8 w-8 md:h-10 md:w-10 rounded-full bg-slate-100 flex items-center justify-center">
+                      <Toilet className="h-4 w-4 md:h-5 md:w-5 text-slate-600" />
                     </div>
-                    <div>
-                      <div className="font-medium">
+                    <div className="min-w-0 flex-1">
+                      <div className="font-medium text-sm md:text-base truncate">
                         {mantenimientoSanitario.toilet?.codigo_interno ||
                           "No disponible"}
                       </div>
-                      <div className="text-sm text-muted-foreground">
+                      <div className="text-xs md:text-sm text-muted-foreground truncate">
                         {mantenimientoSanitario.toilet?.modelo ||
                           "Modelo no disponible"}
+                      </div>
+                      {/* Información adicional en móvil */}
+                      <div className="md:hidden text-xs text-muted-foreground mt-1 space-y-0.5">
+                        <div className="sm:hidden">
+                          <Badge
+                            variant={
+                              mantenimientoSanitario.tipo_mantenimiento === "Preventivo"
+                                ? "default"
+                                : "outline"
+                            }
+                            className={`text-xs ${
+                              mantenimientoSanitario.tipo_mantenimiento === "Preventivo"
+                                ? "bg-blue-100 text-blue-800"
+                                : "bg-amber-100 text-amber-800"
+                            }`}
+                          >
+                            {mantenimientoSanitario.tipo_mantenimiento === "Preventivo" ? "Prev." : "Corr."}
+                          </Badge>
+                        </div>
+                        <div>
+                          Fecha: {mantenimientoSanitario.fecha_mantenimiento &&
+                            new Date(mantenimientoSanitario.fecha_mantenimiento).toLocaleDateString("es-AR")}
+                        </div>
+                        <div className="lg:hidden">
+                          Técnico: {mantenimientoSanitario.empleado_id}
+                        </div>
                       </div>
                     </div>
                   </div>
                 </TableCell>
 
-                <TableCell className="min-w-[120px]">
+                <TableCell className="min-w-[120px] hidden md:table-cell">
                   {mantenimientoSanitario.fecha_mantenimiento &&
                     new Date(
                       mantenimientoSanitario.fecha_mantenimiento
                     ).toLocaleDateString("es-AR")}
                 </TableCell>
 
-                <TableCell>
+                <TableCell className="hidden sm:table-cell">
                   <Badge
                     variant={
                       mantenimientoSanitario.tipo_mantenimiento === "Preventivo"
@@ -585,15 +617,22 @@ const MantenimientoSanitariosComponent = ({
                         : "bg-amber-100 text-amber-800 hover:bg-amber-100"
                     }
                   >
-                    {mantenimientoSanitario.tipo_mantenimiento}
+                    <span className="sm:hidden">
+                      {mantenimientoSanitario.tipo_mantenimiento === "Preventivo" ? "Prev." : "Corr."}
+                    </span>
+                    <span className="hidden sm:inline">
+                      {mantenimientoSanitario.tipo_mantenimiento}
+                    </span>
                   </Badge>
                 </TableCell>
 
-                <TableCell className="max-w-[200px] truncate">
+                <TableCell className="max-w-[150px] lg:max-w-[200px] truncate hidden lg:table-cell">
                   {mantenimientoSanitario.descripcion}
                 </TableCell>
 
-                <TableCell>{mantenimientoSanitario.empleado_id}</TableCell>
+                <TableCell className="hidden md:table-cell">
+                  <span className="text-sm">{mantenimientoSanitario.empleado_id}</span>
+                </TableCell>
 
                 <TableCell>
                   <Badge
@@ -626,15 +665,15 @@ const MantenimientoSanitariosComponent = ({
                   </Badge>
                 </TableCell>
 
-                <TableCell className="flex gap-2">
+                <TableCell className="flex flex-wrap gap-1 md:gap-2">
                   <Button
                     variant="outline"
                     size="sm"
                     onClick={() => handleEditClick(mantenimientoSanitario)}
                     className="cursor-pointer border-slate-200 hover:bg-slate-50 hover:text-slate-900"
                   >
-                    <Edit2 className="h-3.5 w-3.5 mr-1" />
-                    Editar
+                    <Edit2 className="h-3.5 w-3.5 mr-0 md:mr-1" />
+                    <span className="hidden md:inline">Editar</span>
                   </Button>
 
                   <Button
@@ -646,8 +685,8 @@ const MantenimientoSanitariosComponent = ({
                     }
                     className="cursor-pointer bg-red-100 text-red-700 hover:bg-red-200 hover:text-red-800"
                   >
-                    <Trash2 className="h-3.5 w-3.5 mr-1" />
-                    Eliminar
+                    <Trash2 className="h-3.5 w-3.5 mr-0 md:mr-1" />
+                    <span className="hidden md:inline">Eliminar</span>
                   </Button>
 
                   {!mantenimientoSanitario.completado && (
@@ -664,8 +703,9 @@ const MantenimientoSanitariosComponent = ({
                       }}
                       className="cursor-pointer bg-green-100 text-green-700 hover:bg-green-200 hover:text-green-800"
                     >
-                      <CheckCircle className="h-3.5 w-3.5 mr-1" />
-                      Completar
+                      <CheckCircle className="h-3.5 w-3.5 mr-0 md:mr-1" />
+                      <span className="hidden lg:inline">Completar</span>
+                      <span className="hidden md:inline lg:hidden">Comp.</span>
                     </Button>
                   )}
                 </TableCell>

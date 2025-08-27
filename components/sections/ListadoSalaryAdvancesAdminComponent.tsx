@@ -256,9 +256,9 @@ const ListadoSalaryAdvancesAdminComponent = ({
   return (
     <Card className="w-full shadow-md">
       <CardHeader className="bg-slate-50 dark:bg-slate-900 border-b">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
-            <CardTitle className="text-2xl font-bold">
+            <CardTitle className="text-xl md:text-2xl font-bold">
               Gestión de Adelantos Salariales
             </CardTitle>
             <CardDescription className="text-muted-foreground mt-1">
@@ -274,29 +274,33 @@ const ListadoSalaryAdvancesAdminComponent = ({
             value={activeTab}
             onValueChange={handleTabChange}
           >
-            <TabsList className="grid grid-cols-4 w-[500px]">
+            <TabsList className="grid grid-cols-2 md:grid-cols-4 w-full md:w-[500px]">
               <TabsTrigger value="all" className="flex items-center">
-                <ClipboardList className="mr-2 h-4 w-4" />
-                Todos
+                <ClipboardList className="mr-1 md:mr-2 h-4 w-4" />
+                <span className="hidden sm:inline">Todos</span>
+                <span className="sm:hidden">Todos</span>
               </TabsTrigger>
               <TabsTrigger value="pending" className="flex items-center">
-                <Search className="mr-2 h-4 w-4" />
-                Pendientes
+                <Search className="mr-1 md:mr-2 h-4 w-4" />
+                <span className="hidden sm:inline">Pendientes</span>
+                <span className="sm:hidden">Pend.</span>
               </TabsTrigger>
               <TabsTrigger value="approved" className="flex items-center">
-                <ThumbsUp className="mr-2 h-4 w-4" />
-                Aprobados
+                <ThumbsUp className="mr-1 md:mr-2 h-4 w-4" />
+                <span className="hidden sm:inline">Aprobados</span>
+                <span className="sm:hidden">Aprob.</span>
               </TabsTrigger>
               <TabsTrigger value="rejected" className="flex items-center">
-                <ThumbsDown className="mr-2 h-4 w-4" />
-                Rechazados
+                <ThumbsDown className="mr-1 md:mr-2 h-4 w-4" />
+                <span className="hidden sm:inline">Rechazados</span>
+                <span className="sm:hidden">Rech.</span>
               </TabsTrigger>
             </TabsList>
           </Tabs>
         </div>
       </CardHeader>
 
-      <CardContent className="p-0">
+      <CardContent className="p-4 md:p-6">
         {" "}
         <ListadoTabla
           data={advances}
@@ -309,14 +313,14 @@ const ListadoSalaryAdvancesAdminComponent = ({
           columns={[
             { title: "Empleado", key: "employee" },
             { title: "Monto", key: "amount" },
-            { title: "Motivo", key: "reason" },
+            { title: "Motivo", key: "reason", className: "hidden lg:table-cell" },
             { title: "Estado", key: "status" },
-            { title: "Fecha", key: "createdAt" },
+            { title: "Fecha", key: "createdAt", className: "hidden md:table-cell" },
             { title: "Acciones", key: "actions" },
           ]}
           renderRow={(advance: SalaryAdvance) => (
             <React.Fragment key={advance.id}>
-              <TableCell>
+              <TableCell className="min-w-[200px]">
                 <div className="flex flex-col">
                   <span className="font-medium">
                     {advance.employee.nombre} {advance.employee.apellido}
@@ -324,14 +328,26 @@ const ListadoSalaryAdvancesAdminComponent = ({
                   <span className="text-xs text-muted-foreground">
                     Legajo: {advance.employee.legajo}
                   </span>
+                  {/* Información móvil - mostrar detalles adicionales en pantallas pequeñas */}
+                  <div className="lg:hidden mt-2 space-y-1">
+                    <div className="text-xs text-muted-foreground">
+                      {advance.reason.length > 25
+                        ? advance.reason.substring(0, 25) + "..."
+                        : advance.reason}
+                    </div>
+                    <div className="md:hidden text-xs text-muted-foreground flex items-center">
+                      <Calendar className="mr-1 h-3 w-3" />
+                      {formatDate(advance.createdAt)}
+                    </div>
+                  </div>
                 </div>
               </TableCell>
               <TableCell>
-                <div className="flex items-center">
+                <div className="flex items-center font-medium">
                   {formatCurrency(advance.amount)}
                 </div>
               </TableCell>
-              <TableCell>
+              <TableCell className="hidden lg:table-cell">
                 <div className="flex items-center">
                   <FileText className="mr-1 h-4 w-4 text-muted-foreground" />
                   {advance.reason.length > 30
@@ -340,40 +356,42 @@ const ListadoSalaryAdvancesAdminComponent = ({
                 </div>
               </TableCell>
               <TableCell>{getStatusBadge(advance.status)}</TableCell>
-              <TableCell>
+              <TableCell className="hidden md:table-cell">
                 <div className="flex items-center">
                   <Calendar className="mr-1 h-4 w-4 text-muted-foreground" />
                   {formatDate(advance.createdAt)}
                 </div>
               </TableCell>
               <TableCell>
-                <div className="flex space-x-2">
+                <div className="flex flex-col md:flex-row space-y-1 md:space-y-0 md:space-x-2">
                   {advance.status === "pending" && (
                     <>
                       <Button
                         variant="outline"
                         size="sm"
-                        className="bg-green-100 hover:bg-green-200 text-green-800 dark:bg-green-900/30 dark:hover:bg-green-800/50 dark:text-green-400"
+                        className="bg-green-100 hover:bg-green-200 text-green-800 dark:bg-green-900/30 dark:hover:bg-green-800/50 dark:text-green-400 w-full md:w-auto text-xs px-2 py-1"
                         onClick={() => handleApproveClick(advance)}
                       >
-                        <CheckCircle className="h-4 w-4 mr-1" />
-                        Aprobar
+                        <CheckCircle className="h-3 w-3 md:h-4 md:w-4 md:mr-1" />
+                        <span className="hidden sm:inline ml-1">Aprobar</span>
                       </Button>
                       <Button
                         variant="outline"
                         size="sm"
-                        className="bg-red-100 hover:bg-red-200 text-red-800 dark:bg-red-900/30 dark:hover:bg-red-800/50 dark:text-red-400"
+                        className="bg-red-100 hover:bg-red-200 text-red-800 dark:bg-red-900/30 dark:hover:bg-red-800/50 dark:text-red-400 w-full md:w-auto text-xs px-2 py-1"
                         onClick={() => handleRejectClick(advance)}
                       >
-                        <XCircle className="h-4 w-4 mr-1" />
-                        Rechazar
+                        <XCircle className="h-3 w-3 md:h-4 md:w-4 md:mr-1" />
+                        <span className="hidden sm:inline ml-1">Rechazar</span>
                       </Button>
                     </>
                   )}
                   {advance.status !== "pending" && (
-                    <span className="text-sm text-muted-foreground">
+                    <span className="text-xs md:text-sm text-muted-foreground">
                       {advance.status === "approved" ? "Aprobado" : "Rechazado"}{" "}
-                      por {advance.approvedBy || "Admin"}
+                      <span className="hidden md:inline">
+                        por {advance.approvedBy || "Admin"}
+                      </span>
                     </span>
                   )}
                 </div>
@@ -384,9 +402,9 @@ const ListadoSalaryAdvancesAdminComponent = ({
       </CardContent>
 
       <Dialog open={confirmDialogOpen} onOpenChange={setConfirmDialogOpen}>
-        <DialogContent className="[&>button]:cursor-pointer max-w-md">
+        <DialogContent className="[&>button]:cursor-pointer max-w-md mx-4 sm:mx-auto">
           <DialogHeader>
-            <DialogTitle>
+            <DialogTitle className="text-lg">
               {actionType === "approve" ? "Aprobar" : "Rechazar"} adelanto
               salarial
             </DialogTitle>
@@ -398,8 +416,8 @@ const ListadoSalaryAdvancesAdminComponent = ({
           </DialogHeader>
 
           {selectedAdvance && (
-            <div className="space-y-4 py-2">
-              <div className="grid grid-cols-2 gap-2">
+            <div className="space-y-3 md:space-y-4 py-2">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <div>
                   <p className="text-sm font-medium">Empleado:</p>
                   <p className="text-sm">
@@ -409,7 +427,7 @@ const ListadoSalaryAdvancesAdminComponent = ({
                 </div>
                 <div>
                   <p className="text-sm font-medium">Monto:</p>
-                  <p className="text-sm">
+                  <p className="text-sm font-semibold">
                     {formatCurrency(selectedAdvance.amount)}
                   </p>
                 </div>
@@ -427,22 +445,23 @@ const ListadoSalaryAdvancesAdminComponent = ({
             </div>
           )}
 
-          <DialogFooter>
+          <DialogFooter className="flex flex-col sm:flex-row gap-2 sm:gap-0">
             <Button
               variant="outline"
               onClick={() => setConfirmDialogOpen(false)}
               disabled={loading}
+              className="w-full sm:w-auto order-2 sm:order-1"
             >
               Cancelar
             </Button>
             <Button
               onClick={confirmAction}
               disabled={loading}
-              className={
+              className={`w-full sm:w-auto order-1 sm:order-2 ${
                 actionType === "approve"
                   ? "bg-green-600 hover:bg-green-700"
                   : "bg-red-600 hover:bg-red-700"
-              }
+              }`}
             >
               {loading ? (
                 <div className="flex items-center">

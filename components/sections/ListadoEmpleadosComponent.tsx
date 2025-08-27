@@ -15,6 +15,7 @@ import {
   getProximosServiciosPorEmpleado,
 } from "@/app/actions/empleados";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { FormDialog } from "../ui/local/FormDialog";
 import { FormField } from "../ui/local/FormField";
@@ -37,6 +38,7 @@ import {
   Calendar,
   Info,
   FileText, // Icono para documentos
+  X,
 } from "lucide-react";
 import {
   Card,
@@ -79,6 +81,7 @@ export default function ListadoEmpleadosComponent({
   );
   const [isCreating, setIsCreating] = useState(false);
   const [activeTab, setActiveTab] = useState("todos");
+  const [searchTerm, setSearchTerm] = useState("");
   const [isFirstLoad, setIsFirstLoad] = useState(true); // Estados para el diálogo de confirmación de eliminación
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [employeeToDelete, setEmployeeToDelete] = useState<number | null>(null);
@@ -178,6 +181,11 @@ export default function ListadoEmpleadosComponent({
     params.set("page", "1");
     router.replace(`?${params.toString()}`);
   };
+
+  const handleClearSearch = () => {
+    setSearchTerm("");
+  };
+
   const handleEditClick = (empleado: Empleado) => {
     setSelectedEmployee(empleado);
     setIsCreating(false);
@@ -517,10 +525,21 @@ export default function ListadoEmpleadosComponent({
     router.replace(`?${params.toString()}`);
   };
 
-  const filteredEmployees =
-    activeTab === "todos"
-      ? employees
-      : employees.filter((emp) => emp.estado === activeTab.toUpperCase());
+  const filteredEmployees = employees.filter((emp) => {
+    // Filtro por tab activo
+    const matchesTab = activeTab === "todos" || emp.estado === activeTab.toUpperCase();
+    
+    // Filtro por término de búsqueda
+    const matchesSearch = !searchTerm || 
+      emp.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      emp.apellido.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      emp.documento.toString().includes(searchTerm) ||
+      emp.cargo.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      emp.estado.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      emp.numero_legajo.toString().includes(searchTerm);
+    
+    return matchesTab && matchesSearch;
+  });
 
   // Determinar si usar paginación remota o local
   const useRemotePagination = activeTab === "todos";
@@ -564,78 +583,80 @@ export default function ListadoEmpleadosComponent({
   return (
     <Card className="w-full shadow-md">
       <CardHeader className="bg-slate-50 dark:bg-slate-900 border-b">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col md:flex-row items-start md:items-center justify-between">
           <div>
-            <CardTitle className="text-2xl font-bold">
+            <CardTitle className="text-xl md:text-2xl font-bold">
               Gestión de Personal
             </CardTitle>
-            <CardDescription className="text-muted-foreground mt-1">
+            <CardDescription className="text-muted-foreground mt-1 text-sm md:text-base">
               Administra la información de empleados de la empresa
             </CardDescription>
           </div>
           <Button
             onClick={handleCreateClick}
-            className="cursor-pointer bg-indigo-600 hover:bg-indigo-700"
+            className="cursor-pointer bg-indigo-600 hover:bg-indigo-700 mt-3 md:mt-0"
+            size="sm"
           >
             <UserPlus className="mr-2 h-4 w-4" />
-            Nuevo Empleado
+            <span className="hidden sm:inline">Nuevo Empleado</span>
+            <span className="sm:hidden">Nuevo</span>
           </Button>
         </div>
 
         {/* Agregar esta sección de información de estados */}
-        <div className="mt-4 p-4 bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-lg">
+        <div className="mt-4 p-3 md:p-4 bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-lg">
           <div className="flex items-start gap-2">
-            <Info className="h-5 w-5 text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" />
-            <div className="space-y-2">
-              <h4 className="font-semibold text-blue-900 dark:text-blue-100">
+            <Info className="h-4 w-4 md:h-5 md:w-5 text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" />
+            <div className="space-y-2 w-full">
+              <h4 className="font-semibold text-blue-900 dark:text-blue-100 text-sm md:text-base">
                 Estados de Empleados
               </h4>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 text-sm">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 md:gap-3 text-xs md:text-sm">
                 <div className="flex items-center gap-2">
-                  <Badge className="bg-green-100 text-green-800 hover:bg-green-100">
+                  <Badge className="bg-green-100 text-green-800 hover:bg-green-100 text-xs">
                     DISPONIBLE
                   </Badge>
-                  <span className="text-blue-800 dark:text-blue-200">
+                  <span className="text-blue-800 dark:text-blue-200 text-xs md:text-sm">
                     Listo para ser asignado a servicios
                   </span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-100">
+                  <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-100 text-xs">
                     ASIGNADO
                   </Badge>
-                  <span className="text-blue-800 dark:text-blue-200">
+                  <span className="text-blue-800 dark:text-blue-200 text-xs md:text-sm">
                     Actualmente asignado a un servicio
                   </span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <Badge className="bg-yellow-100 text-yellow-800 hover:bg-yellow-100">
+                  <Badge className="bg-yellow-100 text-yellow-800 hover:bg-yellow-100 text-xs">
                     VACACIONES
                   </Badge>
-                  <span className="text-blue-800 dark:text-blue-200">
+                  <span className="text-blue-800 dark:text-blue-200 text-xs md:text-sm">
                     Empleado de vacaciones
                   </span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <Badge className="bg-orange-100 text-orange-800 hover:bg-orange-100">
+                  <Badge className="bg-orange-100 text-orange-800 hover:bg-orange-100 text-xs">
                     LICENCIA
                   </Badge>
-                  <span className="text-blue-800 dark:text-blue-200">
+                  <span className="text-blue-800 dark:text-blue-200 text-xs md:text-sm">
                     Con licencia médica u otra
                   </span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <Badge className="bg-gray-100 text-gray-800 hover:bg-gray-100">
+                  <Badge className="bg-gray-100 text-gray-800 hover:bg-gray-100 text-xs">
                     INACTIVO
                   </Badge>
-                  <span className="text-blue-800 dark:text-blue-200">
+                  <span className="text-blue-800 dark:text-blue-200 text-xs md:text-sm">
                     Temporalmente inactivo
                   </span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <Badge className="bg-red-100 text-red-800 hover:bg-red-100">
+                  <Badge className="bg-red-100 text-red-800 hover:bg-red-100 text-xs">
                     BAJA
                   </Badge>
-                  <span className="text-blue-800 dark:text-blue-200">
+                  <span className="text-blue-800 dark:text-blue-200 text-xs md:text-sm">
                     Ya no trabaja en la empresa
                   </span>
                 </div>
@@ -655,43 +676,65 @@ export default function ListadoEmpleadosComponent({
             value={activeTab}
             onValueChange={handleTabChange}
           >
-            <TabsList className="grid grid-cols-4 w-[500px]">
-              <TabsTrigger value="todos" className="flex items-center">
-                <UserRound className="mr-2 h-4 w-4" />
-                Todos
-              </TabsTrigger>{" "}
-              <TabsTrigger value="asignado" className="flex items-center">
-                <CheckCircle className="mr-2 h-4 w-4" />
-                Asignados
+            <TabsList className="grid grid-cols-2 md:grid-cols-4 w-full max-w-none md:max-w-[500px] h-auto gap-1 p-1">
+              <TabsTrigger value="todos" className="flex items-center justify-center text-xs md:text-sm">
+                <UserRound className="mr-1 md:mr-2 h-3 w-3 md:h-4 md:w-4" />
+                <span className="block md:hidden">Todos</span>
+                <span className="hidden md:block">Todos</span>
               </TabsTrigger>
-              <TabsTrigger value="suspendido" className="flex items-center">
-                <PauseCircle className="mr-2 h-4 w-4" />
-                Suspendidos
+              <TabsTrigger value="asignado" className="flex items-center justify-center text-xs md:text-sm">
+                <CheckCircle className="mr-1 md:mr-2 h-3 w-3 md:h-4 md:w-4" />
+                <span className="block md:hidden">Asig.</span>
+                <span className="hidden md:block">Asignados</span>
               </TabsTrigger>
-              <TabsTrigger value="disponible" className="flex items-center">
-                <BadgeInfo className="mr-2 h-4 w-4" />
-                Disponibles
+              <TabsTrigger value="suspendido" className="flex items-center justify-center text-xs md:text-sm">
+                <PauseCircle className="mr-1 md:mr-2 h-3 w-3 md:h-4 md:w-4" />
+                <span className="block md:hidden">Susp.</span>
+                <span className="hidden md:block">Suspendidos</span>
+              </TabsTrigger>
+              <TabsTrigger value="disponible" className="flex items-center justify-center text-xs md:text-sm">
+                <BadgeInfo className="mr-1 md:mr-2 h-3 w-3 md:h-4 md:w-4" />
+                <span className="block md:hidden">Disp.</span>
+                <span className="hidden md:block">Disponibles</span>
               </TabsTrigger>
             </TabsList>
           </Tabs>
         </div>
       </CardHeader>
-      <CardContent className="p-6">
-        {" "}
+      <CardContent className="p-4 md:p-6">
+        {/* Input de búsqueda externo */}
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 mb-4">
+          <form onSubmit={(e) => {
+            e.preventDefault();
+            handleSearchChange(searchTerm);
+          }} className="flex gap-2 flex-1">
+            <Input
+              placeholder="Buscar por nombre, apellido, documento, cargo... (presiona Enter)"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="flex-1 min-w-0"
+            />
+            <Button type="submit" className="shrink-0">Buscar</Button>
+          </form>
+          {searchTerm && (
+            <Button
+              variant="outline"
+              onClick={handleClearSearch}
+              className="shrink-0"
+            >
+              <X className="h-4 w-4 mr-1" />
+              Limpiar
+            </Button>
+          )}
+        </div>
+        
         <div className="rounded-md border">
           <ListadoTabla
             title=""
             data={filteredEmployees}
             itemsPerPage={itemsPerPage}
-            searchableKeys={[
-              "nombre",
-              "apellido",
-              "documento",
-              "cargo",
-              "estado",
-              "numero_legajo",
-            ]}
-            searchPlaceholder="Buscar por nombre, apellido, documento... (presiona Enter)"
+            searchableKeys={[]}
+            searchPlaceholder=""
             remotePagination={useRemotePagination}
             totalItems={effectiveTotalItems}
             currentPage={effectiveCurrentPage}
@@ -699,28 +742,28 @@ export default function ListadoEmpleadosComponent({
             onSearchChange={handleSearchChange}
             columns={[
               { title: "Empleado", key: "empleado" },
-              { title: "Contacto", key: "contacto" },
-              { title: "Información", key: "informacion" },
-              { title: "Documentación", key: "documentacion" },
+              { title: "Contacto", key: "contacto", className: "hidden md:table-cell" },
+              { title: "Información", key: "informacion", className: "hidden lg:table-cell" },
+              { title: "Documentación", key: "documentacion", className: "hidden xl:table-cell" },
               { title: "Estado", key: "estado" },
               { title: "Acciones", key: "acciones" },
             ]}
             renderRow={(empleado) => (
               <>
-                <TableCell className="min-w-[250px]">
-                  <div className="flex items-center gap-3">
-                    <div className="h-10 w-10 rounded-full bg-slate-100 flex items-center justify-center">
-                      <UserRound className="h-5 w-5 text-slate-600" />
+                <TableCell className="min-w-[200px] md:min-w-[250px]">
+                  <div className="flex items-center gap-2 md:gap-3">
+                    <div className="h-8 w-8 md:h-10 md:w-10 rounded-full bg-slate-100 flex items-center justify-center">
+                      <UserRound className="h-4 w-4 md:h-5 md:w-5 text-slate-600" />
                     </div>
                     <div>
-                      <div className="font-medium">{`${empleado.nombre} ${empleado.apellido}`}</div>
-                      <div className="text-sm text-muted-foreground">{`Legajo: ${
+                      <div className="font-medium text-sm md:text-base">{`${empleado.nombre} ${empleado.apellido}`}</div>
+                      <div className="text-xs md:text-sm text-muted-foreground">{`Legajo: ${
                         empleado.numero_legajo || "N/A"
                       }`}</div>
                     </div>
                   </div>
                 </TableCell>
-                <TableCell className="min-w-[220px]">
+                <TableCell className="min-w-[220px] hidden md:table-cell">
                   <div className="space-y-1">
                     <div className="flex items-center text-sm">
                       <Mail className="h-3.5 w-3.5 mr-2 text-muted-foreground" />
@@ -732,7 +775,7 @@ export default function ListadoEmpleadosComponent({
                     </div>
                   </div>
                 </TableCell>
-                <TableCell className="min-w-[200px]">
+                <TableCell className="min-w-[200px] hidden lg:table-cell">
                   <div className="space-y-1">
                     <div className="flex items-center text-sm">
                       <Briefcase className="h-3.5 w-3.5 mr-2 text-muted-foreground" />
@@ -749,7 +792,7 @@ export default function ListadoEmpleadosComponent({
                     </div>
                   </div>
                 </TableCell>
-                <TableCell className="min-w-[200px]">
+                <TableCell className="min-w-[200px] hidden xl:table-cell">
                   <div className="space-y-1">
                     <div className="flex items-center text-sm">
                       <FileText className="h-3.5 w-3.5 mr-2 text-muted-foreground" />
@@ -761,7 +804,7 @@ export default function ListadoEmpleadosComponent({
                       <FileText className="h-3.5 w-3.5 mr-2 text-muted-foreground" />
                       <span>CUIL: {empleado.cuil || "No especificado"}</span>
                     </div>
-                  </div>{" "}
+                  </div>
                 </TableCell>
                 <TableCell>
                   <Badge
@@ -783,15 +826,15 @@ export default function ListadoEmpleadosComponent({
                     {empleado.estado}
                   </Badge>
                 </TableCell>
-                <TableCell className="flex gap-2">
+                <TableCell className="flex gap-1 md:gap-2">
                   <Button
                     variant="outline"
                     size="sm"
                     onClick={() => handleEditClick(empleado)}
                     className="cursor-pointer border-slate-200 hover:bg-slate-50 hover:text-slate-900"
                   >
-                    <Edit2 className="h-3.5 w-3.5 mr-1" />
-                    Editar
+                    <Edit2 className="h-3.5 w-3.5 mr-0 md:mr-1" />
+                    <span className="hidden md:inline">Editar</span>
                   </Button>
                   <Button
                     variant="destructive"
@@ -801,8 +844,8 @@ export default function ListadoEmpleadosComponent({
                     }
                     className="cursor-pointer bg-red-100 text-red-700 hover:bg-red-200 hover:text-red-800"
                   >
-                    <Trash2 className="h-3.5 w-3.5 mr-1" />
-                    Eliminar
+                    <Trash2 className="h-3.5 w-3.5 mr-0 md:mr-1" />
+                    <span className="hidden md:inline">Eliminar</span>
                   </Button>
                   <Button
                     variant="outline"
@@ -810,8 +853,9 @@ export default function ListadoEmpleadosComponent({
                     onClick={() => handleProximosServiciosClick(empleado)}
                     className="cursor-pointer border-blue-200 hover:bg-blue-50 hover:text-blue-900"
                   >
-                    <Info className="h-3.5 w-3.5 mr-1" />
-                    Próximos Servicios
+                    <Info className="h-3.5 w-3.5 mr-0 md:mr-1" />
+                    <span className="hidden lg:inline">Próximos Servicios</span>
+                    <span className="hidden md:inline lg:hidden">Servicios</span>
                   </Button>
                 </TableCell>
               </>

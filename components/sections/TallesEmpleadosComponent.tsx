@@ -288,9 +288,9 @@ const TallesEmpleadosComponent = ({
   return (
     <Card className="w-full shadow-md">
       <CardHeader className="bg-slate-50 dark:bg-slate-900 border-b">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
-            <CardTitle className="text-2xl font-bold">
+            <CardTitle className="text-xl md:text-2xl font-bold">
               Gestión de Talles de Empleados
             </CardTitle>
             <CardDescription className="text-muted-foreground mt-1">
@@ -298,28 +298,30 @@ const TallesEmpleadosComponent = ({
               empresa
             </CardDescription>
           </div>
-          <div className="flex gap-2">
+          <div className="flex flex-col sm:flex-row gap-2 w-full md:w-auto">
             <Button
               onClick={handleExportToExcel}
               variant="outline"
               disabled={exporting}
-              className="cursor-pointer"
+              className="cursor-pointer w-full sm:w-auto"
             >
               <FileDown className="mr-2 h-4 w-4" />
-              Exportar a Excel
+              <span className="hidden sm:inline">Exportar a Excel</span>
+              <span className="sm:hidden">Exportar</span>
             </Button>
             <Button
               onClick={handleCreateClick}
-              className="cursor-pointer bg-indigo-600 hover:bg-indigo-700"
+              className="cursor-pointer bg-indigo-600 hover:bg-indigo-700 w-full sm:w-auto"
             >
               <PlusCircle className="mr-2 h-4 w-4" />
-              Nuevo Registro
+              <span className="hidden sm:inline">Nuevo Registro</span>
+              <span className="sm:hidden">Nuevo</span>
             </Button>
           </div>
         </div>
       </CardHeader>
 
-      <CardContent className="p-6">
+      <CardContent className="p-4 md:p-6">
         <div className="rounded-md border">
           <ListadoTabla
             title=""
@@ -345,21 +347,22 @@ const TallesEmpleadosComponent = ({
               { title: "Empleado", key: "empleado" },
               { title: "Calzado", key: "calzado_talle" },
               { title: "Pantalón", key: "pantalon_talle" },
-              { title: "Camisa", key: "camisa_talle" },
-              { title: "Campera BigNort", key: "campera_bigNort_talle" },
-              { title: "Piel BigNort", key: "pielBigNort_talle" },
-              { title: "Medias", key: "medias_talle" },
+              { title: "Camisa", key: "camisa_talle", className: "hidden lg:table-cell" },
+              { title: "Campera BigNort", key: "campera_bigNort_talle", className: "hidden xl:table-cell" },
+              { title: "Piel BigNort", key: "pielBigNort_talle", className: "hidden xl:table-cell" },
+              { title: "Medias", key: "medias_talle", className: "hidden lg:table-cell" },
               {
                 title: "Pantalón Térmico",
                 key: "pantalon_termico_bigNort_talle",
+                className: "hidden 2xl:table-cell"
               },
-              { title: "Campera Polar", key: "campera_polar_bigNort_talle" },
-              { title: "Mameluco", key: "mameluco_talle" },
+              { title: "Campera Polar", key: "campera_polar_bigNort_talle", className: "hidden 2xl:table-cell" },
+              { title: "Mameluco", key: "mameluco_talle", className: "hidden xl:table-cell" },
               { title: "Acciones", key: "acciones" },
             ]}
             renderRow={(talles) => (
               <>
-                <TableCell className="min-w-[220px]">
+                <TableCell className="min-w-[180px] md:min-w-[220px]">
                   <div className="flex items-center gap-3">
                     <div className="h-10 w-10 rounded-full bg-slate-100 flex items-center justify-center">
                       <User className="h-5 w-5 text-slate-600" />
@@ -369,85 +372,95 @@ const TallesEmpleadosComponent = ({
                         {talles.empleado?.nombre || "Sin nombre"}{" "}
                         {talles.empleado?.apellido || ""}
                       </div>
+                      {/* Información móvil - mostrar talles básicos en pantallas pequeñas */}
+                      <div className="lg:hidden mt-1 space-y-1">
+                        <div className="text-xs text-muted-foreground flex flex-wrap gap-2">
+                          <span>Calz: {talles.calzado_talle}</span>
+                          <span>Pant: {talles.pantalon_talle}</span>
+                          <span className="sm:inline hidden">Cam: {talles.camisa_talle}</span>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </TableCell>
                 <TableCell>
                   <div className="flex items-center gap-2">
                     <Shirt className="h-4 w-4 text-slate-500" />
-                    {talles.calzado_talle}
+                    <span className="font-medium">{talles.calzado_talle}</span>
                   </div>
                 </TableCell>
                 <TableCell>
                   <div className="flex items-center gap-2">
                     <Shirt className="h-4 w-4 text-slate-500" />
-                    {talles.pantalon_talle}
+                    <span className="font-medium">{talles.pantalon_talle}</span>
+                  </div>
+                </TableCell>
+                <TableCell className="hidden lg:table-cell">
+                  <div className="flex items-center gap-2">
+                    <Shirt className="h-4 w-4 text-slate-500" />
+                    <span className="font-medium">{talles.camisa_talle}</span>
+                  </div>
+                </TableCell>
+                <TableCell className="hidden xl:table-cell">
+                  <div className="flex items-center gap-2">
+                    <Shirt className="h-4 w-4 text-slate-500" />
+                    <span className="font-medium">{talles.campera_bigNort_talle}</span>
+                  </div>
+                </TableCell>
+                <TableCell className="hidden xl:table-cell">
+                  <div className="flex items-center gap-2">
+                    <Shirt className="h-4 w-4 text-slate-500" />
+                    <span className="font-medium">{talles.pielBigNort_talle}</span>
+                  </div>
+                </TableCell>
+                <TableCell className="hidden lg:table-cell">
+                  <div className="flex items-center gap-2">
+                    <Shirt className="h-4 w-4 text-slate-500" />
+                    <span className="font-medium">{talles.medias_talle}</span>
+                  </div>
+                </TableCell>
+                <TableCell className="hidden 2xl:table-cell">
+                  <div className="flex items-center gap-2">
+                    <Shirt className="h-4 w-4 text-slate-500" />
+                    <span className="font-medium">{talles.pantalon_termico_bigNort_talle}</span>
+                  </div>
+                </TableCell>
+                <TableCell className="hidden 2xl:table-cell">
+                  <div className="flex items-center gap-2">
+                    <Shirt className="h-4 w-4 text-slate-500" />
+                    <span className="font-medium">{talles.campera_polar_bigNort_talle}</span>
+                  </div>
+                </TableCell>
+                <TableCell className="hidden xl:table-cell">
+                  <div className="flex items-center gap-2">
+                    <Shirt className="h-4 w-4 text-slate-500" />
+                    <span className="font-medium">{talles.mameluco_talle}</span>
                   </div>
                 </TableCell>
                 <TableCell>
-                  <div className="flex items-center gap-2">
-                    <Shirt className="h-4 w-4 text-slate-500" />
-                    {talles.camisa_talle}
+                  <div className="flex flex-wrap gap-1 md:gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleEditClick(talles)}
+                      className="cursor-pointer border-slate-200 hover:bg-slate-50 hover:text-slate-900 text-xs px-2 py-1"
+                    >
+                      <Edit2 className="h-3 w-3 md:h-3.5 md:w-3.5 md:mr-1" />
+                      <span className="hidden md:inline">Editar</span>
+                    </Button>{" "}
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      onClick={() =>
+                        talles.empleado?.id &&
+                        handleDeleteClick(talles.empleado.id)
+                      }
+                      className="cursor-pointer bg-red-100 text-red-700 hover:bg-red-200 hover:text-red-800 text-xs px-2 py-1"
+                    >
+                      <Trash2 className="h-3 w-3 md:h-3.5 md:w-3.5 md:mr-1" />
+                      <span className="hidden md:inline">Eliminar</span>
+                    </Button>
                   </div>
-                </TableCell>
-                <TableCell>
-                  <div className="flex items-center gap-2">
-                    <Shirt className="h-4 w-4 text-slate-500" />
-                    {talles.campera_bigNort_talle}
-                  </div>
-                </TableCell>
-                <TableCell>
-                  <div className="flex items-center gap-2">
-                    <Shirt className="h-4 w-4 text-slate-500" />
-                    {talles.pielBigNort_talle}
-                  </div>
-                </TableCell>
-                <TableCell>
-                  <div className="flex items-center gap-2">
-                    <Shirt className="h-4 w-4 text-slate-500" />
-                    {talles.medias_talle}
-                  </div>
-                </TableCell>
-                <TableCell>
-                  <div className="flex items-center gap-2">
-                    <Shirt className="h-4 w-4 text-slate-500" />
-                    {talles.pantalon_termico_bigNort_talle}
-                  </div>
-                </TableCell>
-                <TableCell>
-                  <div className="flex items-center gap-2">
-                    <Shirt className="h-4 w-4 text-slate-500" />
-                    {talles.campera_polar_bigNort_talle}
-                  </div>
-                </TableCell>
-                <TableCell>
-                  <div className="flex items-center gap-2">
-                    <Shirt className="h-4 w-4 text-slate-500" />
-                    {talles.mameluco_talle}
-                  </div>
-                </TableCell>
-                <TableCell className="flex gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleEditClick(talles)}
-                    className="cursor-pointer border-slate-200 hover:bg-slate-50 hover:text-slate-900"
-                  >
-                    <Edit2 className="h-3.5 w-3.5 mr-1" />
-                    Editar
-                  </Button>{" "}
-                  <Button
-                    variant="destructive"
-                    size="sm"
-                    onClick={() =>
-                      talles.empleado?.id &&
-                      handleDeleteClick(talles.empleado.id)
-                    }
-                    className="cursor-pointer bg-red-100 text-red-700 hover:bg-red-200 hover:text-red-800"
-                  >
-                    <Trash2 className="h-3.5 w-3.5 mr-1" />
-                    Eliminar
-                  </Button>
                 </TableCell>
               </>
             )}
@@ -496,7 +509,7 @@ const TallesEmpleadosComponent = ({
             )}
           />
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <Controller
               name="calzado_talle"
               control={control}
@@ -528,7 +541,7 @@ const TallesEmpleadosComponent = ({
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <Controller
               name="camisa_talle"
               control={control}
@@ -560,7 +573,7 @@ const TallesEmpleadosComponent = ({
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <Controller
               name="pielBigNort_talle"
               control={control}
@@ -592,7 +605,7 @@ const TallesEmpleadosComponent = ({
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <Controller
               name="pantalon_termico_bigNort_talle"
               control={control}
