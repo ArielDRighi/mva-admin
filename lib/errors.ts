@@ -66,7 +66,10 @@ export function handleApiError(
   error: unknown,
   defaultMessage: string = "Ha ocurrido un error en la operación"
 ): string {
-  const message = getErrorMessage(error) || defaultMessage;
+  // Usar el nuevo sistema de manejo de errores
+  const { handleSmartError } = require('./errorUtils');
+  const message = handleSmartError(error, 'API Error', defaultMessage);
+
   console.log("Mensaje de error procesado:", message);
 
   // Siempre registramos el error en la consola para depuración

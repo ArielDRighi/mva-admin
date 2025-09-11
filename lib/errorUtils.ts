@@ -73,6 +73,7 @@ export function extractErrorMessage(error: unknown): string {
   // 2. Si es un objeto con estructura de respuesta de API
   if (typeof error === "object" && error !== null) {
     const apiError = error as ApiErrorResponse;
+    const errorObj = error as Record<string, unknown>;
 
     // Prioridad 1: mensaje directo
     if (apiError.message && typeof apiError.message === "string") {
@@ -101,23 +102,59 @@ export function extractErrorMessage(error: unknown): string {
       }
     }
 
-    // 5. Si tiene una propiedad que parece un mensaje de error
-    const possibleMessageKeys = ["msg", "description", "detail", "reason"];
+    // Prioridad 5: buscar en propiedades anidadas (para errores envueltos)
+    const nestedSources = [
+      errorObj.originalError,
+      errorObj.cause,
+      (errorObj as any)?.response?.data,
+      (errorObj as any)?.response?.data?.message,
+      (errorObj as any)?.response?.data?.error,
+    ];
+
+    for (const source of nestedSources) {
+      if (source && typeof source === "object") {
+        const nestedMessage = extractErrorMessage(source);
+        if (nestedMessage && nestedMessage !== "Error desconocido en la operación") {
+          return nestedMessage;
+        }
+      } else if (source && typeof source === "string") {
+        return source;
+      }
+    }
+
+    // Prioridad 6: propiedades comunes de mensajes de error
+    const possibleMessageKeys = ["msg", "description", "detail", "reason", "statusText"];
     for (const key of possibleMessageKeys) {
-      const errorObj = error as Record<string, unknown>;
       if (errorObj[key] && typeof errorObj[key] === "string") {
         return errorObj[key] as string;
       }
     }
 
-    // 6. Si es un objeto de respuesta fetch con texto
-    const errorWithText = error as Record<string, unknown>;
-    if (errorWithText.text && typeof errorWithText.text === "string") {
+    // Prioridad 7: Si es un objeto de respuesta fetch con texto
+    if (errorObj.text && typeof errorObj.text === "string") {
       try {
-        const parsed = JSON.parse(errorWithText.text);
+        const parsed = JSON.parse(errorObj.text);
         return extractErrorMessage(parsed);
       } catch {
-        return errorWithText.text;
+        return errorObj.text;
+      }
+    }
+
+    // Prioridad 8: Si tiene statusCode, intentar crear un mensaje descriptivo
+    if (errorObj.statusCode && typeof errorObj.statusCode === "number") {
+      const statusMessages: Record<number, string> = {
+        400: "Solicitud inválida",
+        401: "No autorizado",
+        403: "Acceso denegado",
+        404: "Recurso no encontrado",
+        409: "Conflicto en la operación",
+        422: "Datos de entrada inválidos",
+        500: "Error interno del servidor",
+      };
+      
+      const statusMessage = statusMessages[errorObj.statusCode];
+      if (statusMessage) {
+        return statusMessage;
       }
     }
   }
@@ -152,10 +189,40 @@ export function handleSmartError(
 
   let extractedMessage = extractErrorMessage(error);
 
-  // Filtrar mensajes internos de Next.js/React que no son útiles para el usuario
+  // Si el mensaje parece ser un error envuelto de Server Components, 
+  // intentar extraer información más útil del error original
+  if (extractedMessage.includes("An error occurred in the Server Components render")) {
+    // Verificar si tenemos información del error original
+    const errorObj = error as Record<string, unknown>;
+    
+    // Buscar en diferentes propiedades donde podría estar el mensaje real
+    const possibleSources = [
+      errorObj.originalError,
+      errorObj.cause,
+      errorObj.details,
+      (errorObj as any)?.response?.data,
+      (errorObj as any)?.response?.data?.message,
+    ];
+
+    for (const source of possibleSources) {
+      if (source) {
+        const innerMessage = extractErrorMessage(source);
+        if (innerMessage && !innerMessage.includes("Server Components render")) {
+          extractedMessage = innerMessage;
+          break;
+        }
+      }
+    }
+
+    // Si aún no tenemos un mensaje útil, usar el fallback específico del contexto
+    if (extractedMessage.includes("Server Components render")) {
+      extractedMessage = fallbackMessage || "Error en la operación. Contacte al administrador si el problema persiste.";
+    }
+  }
+
+  // Filtrar otros mensajes internos de Next.js/React que no son útiles para el usuario
   const internalPatterns = [
     /digest:/i,
-    /An error occurred in the Server Components render/i,
     /The server could not finish this Suspense boundary/i,
     /This error happened while generating the page/i,
     /Network request failed/i,
