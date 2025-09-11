@@ -56,6 +56,7 @@ import {
   getClients,
 } from "@/app/actions/clientes";
 import { getServices } from "@/app/actions/services";
+import { getClientServicesAPI } from "@/lib/api/services";
 
 export default function ListadoClientesComponent({
   data,
@@ -201,35 +202,25 @@ export default function ListadoClientesComponent({
   // Función para cargar servicios de un cliente específico
   const loadClientServices = async (clienteId: number) => {
     setLoadingServices(true);
+    setClientServices([]);
+    
+    // Solo cargar servicios si estamos en el lado del cliente
+    if (typeof window === 'undefined') {
+      setLoadingServices(false);
+      return;
+    }
+
     try {
-      // Obtener todos los servicios y filtrar por cliente
-      const allServices = await getServices(1, 100, "") as any; // Obtener muchos servicios para filtrar
+      const result = await getClientServicesAPI(clienteId, 10);
       
-      if (allServices && allServices.data && Array.isArray(allServices.data)) {
-        // Filtrar servicios que pertenecen al cliente específico
-        const filteredServices = allServices.data.filter((service: any) => {
-          return service.clienteId === clienteId || 
-                 (service.condicionContractual && service.condicionContractual.clienteId === clienteId);
-        });
-        
-        // Solo mostrar servicios futuros o en progreso
-        const upcomingServices = filteredServices.filter((service: any) => {
-          const serviceDate = new Date(service.fechaProgramada);
-          const today = new Date();
-          today.setHours(0, 0, 0, 0);
-          
-          return serviceDate >= today && 
-                 (service.estado === 'PROGRAMADO' || service.estado === 'EN_PROGRESO');
-        });
-        
-        setClientServices(upcomingServices);
-        console.log(`[loadClientServices] Found ${upcomingServices.length} upcoming services for client ${clienteId}:`, upcomingServices);
+      if (result?.data?.items) {
+        setClientServices(result.data.items);
       } else {
-        setClientServices([]);
+        toast.info("No hay servicios próximos para este cliente");
       }
     } catch (error) {
-      console.error('[loadClientServices] Error loading services:', error);
-      setClientServices([]);
+      console.error("Error loading client services:", error);
+      toast.error("Error al cargar los servicios del cliente.");
     } finally {
       setLoadingServices(false);
     }
