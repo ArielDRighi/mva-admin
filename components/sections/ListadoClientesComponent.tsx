@@ -31,6 +31,7 @@ import {
   CreditCard,
   MapPin,
   User2,
+  Clock,
 } from "lucide-react";
 import {
   Card,
@@ -39,7 +40,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import {
   Dialog,
   DialogContent,
@@ -54,6 +55,7 @@ import {
   editClient,
   getClients,
 } from "@/app/actions/clientes";
+import { getServices, getServicesByClient } from "@/app/actions/services";
 
 export default function ListadoClientesComponent({
   data,
@@ -90,6 +92,9 @@ export default function ListadoClientesComponent({
   const [searchTerm, setSearchTerm] = useState<string>(
     searchParams.get("search") || ""
   );
+  // Estados para los servicios del cliente
+  const [clientServices, setClientServices] = useState<any[]>([]);
+  const [loadingServices, setLoadingServices] = useState(false);
   const createClientSchema = z.object({
     nombre: z.string().min(1, "El nombre es obligatorio"),
     cuit: createCUITSchema(),
@@ -183,9 +188,38 @@ export default function ListadoClientesComponent({
     });
   };
 
-  const handleViewClick = (cliente: Cliente) => {
+  const handleViewClick = async (cliente: Cliente) => {
     setSelectedClientForView(cliente);
     setIsViewModalOpen(true);
+    
+    // Cargar los servicios próximos del cliente
+    if (cliente.clienteId) {
+      await loadClientServices(cliente.clienteId);
+    }
+  };
+
+  const loadClientServices = async (clienteId: number) => {
+    setLoadingServices(true);
+    try {
+      // Usar la función específica para obtener servicios del cliente
+      const result = await getServicesByClient(clienteId, 10);
+      
+      if (result && typeof result === 'object' && 'success' in result && result.success) {
+        const responseData = result as any;
+        const services = responseData.data?.data || responseData.data?.items || responseData.data || [];
+        setClientServices(services);
+      } else {
+        setClientServices([]);
+        console.error("Error en la respuesta:", result);
+        toast.error("No se encontraron servicios próximos para este cliente");
+      }
+    } catch (error) {
+      console.error("Error loading client services:", error);
+      setClientServices([]);
+      toast.error("Error al cargar los servicios del cliente");
+    } finally {
+      setLoadingServices(false);
+    }
   };
   const handleCreateClick = () => {
     // Resetear el formulario con valores iniciales
@@ -884,150 +918,249 @@ export default function ListadoClientesComponent({
                   </div>
                 </div>
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {/* Información de la Empresa */}
-                <div className="border rounded-lg p-4">
-                  <h4 className="font-medium text-md mb-3 flex items-center">
-                    <Building className="h-4 w-4 mr-2 text-blue-600" />
-                    Información de la Empresa
-                  </h4>
-                  <div className="space-y-3">
-                    <div>
-                      <h5 className="text-xs uppercase font-medium text-muted-foreground">
-                        CUIT
-                      </h5>
-                      <p className="text-sm font-medium mt-1 flex items-center">
-                        <CreditCard className="h-3.5 w-3.5 mr-2 text-muted-foreground" />
-                        {selectedClientForView.cuit}
-                      </p>
-                    </div>
-                    <div>
-                      <h5 className="text-xs uppercase font-medium text-muted-foreground">
-                        Dirección
-                      </h5>
-                      <p className="text-sm font-medium mt-1 flex items-start">
-                        <MapPin className="h-3.5 w-3.5 mr-2 text-muted-foreground mt-0.5 flex-shrink-0" />
-                        <span>{selectedClientForView.direccion}</span>
-                      </p>
-                    </div>
-                    <div>
-                      <h5 className="text-xs uppercase font-medium text-muted-foreground">
-                        Email Corporativo
-                      </h5>
-                      <p className="text-sm font-medium mt-1 flex items-center">
-                        <Mail className="h-3.5 w-3.5 mr-2 text-muted-foreground" />
-                        {selectedClientForView.email}
-                      </p>
-                    </div>
-                  </div>
-                </div>{" "}
-                {/* Contacto Principal */}
-                <div className="border rounded-lg p-4">
-                  <h4 className="font-medium text-md mb-3 flex items-center">
-                    <User2 className="h-4 w-4 mr-2 text-green-600" />
-                    Contacto Principal
-                  </h4>
-                  <div className="space-y-3">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                      <div>
-                        <h5 className="text-xs uppercase font-medium text-muted-foreground">
-                          Nombre y Apellido
-                        </h5>
-                        <p className="text-sm font-medium mt-1">
-                          {selectedClientForView.contacto_principal}
-                        </p>
-                      </div>{" "}
-                      <div>
-                        <h5 className="text-xs uppercase font-medium text-muted-foreground">
-                          Teléfono
-                        </h5>
-                        <p className="text-sm font-medium mt-1 flex items-center">
-                          <Phone className="h-3.5 w-3.5 mr-2 text-muted-foreground" />
-                          {selectedClientForView.contacto_principal_telefono ||
-                            "No especificado"}
-                        </p>
+              
+              {/* Tabs para organizar la información */}
+              <Tabs defaultValue="info" className="w-full">
+                <TabsList className="grid w-full grid-cols-2">
+                  <TabsTrigger value="info">Información del Cliente</TabsTrigger>
+                  <TabsTrigger value="services">Próximos Servicios</TabsTrigger>
+                </TabsList>
+                
+                <TabsContent value="info" className="space-y-6 mt-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {/* Información de la Empresa */}
+                    <div className="border rounded-lg p-4">
+                      <h4 className="font-medium text-md mb-3 flex items-center">
+                        <Building className="h-4 w-4 mr-2 text-blue-600" />
+                        Información de la Empresa
+                      </h4>
+                      <div className="space-y-3">
+                        <div>
+                          <h5 className="text-xs uppercase font-medium text-muted-foreground">
+                            CUIT
+                          </h5>
+                          <p className="text-sm font-medium mt-1 flex items-center">
+                            <CreditCard className="h-3.5 w-3.5 mr-2 text-muted-foreground" />
+                            {selectedClientForView.cuit}
+                          </p>
+                        </div>
+                        <div>
+                          <h5 className="text-xs uppercase font-medium text-muted-foreground">
+                            Dirección
+                          </h5>
+                          <p className="text-sm font-medium mt-1 flex items-start">
+                            <MapPin className="h-3.5 w-3.5 mr-2 text-muted-foreground mt-0.5 flex-shrink-0" />
+                            <span>{selectedClientForView.direccion}</span>
+                          </p>
+                        </div>
+                        <div>
+                          <h5 className="text-xs uppercase font-medium text-muted-foreground">
+                            Email Corporativo
+                          </h5>
+                          <p className="text-sm font-medium mt-1 flex items-center">
+                            <Mail className="h-3.5 w-3.5 mr-2 text-muted-foreground" />
+                            {selectedClientForView.email}
+                          </p>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                </div>
-              </div>{" "}
-              {/* Contactos de Obra */}
-              {(selectedClientForView.contactoObra1 ||
-                selectedClientForView.contacto_obra1_telefono ||
-                selectedClientForView.contactoObra2 ||
-                selectedClientForView.contacto_obra2_telefono) && (
-                <div className="border rounded-lg p-4">
-                  <h4 className="font-medium text-md mb-3 flex items-center">
-                    <Phone className="h-4 w-4 mr-2 text-orange-600" />
-                    Contactos de Obra
-                  </h4>{" "}
-                  <div className="space-y-4">
-                    {(selectedClientForView.contactoObra1 ||
-                      selectedClientForView.contacto_obra1_telefono) && (
-                      <div className="bg-slate-50 rounded-md border p-3">
-                        <h5 className="text-sm font-medium text-muted-foreground mb-2">
-                          Contacto de Obra #1
-                        </h5>
+                    {/* Contacto Principal */}
+                    <div className="border rounded-lg p-4">
+                      <h4 className="font-medium text-md mb-3 flex items-center">
+                        <User2 className="h-4 w-4 mr-2 text-green-600" />
+                        Contacto Principal
+                      </h4>
+                      <div className="space-y-3">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                           <div>
-                            <p className="text-xs uppercase font-medium text-muted-foreground">
+                            <h5 className="text-xs uppercase font-medium text-muted-foreground">
                               Nombre y Apellido
-                            </p>
+                            </h5>
                             <p className="text-sm font-medium mt-1">
-                              {selectedClientForView.contactoObra1 ||
+                              {selectedClientForView.contacto_principal}
+                            </p>
+                          </div>
+                          <div>
+                            <h5 className="text-xs uppercase font-medium text-muted-foreground">
+                              Teléfono
+                            </h5>
+                            <p className="text-sm font-medium mt-1 flex items-center">
+                              <Phone className="h-3.5 w-3.5 mr-2 text-muted-foreground" />
+                              {selectedClientForView.contacto_principal_telefono ||
                                 "No especificado"}
                             </p>
                           </div>
-                          <div>
-                            <p className="text-xs uppercase font-medium text-muted-foreground">
-                              Teléfono
-                            </p>
-                            <div className="flex items-center text-sm font-medium mt-1">
-                              <Phone className="h-3.5 w-3.5 mr-2 text-muted-foreground" />
-                              <span>
-                                {selectedClientForView.contacto_obra1_telefono ||
-                                  "No especificado"}
-                              </span>
-                            </div>
-                          </div>
                         </div>
                       </div>
-                    )}
+                    </div>
+                  </div>
+                  {/* Contactos de Obra */}
+                  {(selectedClientForView.contactoObra1 ||
+                    selectedClientForView.contacto_obra1_telefono ||
+                    selectedClientForView.contactoObra2 ||
+                    selectedClientForView.contacto_obra2_telefono) && (
+                    <div className="border rounded-lg p-4">
+                      <h4 className="font-medium text-md mb-3 flex items-center">
+                        <Phone className="h-4 w-4 mr-2 text-orange-600" />
+                        Contactos de Obra
+                      </h4>
+                      <div className="space-y-4">
+                        {(selectedClientForView.contactoObra1 ||
+                          selectedClientForView.contacto_obra1_telefono) && (
+                          <div className="bg-slate-50 rounded-md border p-3">
+                            <h5 className="text-sm font-medium text-muted-foreground mb-2">
+                              Contacto de Obra #1
+                            </h5>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                              <div>
+                                <p className="text-xs uppercase font-medium text-muted-foreground">
+                                  Nombre y Apellido
+                                </p>
+                                <p className="text-sm font-medium mt-1">
+                                  {selectedClientForView.contactoObra1 ||
+                                    "No especificado"}
+                                </p>
+                              </div>
+                              <div>
+                                <p className="text-xs uppercase font-medium text-muted-foreground">
+                                  Teléfono
+                                </p>
+                                <div className="flex items-center text-sm font-medium mt-1">
+                                  <Phone className="h-3.5 w-3.5 mr-2 text-muted-foreground" />
+                                  <span>
+                                    {selectedClientForView.contacto_obra1_telefono ||
+                                      "No especificado"}
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        )}
 
-                    {(selectedClientForView.contactoObra2 ||
-                      selectedClientForView.contacto_obra2_telefono) && (
-                      <div className="bg-slate-50 rounded-md border p-3">
-                        <h5 className="text-sm font-medium text-muted-foreground mb-2">
-                          Contacto de Obra #2
-                        </h5>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                          <div>
-                            <p className="text-xs uppercase font-medium text-muted-foreground">
-                              Nombre y Apellido
-                            </p>
-                            <p className="text-sm font-medium mt-1">
-                              {selectedClientForView.contactoObra2 ||
-                                "No especificado"}
-                            </p>
-                          </div>
-                          <div>
-                            <p className="text-xs uppercase font-medium text-muted-foreground">
-                              Teléfono
-                            </p>
-                            <div className="flex items-center text-sm font-medium mt-1">
-                              <Phone className="h-3.5 w-3.5 mr-2 text-muted-foreground" />
-                              <span>
-                                {selectedClientForView.contacto_obra2_telefono ||
-                                  "No especificado"}
-                              </span>
+                        {(selectedClientForView.contactoObra2 ||
+                          selectedClientForView.contacto_obra2_telefono) && (
+                          <div className="bg-slate-50 rounded-md border p-3">
+                            <h5 className="text-sm font-medium text-muted-foreground mb-2">
+                              Contacto de Obra #2
+                            </h5>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                              <div>
+                                <p className="text-xs uppercase font-medium text-muted-foreground">
+                                  Nombre y Apellido
+                                </p>
+                                <p className="text-sm font-medium mt-1">
+                                  {selectedClientForView.contactoObra2 ||
+                                    "No especificado"}
+                                </p>
+                              </div>
+                              <div>
+                                <p className="text-xs uppercase font-medium text-muted-foreground">
+                                  Teléfono
+                                </p>
+                                <div className="flex items-center text-sm font-medium mt-1">
+                                  <Phone className="h-3.5 w-3.5 mr-2 text-muted-foreground" />
+                                  <span>
+                                    {selectedClientForView.contacto_obra2_telefono ||
+                                      "No especificado"}
+                                  </span>
+                                </div>
+                              </div>
                             </div>
                           </div>
-                        </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </TabsContent>
+                
+                <TabsContent value="services" className="space-y-4 mt-6">
+                  <div className="border rounded-lg p-4">
+                    <h4 className="font-medium text-md mb-3 flex items-center">
+                      <Calendar className="h-4 w-4 mr-2 text-blue-600" />
+                      Próximos Servicios Programados
+                    </h4>
+                    
+                    {loadingServices ? (
+                      <div className="flex justify-center items-center py-8">
+                        <Loader />
+                        <span className="ml-2 text-sm text-muted-foreground">
+                          Cargando servicios...
+                        </span>
+                      </div>
+                    ) : clientServices.length > 0 ? (
+                      <div className="space-y-3">
+                        {clientServices.map((service: any, index: number) => (
+                          <div key={service.id || index} className="bg-slate-50 rounded-md border p-3">
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                              <div>
+                                <p className="text-xs uppercase font-medium text-muted-foreground">
+                                  Fecha Programada
+                                </p>
+                                <p className="text-sm font-medium mt-1">
+                                  {new Date(service.fechaProgramada).toLocaleDateString("es-AR", {
+                                    year: 'numeric',
+                                    month: 'long',
+                                    day: 'numeric',
+                                    hour: '2-digit',
+                                    minute: '2-digit'
+                                  })}
+                                </p>
+                              </div>
+                              <div>
+                                <p className="text-xs uppercase font-medium text-muted-foreground">
+                                  Tipo de Servicio
+                                </p>
+                                <Badge variant="outline" className="mt-1">
+                                  {service.tipoServicio}
+                                </Badge>
+                              </div>
+                              <div>
+                                <p className="text-xs uppercase font-medium text-muted-foreground">
+                                  Estado
+                                </p>
+                                <Badge 
+                                  variant={service.estado === 'PROGRAMADO' ? 'default' : 'outline'}
+                                  className="mt-1"
+                                >
+                                  {service.estado}
+                                </Badge>
+                              </div>
+                            </div>
+                            {service.ubicacion && (
+                              <div className="mt-2">
+                                <p className="text-xs uppercase font-medium text-muted-foreground">
+                                  Ubicación
+                                </p>
+                                <p className="text-sm mt-1 flex items-start">
+                                  <MapPin className="h-3.5 w-3.5 mr-2 text-muted-foreground mt-0.5 flex-shrink-0" />
+                                  <span>{service.ubicacion}</span>
+                                </p>
+                              </div>
+                            )}
+                            {service.notas && (
+                              <div className="mt-2">
+                                <p className="text-xs uppercase font-medium text-muted-foreground">
+                                  Notas
+                                </p>
+                                <p className="text-sm mt-1 text-muted-foreground">
+                                  {service.notas}
+                                </p>
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="text-center py-8">
+                        <Calendar className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                        <p className="text-muted-foreground">
+                          No hay servicios próximos programados para este cliente.
+                        </p>
                       </div>
                     )}
                   </div>
-                </div>
-              )}
+                </TabsContent>
+              </Tabs>
               <DialogFooter className="flex justify-between mt-6">
                 <div className="flex space-x-2">
                   <Button

@@ -35,6 +35,31 @@ export const getServices = createServerAction(
 );
 
 /**
+ * Obtiene servicios próximos para un cliente específico
+ */
+export const getServicesByClient = createServerAction(
+  async (clienteId: number, limit: number = 10) => {
+    const headers = await createAuthHeaders();
+
+    const queryParams = new URLSearchParams();
+    queryParams.append("clienteId", clienteId.toString());
+    queryParams.append("limit", limit.toString());
+    queryParams.append("proximosOnly", "true");
+
+    const res = await fetch(
+      `${process.env.NEXT_PUBLIC_API_URL}/api/services?${queryParams.toString()}`,
+      {
+        headers,
+        cache: "no-store",
+      }
+    );
+
+    return handleApiResponse(res, `Error al obtener servicios del cliente ${clienteId}`);
+  },
+  "Error al obtener servicios del cliente"
+);
+
+/**
  * Obtiene un servicio específico por su ID
  */
 export const getServiceById = createServerAction(async (id: number) => {

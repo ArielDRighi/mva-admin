@@ -8,6 +8,34 @@ import {
 } from "@/lib/actions";
 
 /**
+ * Función auxiliar para manejar errores en llamadas client-side
+ */
+async function handleClientError(res: Response, defaultMessage: string): Promise<never> {
+  let errorMessage = defaultMessage;
+  
+  try {
+    const errorData = await res.json();
+    if (errorData.message) {
+      errorMessage = errorData.message;
+    } else if (errorData.error) {
+      errorMessage = errorData.error;
+    }
+  } catch (e) {
+    // Si no se puede parsear como JSON, usar el texto
+    try {
+      const errorText = await res.text();
+      if (errorText) {
+        errorMessage = errorText.replace(/"/g, "");
+      }
+    } catch (textError) {
+      console.error("Error reading response:", textError);
+    }
+  }
+  
+  throw new Error(errorMessage);
+}
+
+/**
  * Obtiene la lista de vehículos con paginación y búsqueda opcional
  * @param page Número de página
  * @param limit Límite de resultados por página
@@ -73,37 +101,41 @@ export const getVehicleByPlaca = createServerAction(async (placa: string) => {
 }, "Error al obtener el vehículo por placa");
 
 /**
- * Edita la información de un vehículo existente
+ * Edita la información de un vehículo existente (Client-side)
  * @param id ID del vehículo
  * @param data Datos de vehículo actualizados
  * @returns Estado de la respuesta
  */
-export const editVehicle = createServerAction(
-  async (id: string, data: UpdateVehiculo) => {
-    const headers = await createAuthHeaders();
+export async function editVehicle(id: string, data: UpdateVehiculo): Promise<number> {
+  const { createAuthHeaders } = await import("@/lib/actions");
+  
+  const headers = await createAuthHeaders();
 
-    const res = await fetch(
-      `${process.env.NEXT_PUBLIC_API_URL}/api/vehicles/${id}`,
-      {
-        method: "PUT",
-        headers,
-        body: JSON.stringify(data),
-        cache: "no-store",
-      }
-    );
+  const res = await fetch(
+    `${process.env.NEXT_PUBLIC_API_URL}/api/vehicles/${id}`,
+    {
+      method: "PUT",
+      headers,
+      body: JSON.stringify(data),
+      cache: "no-store",
+    }
+  );
 
-    await handleApiResponse(res, "Error al editar el vehículo");
-    return res.status;
-  },
-  "Error al editar el vehículo"
-);
+  if (!res.ok) {
+    await handleClientError(res, "Error al editar el vehículo");
+  }
+
+  return res.status;
+}
 
 /**
- * Elimina un vehículo del sistema
+ * Elimina un vehículo del sistema (Client-side)
  * @param id ID del vehículo a eliminar
  * @returns Estado de la respuesta
  */
-export const deleteVehicle = createServerAction(async (id: number) => {
+export async function deleteVehicle(id: number): Promise<number> {
+  const { createAuthHeaders } = await import("@/lib/actions");
+  
   const headers = await createAuthHeaders();
 
   const res = await fetch(
@@ -115,30 +147,41 @@ export const deleteVehicle = createServerAction(async (id: number) => {
     }
   );
 
-  await handleApiResponse(res, "Error al eliminar el vehículo");
+  if (!res.ok) {
+    await handleClientError(res, "No se pudo eliminar el vehículo");
+  }
+
   return res.status;
-}, "Error al eliminar el vehículo");
+}
 
 /**
- * Crea un nuevo vehículo en el sistema
+ * Crea un nuevo vehículo en el sistema (Client-side)
  * @param data Datos del nuevo vehículo
  * @returns Datos del vehículo creado
  */
-export const createVehicle = createServerAction(
-  async (data: CreateVehiculo) => {
-    const headers = await createAuthHeaders();
+export async function createVehicle(data: CreateVehiculo): Promise<any> {
+  const { createAuthHeaders } = await import("@/lib/actions");
+  
+  const headers = await createAuthHeaders();
 
-    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/vehicles`, {
-      method: "POST",
-      headers,
-      body: JSON.stringify(data),
-      cache: "no-store",
-    });
+  const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/vehicles`, {
+    method: "POST",
+    headers,
+    body: JSON.stringify(data),
+    cache: "no-store",
+  });
 
-    return handleApiResponse(res, "Error al crear el vehículo");
-  },
-  "Error al crear el vehículo"
-);
+  if (!res.ok) {
+    await handleClientError(res, "Error al crear el vehículo");
+  }
+
+  // Para respuesta exitosa
+  if (res.status === 204) {
+    return {};
+  }
+
+  return await res.json();
+}
 
 /**
  * Cambia el estado de un vehículo (ACTIVO, INACTIVO, MANTENIMIENTO, etc.)

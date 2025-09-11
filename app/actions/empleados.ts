@@ -105,8 +105,8 @@ export const deleteEmployee = createServerAction(async (id: number) => {
     }
   );
 
-  return handleApiResponse(res, "Error al eliminar el empleado");
-}, "Error al eliminar el empleado");
+  return handleApiResponse(res, "No se pudo eliminar el empleado. Verifique que no tenga servicios activos, mantenimientos o tareas asignadas");
+}, "No se pudo eliminar el empleado. Es posible que tenga asignaciones activas que impiden su eliminación");
 
 /**
  * Crea un nuevo empleado
