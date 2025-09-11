@@ -13,6 +13,7 @@ const nextConfig: NextConfig = {
   publicRuntimeConfig: {
     basePath: process.env.NODE_ENV === 'production' ? 'https://admin.mvasrl.com' : '',
   },
+
 };
 
 export default nextConfig;

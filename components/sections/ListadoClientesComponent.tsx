@@ -55,7 +55,7 @@ import {
   editClient,
   getClients,
 } from "@/app/actions/clientes";
-import { getServices, getServicesByClient } from "@/app/actions/services";
+import { getServices } from "@/app/actions/services";
 
 export default function ListadoClientesComponent({
   data,
@@ -188,35 +188,48 @@ export default function ListadoClientesComponent({
     });
   };
 
-  const handleViewClick = async (cliente: Cliente) => {
+  const handleViewClick = (cliente: Cliente) => {
     setSelectedClientForView(cliente);
     setIsViewModalOpen(true);
     
-    // Cargar los servicios próximos del cliente
+    // Cargar servicios del cliente seleccionado
     if (cliente.clienteId) {
-      await loadClientServices(cliente.clienteId);
+      loadClientServices(cliente.clienteId);
     }
   };
 
+  // Función para cargar servicios de un cliente específico
   const loadClientServices = async (clienteId: number) => {
     setLoadingServices(true);
     try {
-      // Usar la función específica para obtener servicios del cliente
-      const result = await getServicesByClient(clienteId, 10);
+      // Obtener todos los servicios y filtrar por cliente
+      const allServices = await getServices(1, 100, "") as any; // Obtener muchos servicios para filtrar
       
-      if (result && typeof result === 'object' && 'success' in result && result.success) {
-        const responseData = result as any;
-        const services = responseData.data?.data || responseData.data?.items || responseData.data || [];
-        setClientServices(services);
+      if (allServices && allServices.data && Array.isArray(allServices.data)) {
+        // Filtrar servicios que pertenecen al cliente específico
+        const filteredServices = allServices.data.filter((service: any) => {
+          return service.clienteId === clienteId || 
+                 (service.condicionContractual && service.condicionContractual.clienteId === clienteId);
+        });
+        
+        // Solo mostrar servicios futuros o en progreso
+        const upcomingServices = filteredServices.filter((service: any) => {
+          const serviceDate = new Date(service.fechaProgramada);
+          const today = new Date();
+          today.setHours(0, 0, 0, 0);
+          
+          return serviceDate >= today && 
+                 (service.estado === 'PROGRAMADO' || service.estado === 'EN_PROGRESO');
+        });
+        
+        setClientServices(upcomingServices);
+        console.log(`[loadClientServices] Found ${upcomingServices.length} upcoming services for client ${clienteId}:`, upcomingServices);
       } else {
         setClientServices([]);
-        console.error("Error en la respuesta:", result);
-        toast.error("No se encontraron servicios próximos para este cliente");
       }
     } catch (error) {
-      console.error("Error loading client services:", error);
+      console.error('[loadClientServices] Error loading services:', error);
       setClientServices([]);
-      toast.error("Error al cargar los servicios del cliente");
     } finally {
       setLoadingServices(false);
     }
