@@ -189,16 +189,17 @@ export default function ListadoClientesComponent({
     });
   };
 
-  const handleViewClick = async (cliente: Cliente) => {
+  const handleViewClick = (cliente: Cliente) => {
     setSelectedClientForView(cliente);
     setIsViewModalOpen(true);
     
-    // Cargar los servicios próximos del cliente
+    // Cargar servicios del cliente seleccionado
     if (cliente.clienteId) {
-      await loadClientServices(cliente.clienteId);
+      loadClientServices(cliente.clienteId);
     }
   };
 
+  // Función para cargar servicios de un cliente específico
   const loadClientServices = async (clienteId: number) => {
     setLoadingServices(true);
     setClientServices([]);
