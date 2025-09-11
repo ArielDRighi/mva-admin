@@ -55,7 +55,7 @@ import {
   editClient,
   getClients,
 } from "@/app/actions/clientes";
-import { getServices } from "@/app/actions/services";
+import { getServices, getServicesByClient } from "@/app/actions/services";
 
 export default function ListadoClientesComponent({
   data,
@@ -201,24 +201,17 @@ export default function ListadoClientesComponent({
   const loadClientServices = async (clienteId: number) => {
     setLoadingServices(true);
     try {
-      // Obtener servicios del cliente (filtrando por clienteId en el futuro)
-      const result = await getServices(1, 50, ""); // Obtener más servicios para filtrar
+      // Usar la función específica para obtener servicios del cliente
+      const result = await getServicesByClient(clienteId, 10);
       
       if (result && typeof result === 'object' && 'success' in result && result.success) {
-        // Filtrar servicios del cliente específico y próximos
-        const today = new Date();
         const responseData = result as any;
         const services = responseData.data?.data || responseData.data?.items || responseData.data || [];
-        
-        const filteredServices = services.filter((service: any) => {
-          const serviceDate = new Date(service.fechaProgramada);
-          return service.clienteId === clienteId && serviceDate >= today;
-        }).slice(0, 10); // Limitar a 10 próximos servicios
-        
-        setClientServices(filteredServices);
+        setClientServices(services);
       } else {
         setClientServices([]);
-        toast.error("Error al cargar los servicios del cliente");
+        console.error("Error en la respuesta:", result);
+        toast.error("No se encontraron servicios próximos para este cliente");
       }
     } catch (error) {
       console.error("Error loading client services:", error);
