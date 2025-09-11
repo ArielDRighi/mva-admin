@@ -41,20 +41,36 @@ export const getServicesByClient = createServerAction(
   async (clienteId: number, limit: number = 10) => {
     const headers = await createAuthHeaders();
 
-    const queryParams = new URLSearchParams();
-    queryParams.append("clienteId", clienteId.toString());
-    queryParams.append("limit", limit.toString());
-    queryParams.append("proximosOnly", "true");
-
-    const res = await fetch(
-      `${process.env.NEXT_PUBLIC_API_URL}/api/services?${queryParams.toString()}`,
+    // Usar la función existente getServices y filtrar por cliente
+    const servicesResponse = await fetch(
+      `${process.env.NEXT_PUBLIC_API_URL}/api/services?page=1&limit=${limit}`,
       {
         headers,
         cache: "no-store",
       }
     );
 
-    return handleApiResponse(res, `Error al obtener servicios del cliente ${clienteId}`);
+    const response = await handleApiResponse(servicesResponse, `Error al obtener servicios del cliente ${clienteId}`) as any;
+    
+    // Filtrar servicios por cliente y que sean próximos (no completados)
+    if (response?.data?.items && Array.isArray(response.data.items)) {
+      const filteredServices = response.data.items.filter((service: any) => 
+        service.cliente_id === clienteId && 
+        service.estado !== 'COMPLETADO' && 
+        service.estado !== 'CANCELADO'
+      );
+      
+      return {
+        ...response,
+        data: {
+          ...response.data,
+          items: filteredServices,
+          totalItems: filteredServices.length
+        }
+      };
+    }
+    
+    return response;
   },
   "Error al obtener servicios del cliente"
 );
