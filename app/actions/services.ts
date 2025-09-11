@@ -34,46 +34,7 @@ export const getServices = createServerAction(
   "Error al obtener los servicios"
 );
 
-/**
- * Obtiene servicios próximos para un cliente específico
- */
-export const getServicesByClient = createServerAction(
-  async (clienteId: number, limit: number = 10) => {
-    const headers = await createAuthHeaders();
 
-    // Usar la función existente getServices y filtrar por cliente
-    const servicesResponse = await fetch(
-      `${process.env.NEXT_PUBLIC_API_URL}/api/services?page=1&limit=${limit}`,
-      {
-        headers,
-        cache: "no-store",
-      }
-    );
-
-    const response = await handleApiResponse(servicesResponse, `Error al obtener servicios del cliente ${clienteId}`) as any;
-    
-    // Filtrar servicios por cliente y que sean próximos (no completados)
-    if (response?.data?.items && Array.isArray(response.data.items)) {
-      const filteredServices = response.data.items.filter((service: any) => 
-        service.cliente_id === clienteId && 
-        service.estado !== 'COMPLETADO' && 
-        service.estado !== 'CANCELADO'
-      );
-      
-      return {
-        ...response,
-        data: {
-          ...response.data,
-          items: filteredServices,
-          totalItems: filteredServices.length
-        }
-      };
-    }
-    
-    return response;
-  },
-  "Error al obtener servicios del cliente"
-);
 
 /**
  * Obtiene un servicio específico por su ID

@@ -55,7 +55,8 @@ import {
   editClient,
   getClients,
 } from "@/app/actions/clientes";
-import { getServices, getServicesByClient } from "@/app/actions/services";
+import { getServices } from "@/app/actions/services";
+import { getClientServicesAPI } from "@/lib/api/services";
 
 export default function ListadoClientesComponent({
   data,
@@ -200,23 +201,25 @@ export default function ListadoClientesComponent({
 
   const loadClientServices = async (clienteId: number) => {
     setLoadingServices(true);
+    setClientServices([]);
+    
+    // Solo cargar servicios si estamos en el lado del cliente
+    if (typeof window === 'undefined') {
+      setLoadingServices(false);
+      return;
+    }
+
     try {
-      // Usar la función específica para obtener servicios del cliente
-      const result = await getServicesByClient(clienteId, 10);
+      const result = await getClientServicesAPI(clienteId, 10);
       
-      if (result && typeof result === 'object' && 'success' in result && result.success) {
-        const responseData = result as any;
-        const services = responseData.data?.data || responseData.data?.items || responseData.data || [];
-        setClientServices(services);
+      if (result?.data?.items) {
+        setClientServices(result.data.items);
       } else {
-        setClientServices([]);
-        console.error("Error en la respuesta:", result);
-        toast.error("No se encontraron servicios próximos para este cliente");
+        toast.info("No hay servicios próximos para este cliente");
       }
     } catch (error) {
       console.error("Error loading client services:", error);
-      setClientServices([]);
-      toast.error("Error al cargar los servicios del cliente");
+      toast.error("Error al cargar los servicios del cliente.");
     } finally {
       setLoadingServices(false);
     }
