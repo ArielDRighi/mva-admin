@@ -353,7 +353,13 @@ const EmpleadosHistorialServiciosComponent = () => {
                     <SimpleCalendar
                       mode="single"
                       selected={filtroFecha}
-                      onSelect={setFiltroFecha}
+                      onSelect={(date) => {
+                        if (date && typeof date === 'object' && 'from' in date) {
+                          setFiltroFecha(date.from);
+                        } else {
+                          setFiltroFecha(date as Date | undefined);
+                        }
+                      }}
                     />
                     {filtroFecha && (
                       <div className="p-2 border-t flex justify-center">
