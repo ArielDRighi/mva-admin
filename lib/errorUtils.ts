@@ -65,8 +65,19 @@ export function extractErrorMessage(error: unknown): string {
   // 1. Si es un Error básico de JavaScript
   if (error instanceof Error) {
     // Verifica si el mensaje contiene información útil y no es genérico
-    if (error.message && !error.message.includes("digest")) {
+    if (error.message && !error.message.includes("digest") && !error.message.includes("Server Components render")) {
       return error.message;
+    }
+    
+    // Para errores de Server Components, buscar en originalError
+    if (error.message.includes("Server Components render")) {
+      const errorObj = error as any;
+      if (errorObj.originalError) {
+        const nestedMessage = extractErrorMessage(errorObj.originalError);
+        if (nestedMessage && nestedMessage !== "Error desconocido en la operación") {
+          return nestedMessage;
+        }
+      }
     }
   }
 
@@ -77,7 +88,10 @@ export function extractErrorMessage(error: unknown): string {
 
     // Prioridad 1: mensaje directo
     if (apiError.message && typeof apiError.message === "string") {
-      return apiError.message;
+      // Si el mensaje del backend está bien formado, usarlo directamente
+      if (!apiError.message.includes("digest") && !apiError.message.includes("Server Components render")) {
+        return apiError.message;
+      }
     }
 
     // Prioridad 2: campo error
@@ -161,6 +175,10 @@ export function extractErrorMessage(error: unknown): string {
 
   // 3. Si es un string directo
   if (typeof error === "string") {
+    // Si es un digest de Next.js, intentar extraer información útil
+    if (error.match(/^\d+$/)) {
+      return "Error en la operación. El recurso puede tener dependencias activas que impiden su eliminación.";
+    }
     return error;
   }
 
@@ -168,6 +186,10 @@ export function extractErrorMessage(error: unknown): string {
   try {
     const errorString = JSON.stringify(error);
     if (errorString !== "{}" && errorString !== "null") {
+      // Si parece ser un digest numérico, dar un mensaje más útil
+      if (errorString.match(/^\d+$/)) {
+        return "Error en la operación. El recurso puede tener dependencias activas que impiden su eliminación.";
+      }
       return errorString;
     }
   } catch {
@@ -202,21 +224,51 @@ export function handleSmartError(
       errorObj.details,
       (errorObj as any)?.response?.data,
       (errorObj as any)?.response?.data?.message,
+      (errorObj as any)?.response?.data?.error,
+      // También buscar en el digest si existe
+      (errorObj as any)?.digest,
     ];
 
     for (const source of possibleSources) {
       if (source) {
         const innerMessage = extractErrorMessage(source);
-        if (innerMessage && !innerMessage.includes("Server Components render")) {
+        if (innerMessage && !innerMessage.includes("Server Components render") && innerMessage !== "Error desconocido en la operación") {
           extractedMessage = innerMessage;
           break;
         }
       }
     }
 
+    // Si tenemos un digest, intentar extraer información útil
+    if (extractedMessage.includes("Server Components render") && (errorObj as any)?.digest) {
+      const digest = (errorObj as any).digest as string;
+      
+      // Para errores específicos conocidos, proporcionar mensajes más útiles
+      if (context.toLowerCase().includes("vehicle") || context.toLowerCase().includes("vehículo")) {
+        extractedMessage = "No se pudo eliminar el vehículo. Es posible que tenga servicios activos asignados. Revise los servicios en curso.";
+      } else if (context.toLowerCase().includes("employee") || context.toLowerCase().includes("empleado")) {
+        extractedMessage = "No se pudo eliminar el empleado. Es posible que tenga tareas o servicios asignados. Revise las asignaciones activas.";
+      } else {
+        extractedMessage = fallbackMessage || "Error en la operación. El recurso puede tener dependencias activas que impiden su eliminación.";
+      }
+    }
+
     // Si aún no tenemos un mensaje útil, usar el fallback específico del contexto
     if (extractedMessage.includes("Server Components render")) {
       extractedMessage = fallbackMessage || "Error en la operación. Contacte al administrador si el problema persiste.";
+    }
+  }
+
+  // Si solo tenemos un digest numérico, proporcionar un mensaje más útil basado en el contexto
+  if (extractedMessage.match(/^\d+$/) || extractedMessage === "Error en la operación. El recurso puede tener dependencias activas que impiden su eliminación.") {
+    if (context.toLowerCase().includes("vehicle") || context.toLowerCase().includes("vehículo")) {
+      extractedMessage = "No se pudo eliminar el vehículo. Es posible que tenga servicios activos asignados o mantenimientos pendientes. Revise las asignaciones activas.";
+    } else if (context.toLowerCase().includes("employee") || context.toLowerCase().includes("empleado")) {
+      extractedMessage = "No se pudo eliminar el empleado. Es posible que tenga tareas o servicios asignados. Revise las asignaciones activas.";
+    } else if (context.toLowerCase().includes("sanitario") || context.toLowerCase().includes("toilet")) {
+      extractedMessage = "No se pudo eliminar el sanitario. Es posible que esté asignado a servicios activos. Revise las asignaciones actuales.";
+    } else {
+      extractedMessage = fallbackMessage || "Error en la operación. El recurso puede tener dependencias activas que impiden su eliminación.";
     }
   }
 

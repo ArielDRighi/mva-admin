@@ -191,18 +191,21 @@ export async function handleApiResponse<T>(
 
     // Crear un error estructurado que mantenga tanto el mensaje específico como la información original
     const enhancedError = new Error(specificErrorMessage);
-    (
-      enhancedError as unknown as {
-        originalError?: unknown;
-        statusCode?: number;
-      }
-    ).originalError = parsedError;
-    (
-      enhancedError as unknown as {
-        originalError?: unknown;
-        statusCode?: number;
-      }
-    ).statusCode = response.status;
+    
+    // Preservar la información original del error para debugging y procesamiento posterior
+    const errorWithMetadata = enhancedError as unknown as {
+      originalError?: unknown;
+      statusCode?: number;
+      response?: { data?: unknown };
+    };
+    
+    errorWithMetadata.originalError = parsedError;
+    errorWithMetadata.statusCode = response.status;
+    
+    // Si parsedError tiene un mensaje útil, también guardarlo en response.data
+    if (parsedError && typeof parsedError === "object" && (parsedError as any).message) {
+      errorWithMetadata.response = { data: parsedError };
+    }
 
     throw enhancedError;
   }

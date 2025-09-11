@@ -1,11 +1,6 @@
 "use client";
 
-import {
-  createVehicle,
-  deleteVehicle,
-  editVehicle,
-  getVehicles,
-} from "@/app/actions/vehiculos";
+import { getVehicles } from "@/app/actions/vehiculos";
 import { UpdateVehiculo, Vehiculo } from "@/types/types";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -13,6 +8,7 @@ import React, { useCallback, useEffect, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { processErrorForToast } from "@/lib/errorUtils";
+import { useVehicleActions } from "@/hooks/useVehicleActions";
 import { z } from "zod";
 import Loader from "../ui/local/Loader";
 import { ListadoTabla } from "../ui/local/ListadoTabla";
@@ -66,6 +62,7 @@ const ListadoVehiculosComponent = ({
 }) => {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { createVehicle, editVehicle, deleteVehicle } = useVehicleActions();
 
   const safeData = Array.isArray(data) ? data : [];
 
