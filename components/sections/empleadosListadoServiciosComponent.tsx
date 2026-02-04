@@ -49,6 +49,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
+import { EmployeeHeader } from "../layout/EmployeeHeader";
 
 interface ServicioFormateado {
   id: string;
@@ -119,7 +120,7 @@ const EmpleadosHistorialServiciosComponent = () => {
         } else {
           console.error(
             "No se encontró el ID del empleado o no es válido:",
-            datosEmpleado
+            datosEmpleado,
           );
           toast.error("Error", {
             description: "No se pudo obtener la información del empleado",
@@ -159,7 +160,7 @@ const EmpleadosHistorialServiciosComponent = () => {
         const respuesta = (await getCompletedServicesByEmployee(
           empleadoId,
           paginaActual,
-          itemsPorPagina
+          itemsPorPagina,
         )) as ServicioResponse;
 
         // Verificar que respuesta tenga la estructura adecuada
@@ -177,15 +178,15 @@ const EmpleadosHistorialServiciosComponent = () => {
                 fecha: new Date(
                   servicio.fechaProgramada ||
                     servicio.fechaCreacion ||
-                    new Date()
+                    new Date(),
                 ),
                 ubicacion: servicio.ubicacion || "No especificada",
                 estado:
                   servicio.estado?.toLowerCase() === "completado"
                     ? "completado"
                     : servicio.estado?.toLowerCase() === "cancelado"
-                    ? "cancelado"
-                    : "en proceso",
+                      ? "cancelado"
+                      : "en proceso",
               }));
 
             setServicios(serviciosFormateados);
@@ -238,7 +239,7 @@ const EmpleadosHistorialServiciosComponent = () => {
         (!filtroFecha ||
           (servicio.fecha.getDate() === filtroFecha.getDate() &&
             servicio.fecha.getMonth() === filtroFecha.getMonth() &&
-            servicio.fecha.getFullYear() === filtroFecha.getFullYear()))
+            servicio.fecha.getFullYear() === filtroFecha.getFullYear())),
     )
     .sort((a, b) => {
       const factorOrden = ordenAscendente ? 1 : -1;
@@ -276,28 +277,7 @@ const EmpleadosHistorialServiciosComponent = () => {
   return (
     <div className="space-y-6 m-4">
       {/* Cabecera de bienvenida */}
-      <div className="bg-gradient-to-r from-blue-600 to-indigo-700 rounded-xl p-5 shadow-md">
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-          <div className="text-white">
-            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">
-              ¡Bienvenido, {user?.nombre.toUpperCase()}!
-            </h1>
-            <p className="mt-1 text-blue-100">
-              {user?.roles} •{" "}
-              <Badge className="bg-white/20 text-white hover:bg-white/30 ml-1">
-                {user?.estado}
-              </Badge>
-            </p>
-          </div>
-          <Button
-            variant="outline"
-            className="bg-white hover:bg-white/90 text-blue-700"
-            onClick={() => (window.location.href = "/empleado/dashboard")}
-          >
-            Volver
-          </Button>
-        </div>
-      </div>
+      <EmployeeHeader user={user} />
 
       {/* Tarjeta principal */}
       <Card className="w-full">
@@ -354,7 +334,11 @@ const EmpleadosHistorialServiciosComponent = () => {
                       mode="single"
                       selected={filtroFecha}
                       onSelect={(date) => {
-                        if (date && typeof date === 'object' && 'from' in date) {
+                        if (
+                          date &&
+                          typeof date === "object" &&
+                          "from" in date
+                        ) {
                           setFiltroFecha(date.from);
                         } else {
                           setFiltroFecha(date as Date | undefined);
@@ -446,15 +430,15 @@ const EmpleadosHistorialServiciosComponent = () => {
                               servicio.estado === "completado"
                                 ? "bg-green-100 text-green-800"
                                 : servicio.estado === "cancelado"
-                                ? "bg-red-100 text-red-800"
-                                : "bg-blue-100 text-blue-800"
+                                  ? "bg-red-100 text-red-800"
+                                  : "bg-blue-100 text-blue-800"
                             } hover:bg-opacity-90`}
                           >
                             {servicio.estado === "completado"
                               ? "Completado"
                               : servicio.estado === "cancelado"
-                              ? "Cancelado"
-                              : "En proceso"}
+                                ? "Cancelado"
+                                : "En proceso"}
                           </Badge>
                         </TableCell>
                       </TableRow>
@@ -531,15 +515,15 @@ const EmpleadosHistorialServiciosComponent = () => {
                       servicioSeleccionado.estado === "completado"
                         ? "bg-green-100 text-green-800"
                         : servicioSeleccionado.estado === "cancelado"
-                        ? "bg-red-100 text-red-800"
-                        : "bg-blue-100 text-blue-800"
+                          ? "bg-red-100 text-red-800"
+                          : "bg-blue-100 text-blue-800"
                     }`}
                   >
                     {servicioSeleccionado.estado === "completado"
                       ? "Completado"
                       : servicioSeleccionado.estado === "cancelado"
-                      ? "Cancelado"
-                      : "En proceso"}
+                        ? "Cancelado"
+                        : "En proceso"}
                   </Badge>
                 </div>
               </div>

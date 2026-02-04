@@ -34,11 +34,15 @@ import {
   Calendar,
   CarFront,
   FileText,
+  DollarSign,
+  Truck,
 } from "lucide-react";
 import Loader from "../ui/local/Loader";
 import { LicenciaConducir } from "@/types/licenciasConducirTypes";
 import { CustomDatePicker } from "../ui/local/CustomDatePicker";
 import { toast } from "sonner";
+import { EmployeeHeader } from "../layout/EmployeeHeader";
+import Link from "next/link";
 
 // Categorías de licencia de conducir
 const CATEGORIAS_LICENCIA = [
@@ -118,7 +122,7 @@ const LicenciaDeConducirComponent = () => {
         } else {
           console.error(
             "No se encontró el ID del empleado o no es válido:",
-            fetchedUser
+            fetchedUser,
           );
           toast.error("Error", {
             description: "No se pudo obtener la información del empleado",
@@ -319,7 +323,7 @@ const LicenciaDeConducirComponent = () => {
             } else {
               console.error(
                 "Formato de licencia actualizada no reconocido:",
-                updatedResponse
+                updatedResponse,
               );
             }
           } else {
@@ -447,27 +451,28 @@ const LicenciaDeConducirComponent = () => {
   return (
     <div className="space-y-6 m-4">
       {/* Header con info del empleado */}
-      <div className="bg-gradient-to-r from-blue-600 to-indigo-700 rounded-xl p-5 shadow-md">
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-          <div className="text-white">
-            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">
-              ¡Bienvenido, {user?.nombre.toUpperCase()}!
-            </h1>
-            <p className="mt-1 text-blue-100">
-              {user?.roles} •{" "}
-              <Badge className="bg-white/20 text-white hover:bg-white/30 ml-1">
-                {user?.estado}
-              </Badge>
-            </p>
-          </div>
-          <Button
-            variant="outline"
-            className="bg-white hover:bg-white/90 text-blue-700"
-            onClick={() => (window.location.href = "/empleado/dashboard")}
-          >
+      {/* <EmployeeHeader user={user} /> */}
+      <div className="flex justify-between items-center">
+        <Button variant="outline" size="sm" asChild>
+          <Link href="/empleado/dashboard" className="flex items-center">
             <ArrowLeft className="mr-2 h-4 w-4" />
-            Volver
-          </Button>
+            Volver a Mi Perfil
+          </Link>
+        </Button>
+      </div>
+
+      {/* Título principal */}
+      <div className="bg-linear-to-r from-blue-600 to-indigo-700 rounded-xl p-5 shadow-md my-6">
+        <div className="flex items-center gap-4">
+          <div className="bg-white/20 p-3 rounded-full">
+            <Truck className="h-8 w-8 text-white" />
+          </div>
+          <div>
+            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-white">
+              Mi licencia de conducir
+            </h1>
+            <p className="text-blue-100">Gestiona tu licencia de conducir</p>
+          </div>
         </div>
       </div>
 
@@ -733,7 +738,7 @@ const LicenciaDeConducirComponent = () => {
                             </h4>
                             <p className="text-base font-medium mt-1">
                               {CATEGORIAS_LICENCIA.find(
-                                (cat) => cat.value === licencia.categoria
+                                (cat) => cat.value === licencia.categoria,
                               )?.label || licencia.categoria}
                             </p>
                           </div>
