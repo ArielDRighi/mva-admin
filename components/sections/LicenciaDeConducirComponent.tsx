@@ -449,9 +449,8 @@ const LicenciaDeConducirComponent = () => {
   }
 
   return (
-    <div className="space-y-6 m-4">
+    <div className="container px-4 sm:px-6 mx-auto py-6 space-y-6 md:space-y-8">
       {/* Header con info del empleado */}
-      {/* <EmployeeHeader user={user} /> */}
       <div className="flex justify-between items-center">
         <Button variant="outline" size="sm" asChild>
           <Link href="/empleado/dashboard" className="flex items-center">
