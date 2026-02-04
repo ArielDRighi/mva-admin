@@ -6,6 +6,8 @@ import {
   DollarSign,
   Key,
   LogOut,
+  Siren,
+  TreePalm,
   Truck,
   UserRound,
 } from "lucide-react";
@@ -26,9 +28,9 @@ export const EmployeeHeader = ({
   const isDashboard = path === "/empleado/dashboard";
   return (
     <div className="bg-linear-to-r from-blue-600 to-indigo-700 rounded-xl p-5 shadow-md">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div className="text-white">
-          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">
+      <div className="relative flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
+        <div className="text-white w-full">
+          <h1 className="text-2xl md:text-3xl font-bold tracking-tight">
             ¡Bienvenido, {user?.nombre.toUpperCase()}!
           </h1>
           <p className="mt-1 text-blue-100">
@@ -39,57 +41,71 @@ export const EmployeeHeader = ({
           </p>{" "}
           {/* Quick links section moved to header */}
           {isDashboard && (
-            <div className="mt-4 grid grid-cols-2 sm:grid-cols-4 gap-2">
+            <div className="mt-4 grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-2">
               <Button
                 variant="outline"
-                className="justify-start bg-white/10 hover:bg-white/20 text-white border-0 h-auto py-2"
+                className="justify-center bg-white/10 hover:bg-white/20 text-white border-0 h-auto py-2"
                 asChild
               >
                 <Link
                   href="/empleado/contactos_emergencia"
                   className="flex items-center"
                 >
-                  <Calendar className="mr-2 h-4 w-4 shrink-0" />
-                  <span className="text-sm line-clamp-2">
+                  <Siren className="h-4 w-4 shrink-0" />
+                  <span className="hidden sm:flex text-sm line-clamp-2">
                     Contactos de emergencia
                   </span>
+                  <span className="flex sm:hidden text-sm">Emergencias</span>
                 </Link>
               </Button>
               <Button
                 variant="outline"
-                className="justify-start bg-white/10 hover:bg-white/20 text-white border-0 h-auto py-2"
+                className="justify-center bg-white/10 hover:bg-white/20 text-white border-0 h-auto py-2"
                 asChild
               >
                 <Link href="/empleado/vestimenta" className="flex items-center">
-                  <UserRound className="mr-2 h-4 w-4 shrink-0" />
+                  <UserRound className="h-4 w-4 shrink-0" />
                   <span className="text-sm">Mis talles de ropa</span>
                 </Link>
               </Button>
               <Button
                 variant="outline"
-                className="justify-start bg-white/10 hover:bg-white/20 text-white border-0 h-auto py-2"
+                className="justify-center bg-white/10 hover:bg-white/20 text-white border-0 h-auto py-2"
                 asChild
               >
                 <Link
                   href="/empleado/licencia_conducir"
                   className="flex items-center"
                 >
-                  <Truck className="mr-2 h-4 w-4 shrink-0" />
-                  <span className="text-sm">Mi licencia de conducir</span>
+                  <Truck className="h-4 w-4 shrink-0" />
+                  <span className="text-sm hidden sm:flex ">
+                    Mi licencia de conducir
+                  </span>
+                  <span className="text-sm flex sm:hidden ">Mi licencia</span>
                 </Link>
               </Button>
               <Button
                 variant="outline"
-                className="justify-start bg-white/10 hover:bg-white/20 text-white border-0 h-auto py-2"
+                className="justify-center bg-white/10 hover:bg-white/20 text-white border-0 h-auto py-2"
                 asChild
               >
                 <Link
                   href="/empleado/adelantos-salario"
                   className="flex items-center"
                 >
-                  <DollarSign className="mr-2 h-4 w-4 shrink-0" />
+                  <DollarSign className="h-4 w-4 shrink-0" />
                   <span className="text-sm">Adelantos de salario</span>
                 </Link>
+              </Button>
+              <Button
+                variant="outline"
+                className="justify-center bg-white/10 hover:bg-white/20 text-white border-0 h-auto py-2"
+                onClick={() => {
+                  document.getElementById("vacaciones-licencias")?.scrollIntoView({ behavior: "smooth" });
+                }}
+              >
+                <TreePalm className="mr-2 h-4 w-4 shrink-0" />
+                <span className="text-sm">Vacaciones</span>
               </Button>
             </div>
           )}
@@ -103,7 +119,10 @@ export const EmployeeHeader = ({
             Volver
           </Button>
         ) : (
-          <div className="flex gap-2">
+          <div
+            className="relative lg:absolute lg:top-0 lg:right-0 grid grid-cols-2 gap-2 w-full lg:max-w-96"
+            // style={{ maxWidth: "400px" }}
+          >
             <Button
               variant="outline"
               className="bg-white/10 hover:bg-white/20 text-white border-0"

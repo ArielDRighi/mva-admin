@@ -463,7 +463,7 @@ const DashboardEmployeeComponent = () => {
       </Card>
       {/* Vacation and Leave Management Card - Fusionada */}
       {employeeData && (
-        <Card className="shadow-md hover:shadow-lg transition-shadow">
+        <Card id="vacaciones-licencias" className="shadow-md hover:shadow-lg transition-shadow">
           <CardHeader className="bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-950 dark:to-pink-950 border-b">
             <div className="flex justify-between items-center">
               <div>
