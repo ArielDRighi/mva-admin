@@ -77,6 +77,7 @@ import { useServices } from "@/hooks/useServices";
 import { useLeaveManagement } from "@/hooks/useLeaveManagement";
 import { useLogout } from "@/hooks/useLogout";
 import { EmployeeHeader } from "../layout/EmployeeHeader";
+import { ServicesSchedule } from "./ServicesSchedule";
 
 enum serviceStatus {
   EN_PROGRESO = "EN_PROGRESO",
@@ -190,8 +191,9 @@ const DashboardEmployeeComponent = () => {
       {/* Main dashboard content */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 md:gap-6">
         {/* Upcoming services card - Now full width */}
+        <ServicesSchedule />
         <Card className="lg:col-span-3 shadow-md hover:shadow-lg transition-shadow">
-          <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950 dark:to-indigo-950 border-b">
+          <CardHeader className="pt-6 bg-linear-to-r from-blue-50 to-indigo-50 dark:from-blue-950 dark:to-indigo-950 border-b">
             <CardTitle className="text-blue-800 dark:text-blue-300">
               Mis servicios programados
             </CardTitle>
@@ -274,7 +276,7 @@ const DashboardEmployeeComponent = () => {
 
         {/* InProgress services card - Now spans the full width */}
         <Card className="lg:col-span-3 shadow-md hover:shadow-lg transition-shadow">
-          <CardHeader className="bg-gradient-to-r from-green-50 to-teal-50 dark:from-green-950 dark:to-teal-950 border-b">
+          <CardHeader className="pt-6 bg-linear-to-r from-green-50 to-teal-50 dark:from-green-950 dark:to-teal-950 border-b">
             <CardTitle className="text-green-800 dark:text-green-300">
               Mis servicios en progreso
             </CardTitle>
@@ -367,7 +369,7 @@ const DashboardEmployeeComponent = () => {
       </div>
       {/* Completed services section */}
       <Card className="shadow-md hover:shadow-lg transition-shadow">
-        <CardHeader className="bg-gradient-to-r from-green-50 to-teal-50 dark:from-green-950 dark:to-teal-950 border-b">
+        <CardHeader className="pt-6 bg-linear-to-r from-green-50 to-teal-50 dark:from-green-950 dark:to-teal-950 border-b">
           <CardTitle className="text-green-800 dark:text-green-300">
             Servicios completados recientemente
           </CardTitle>
@@ -463,8 +465,11 @@ const DashboardEmployeeComponent = () => {
       </Card>
       {/* Vacation and Leave Management Card - Fusionada */}
       {employeeData && (
-        <Card id="vacaciones-licencias" className="shadow-md hover:shadow-lg transition-shadow">
-          <CardHeader className="bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-950 dark:to-pink-950 border-b">
+        <Card
+          id="vacaciones-licencias"
+          className="shadow-md hover:shadow-lg transition-shadow"
+        >
+          <CardHeader className="pt-6 bg-linear-to-r from-purple-50 to-pink-50 dark:from-purple-950 dark:to-pink-950 border-b">
             <div className="flex justify-between items-center">
               <div>
                 <CardTitle className="text-purple-800 dark:text-purple-300 flex items-center gap-2">
@@ -531,7 +536,7 @@ const DashboardEmployeeComponent = () => {
                       </div>
                       <div className="w-full bg-gray-200 rounded-full h-2">
                         <div
-                          className="bg-gradient-to-r from-blue-500 to-green-500 h-2 rounded-full transition-all duration-300"
+                          className="bg-linear-to-r from-blue-500 to-green-500 h-2 rounded-full transition-all duration-300"
                           style={{
                             width: `${Math.min(
                               (employeeData.diasVacacionesUsados /
