@@ -53,7 +53,8 @@ import { ByIDUserResponse } from "@/types/userTypes";
 
 // Schema for form validation
 const contactoEmergenciaSchema = z.object({
-  nombre: z.string().min(1, "El nombre es obligatorio"),  apellido: z.string().min(1, "El apellido es obligatorio"),
+  nombre: z.string().min(1, "El nombre es obligatorio"),
+  apellido: z.string().min(1, "El apellido es obligatorio"),
   parentesco: z.string().min(1, "El parentesco es obligatorio"),
   telefono: z.string().min(1, "El teléfono es obligatorio"),
 });
@@ -96,12 +97,15 @@ export default function ContactosDeEmergenciaComponent() {
       try {
         if (userId === 0) return;
         setLoading(true);
-        const fetchEmployee = await getUserById(userId) as ByIDUserResponse;
+        const fetchEmployee = (await getUserById(userId)) as ByIDUserResponse;
         // Verificar que empleadoId exista antes de actualizar el estado
         if (fetchEmployee && fetchEmployee.empleadoId !== undefined) {
           setEmployeeId(fetchEmployee.empleadoId);
         } else {
-          console.error("No se encontró el ID del empleado o no es válido:", fetchEmployee);
+          console.error(
+            "No se encontró el ID del empleado o no es válido:",
+            fetchEmployee,
+          );
           toast.error("Error", {
             description: "No se pudo obtener la información del empleado",
           });
@@ -109,9 +113,10 @@ export default function ContactosDeEmergenciaComponent() {
       } catch (error) {
         console.error("Error al obtener datos del empleado:", error);
         toast.error("Error", {
-          description: error instanceof Error 
-            ? error.message 
-            : "No se pudo obtener la información del empleado",
+          description:
+            error instanceof Error
+              ? error.message
+              : "No se pudo obtener la información del empleado",
         });
       } finally {
         setLoading(false);
@@ -143,7 +148,10 @@ export default function ContactosDeEmergenciaComponent() {
           } else if ("items" in response && Array.isArray(response.items)) {
             setContactos(response.items);
           } else {
-            console.error("Formato de respuesta no reconocido:", fetchedContacts);
+            console.error(
+              "Formato de respuesta no reconocido:",
+              fetchedContacts,
+            );
             toast.error("Error de formato", {
               description: "El formato de los datos recibidos no es válido",
             });
@@ -159,9 +167,10 @@ export default function ContactosDeEmergenciaComponent() {
       } catch (error) {
         console.error("Error al cargar los contactos de emergencia:", error);
         toast.error("Error", {
-          description: error instanceof Error 
-            ? error.message 
-            : "No se pudieron cargar los contactos de emergencia",
+          description:
+            error instanceof Error
+              ? error.message
+              : "No se pudieron cargar los contactos de emergencia",
         });
       } finally {
         setLoading(false);
@@ -214,20 +223,23 @@ export default function ContactosDeEmergenciaComponent() {
         const message = response.message as string;
         // Update the local state after successful deletion
         setContactos(contactos.filter((contacto) => contacto.id !== id));
-        
+
         toast.success("Contacto eliminado", {
-          description: message || "El contacto se ha eliminado correctamente"
+          description: message || "El contacto se ha eliminado correctamente",
         });
       } else {
         // Si no hay un mensaje específico pero la operación fue exitosa
         setContactos(contactos.filter((contacto) => contacto.id !== id));
         toast.success("Contacto eliminado", {
-          description: "El contacto se ha eliminado correctamente"
+          description: "El contacto se ha eliminado correctamente",
         });
       }
     } catch (error) {
-      const errorConfig = processErrorForToast(error, 'eliminar contacto de emergencia');
-      
+      const errorConfig = processErrorForToast(
+        error,
+        "eliminar contacto de emergencia",
+      );
+
       toast.error(errorConfig.title, {
         description: errorConfig.description,
         duration: errorConfig.duration,
@@ -250,21 +262,25 @@ export default function ContactosDeEmergenciaComponent() {
 
       if (selectedContacto) {
         // Update existing contact
-        const response = await updateMyEmergencyContact(selectedContacto.id, data);
+        const response = await updateMyEmergencyContact(
+          selectedContacto.id,
+          data,
+        );
 
         // Update local state with the updated data
         const updatedContacto = { ...selectedContacto, ...data };
         setContactos(
           contactos.map((contacto) =>
-            contacto.id === selectedContacto.id ? updatedContacto : contacto
-          )
+            contacto.id === selectedContacto.id ? updatedContacto : contacto,
+          ),
         );
 
         // Verificar si hay un mensaje específico en la respuesta
         if (response && typeof response === "object" && "message" in response) {
           const message = response.message as string;
           toast.success("Contacto actualizado", {
-            description: message || "Los cambios se han guardado correctamente.",
+            description:
+              message || "Los cambios se han guardado correctamente.",
           });
         } else {
           toast.success("Contacto actualizado", {
@@ -297,10 +313,16 @@ export default function ContactosDeEmergenciaComponent() {
           const responseData = updatedContacts as ContactosResponse;
           if ("data" in responseData && Array.isArray(responseData.data)) {
             setContactos(responseData.data);
-          } else if ("items" in responseData && Array.isArray(responseData.items)) {
+          } else if (
+            "items" in responseData &&
+            Array.isArray(responseData.items)
+          ) {
             setContactos(responseData.items);
           } else {
-            console.error("Formato de respuesta no reconocido:", updatedContacts);
+            console.error(
+              "Formato de respuesta no reconocido:",
+              updatedContacts,
+            );
             toast.error("Error de formato", {
               description: "El formato de los datos recibidos no es válido",
             });
@@ -318,11 +340,14 @@ export default function ContactosDeEmergenciaComponent() {
         if (response && typeof response === "object" && "message" in response) {
           const message = response.message as string;
           toast.success("Contacto agregado", {
-            description: message || "El contacto de emergencia se ha agregado correctamente.",
+            description:
+              message ||
+              "El contacto de emergencia se ha agregado correctamente.",
           });
         } else {
           toast.success("Contacto agregado", {
-            description: "El contacto de emergencia se ha agregado correctamente.",
+            description:
+              "El contacto de emergencia se ha agregado correctamente.",
           });
         }
       }
@@ -331,10 +356,12 @@ export default function ContactosDeEmergenciaComponent() {
       setSelectedContacto(null);
     } catch (error) {
       const errorConfig = processErrorForToast(
-        error, 
-        selectedContacto ? 'actualizar contacto de emergencia' : 'crear contacto de emergencia'
+        error,
+        selectedContacto
+          ? "actualizar contacto de emergencia"
+          : "crear contacto de emergencia",
       );
-      
+
       toast.error(errorConfig.title, {
         description: errorConfig.description,
         duration: errorConfig.duration,
@@ -345,9 +372,7 @@ export default function ContactosDeEmergenciaComponent() {
   };
 
   return (
-    <div className="container mx-auto py-6">
-      <Toaster position="top-right" richColors />
-
+    <div className="container px-4 sm:px-6 mx-auto py-6 space-y-6 md:space-y-8">
       <div className="flex justify-between items-center">
         <Button variant="outline" size="sm" asChild>
           <Link href="/empleado/dashboard" className="flex items-center">

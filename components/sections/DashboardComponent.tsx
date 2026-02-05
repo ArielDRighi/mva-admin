@@ -113,6 +113,7 @@ import {
   Sanitario,
   Vehiculo,
 } from "@/types/types";
+import { ServicesSchedule } from "./ServicesSchedule";
 
 // Alias para mantener compatibilidad con código existente
 export type LicenciasToExpireResponse = LicenciasConducirResponse;
@@ -133,14 +134,14 @@ const DashboardComponent = () => {
     totalPages: 0,
   });
   const [activityRecent, setRecentActivity] = useState<ActivityRecent | null>(
-    null
+    null,
   );
   const [licenciasToExpire, setLicenciasToExpire] =
     useState<LicenciasToExpireResponse>();
 
   const router = useRouter(); // Estado para tracking de errores de carga
   const [loadingErrors, setLoadingErrors] = useState<Record<string, string>>(
-    {}
+    {},
   );
   useEffect(() => {
     const fetchData = async () => {
@@ -166,7 +167,7 @@ const DashboardComponent = () => {
           promise: getLicenciasToExpire(
             30,
             1,
-            10
+            10,
           ) as Promise<LicenciasConducirResponse>,
         },
       ];
@@ -178,7 +179,7 @@ const DashboardComponent = () => {
 
       // Ejecutamos todas las promesas y manejamos éxitos/errores individualmente
       const results = await Promise.allSettled(
-        promises.map((item) => item.promise)
+        promises.map((item) => item.promise),
       );
 
       // Colectamos errores para mostrar/registrar
@@ -224,8 +225,8 @@ const DashboardComponent = () => {
             typeof result.reason === "string"
               ? result.reason
               : result.reason instanceof Error
-              ? result.reason.message
-              : `Error al cargar ${name}`;
+                ? result.reason.message
+                : `Error al cargar ${name}`;
           console.error(`Error fetching ${name}:`, result.reason);
 
           // Guardar en el estado de errores para mostrar en el componente
@@ -246,8 +247,11 @@ const DashboardComponent = () => {
             errorMessage.includes("Unauthorized");
 
           if (criticalResources.includes(name) && !isPermissionError) {
-            const errorConfig = processErrorForToast(result.reason, `cargar ${name}`);
-            
+            const errorConfig = processErrorForToast(
+              result.reason,
+              `cargar ${name}`,
+            );
+
             toast.error(errorConfig.title, {
               description: errorConfig.description,
               duration: errorConfig.duration,
@@ -262,8 +266,8 @@ const DashboardComponent = () => {
           ([_, message]) =>
             !message.includes("permisos") &&
             !message.includes("No tiene") &&
-            !message.includes("Unauthorized")
-        )
+            !message.includes("Unauthorized"),
+        ),
       );
 
       // Actualizamos el estado de errores solo con errores relevantes
@@ -296,7 +300,7 @@ const DashboardComponent = () => {
           count: servicesStats.totalInstalacion,
           percentage:
             Math.round(
-              (servicesStats.totalInstalacion / servicesStats.total) * 100
+              (servicesStats.totalInstalacion / servicesStats.total) * 100,
             ) || 0,
         },
         {
@@ -304,7 +308,7 @@ const DashboardComponent = () => {
           count: servicesStats.totalLimpieza,
           percentage:
             Math.round(
-              (servicesStats.totalLimpieza / servicesStats.total) * 100
+              (servicesStats.totalLimpieza / servicesStats.total) * 100,
             ) || 0,
         },
         {
@@ -312,7 +316,7 @@ const DashboardComponent = () => {
           count: servicesStats.totalRetiro,
           percentage:
             Math.round(
-              (servicesStats.totalRetiro / servicesStats.total) * 100
+              (servicesStats.totalRetiro / servicesStats.total) * 100,
             ) || 0,
         },
       ]
@@ -385,7 +389,7 @@ const DashboardComponent = () => {
                   {Math.round(
                     ((totalVehicles?.totalDisponibles || 0) /
                       (totalVehicles?.total || 1)) *
-                      100
+                      100,
                   )}
                   %)
                 </span>
@@ -430,7 +434,7 @@ const DashboardComponent = () => {
                   {Math.round(
                     ((totalEmployees?.totalDisponibles || 0) /
                       (totalEmployees?.total || 1)) *
-                      100
+                      100,
                   )}
                   %)
                 </span>
@@ -470,7 +474,7 @@ const DashboardComponent = () => {
                   {Math.round(
                     ((totalSanitarios?.totalDisponibles || 0) /
                       (totalSanitarios?.total || 1)) *
-                      100
+                      100,
                   )}
                   %)
                 </span>
@@ -496,14 +500,15 @@ const DashboardComponent = () => {
         </Card>
       </div>
       {/* Today's services and summary */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+      <div className="mb-8">
         <div className="lg:col-span-2">
           <Card className="h-full">
             <CardHeader>
-              {" "}
               <div className="flex items-center justify-between">
-                <CardTitle className="text-base md:text-lg">Servicios proximos</CardTitle>
-                <Button
+                <CardTitle className="text-base md:text-lg">
+                  Servicios proximos
+                </CardTitle>
+                {/* <Button
                   variant="ghost"
                   size="sm"
                   onClick={() =>
@@ -512,115 +517,11 @@ const DashboardComponent = () => {
                   className="text-xs md:text-sm"
                 >
                   Ver todos
-                </Button>
+                </Button> */}
               </div>
             </CardHeader>
             <CardContent>
-              <div className="space-y-4">
-                {proximosServicios && proximosServicios.length > 0 ? (
-                  proximosServicios.map((servicio) => (
-                    <div
-                      key={servicio.id}
-                      className="flex flex-col sm:flex-row sm:items-center p-3 border rounded-md gap-3 sm:gap-0"
-                    >
-                      <div className="flex items-center sm:block">
-                        <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-gray-100 flex items-center justify-center">
-                          <span className="font-semibold text-sm sm:text-lg">
-                            {new Date(servicio.fechaProgramada)
-                              .getHours()
-                              .toString()
-                              .padStart(2, "0")}
-                            :
-                            {new Date(servicio.fechaProgramada)
-                              .getMinutes()
-                              .toString()
-                              .padStart(2, "0")}
-                          </span>
-                        </div>
-                      </div>
-                      <div className="sm:ml-4 flex-1">
-                        <div className="font-medium text-sm sm:text-base">
-                          {servicio.cliente?.nombre ||
-                            `Cliente ID: ${servicio.clienteId}`}
-                        </div>
-                        <div className="text-xs sm:text-sm text-muted-foreground">
-                          {servicio.ubicacion}
-                        </div>
-                      </div>
-                      <div className="flex flex-row sm:flex-col items-start sm:items-end gap-2 sm:gap-1">
-                        <Badge variant="secondary" className="text-xs">
-                          {servicio.tipoServicio}
-                        </Badge>
-                        <span
-                          className={`text-xs px-2 py-1 rounded ${getStatusColor(
-                            servicio.estado
-                          )}`}
-                        >
-                          {servicio.estado.replace("_", " ")}
-                        </span>
-                      </div>
-                    </div>
-                  ))
-                ) : (
-                  <div className="text-center py-8 text-gray-500">
-                    No hay servicios programados para hoy
-                  </div>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        <div className="lg:col-span-1">
-          <Card className="h-full">
-            <CardHeader>
-              <CardTitle className="text-base md:text-lg">Resumen de Servicios</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-center mb-6">
-                <div className="w-16 h-16 rounded-full bg-blue-100 flex items-center justify-center">
-                  <span className="font-bold text-xl text-blue-700">
-                    {resumeService?.pendientes}
-                  </span>
-                </div>
-                <div className="ml-4">
-                  <div className="text-sm font-medium text-gray-500">
-                    Servicios Pendientes
-                  </div>
-                  <div className="text-sm">Programados para esta semana</div>
-                </div>
-              </div>
-
-              <div className="flex items-center mb-6">
-                <div className="w-16 h-16 rounded-full bg-green-100 flex items-center justify-center">
-                  <span className="font-bold text-xl text-green-700">
-                    {resumeService?.completados}
-                  </span>
-                </div>
-                <div className="ml-4">
-                  <div className="text-sm font-medium text-gray-500">
-                    Servicios Completados
-                  </div>
-                  <div className="text-sm">En las últimas 24 horas</div>
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <div className="text-sm font-medium">
-                  Distribución de servicios
-                </div>
-                {servicesByType.map((service, i) => (
-                  <div key={i} className="space-y-1">
-                    <div className="flex items-center justify-between text-xs">
-                      <span>{service.type}</span>
-                      <span>
-                        {service.count} ({service.percentage}%)
-                      </span>
-                    </div>
-                    <Progress value={service.percentage} className="h-1" />
-                  </div>
-                ))}
-              </div>
+              <ServicesSchedule isAdmin={true} />
             </CardContent>
           </Card>
         </div>
@@ -629,8 +530,8 @@ const DashboardComponent = () => {
       <div className="grid grid-cols-1 gap-6 mb-8">
         <Tabs defaultValue="maintenance" className="w-full">
           <TabsList className="grid w-full grid-cols-2 h-auto p-1 md:h-10 md:p-1">
-            <TabsTrigger 
-              value="maintenance" 
+            <TabsTrigger
+              value="maintenance"
               className="flex-col md:flex-row gap-1 md:gap-2 py-2 md:py-2 px-1 md:px-3 text-xs md:text-sm"
             >
               <Clock className="h-4 w-4 md:mr-2 md:ml-0" />
@@ -639,8 +540,8 @@ const DashboardComponent = () => {
                 <span className="block md:inline md:ml-1">Programados</span>
               </span>
             </TabsTrigger>
-            <TabsTrigger 
-              value="activity" 
+            <TabsTrigger
+              value="activity"
               className="flex-col md:flex-row gap-1 md:gap-2 py-2 md:py-2 px-1 md:px-3 text-xs md:text-sm"
             >
               <Activity className="h-4 w-4 md:mr-2 md:ml-0" />
@@ -655,7 +556,9 @@ const DashboardComponent = () => {
             <Card>
               <CardHeader>
                 <div className="flex items-center justify-between">
-                  <CardTitle className="text-base md:text-lg">Próximas Limpiezas</CardTitle>
+                  <CardTitle className="text-base md:text-lg">
+                    Próximas Limpiezas
+                  </CardTitle>
                   <Button
                     variant="ghost"
                     size="sm"
@@ -681,7 +584,10 @@ const DashboardComponent = () => {
                           className="border rounded-md p-3 sm:p-4 relative"
                         >
                           <div className="flex items-center justify-between mb-2">
-                            <Badge variant="outline" className="bg-gray-50 text-xs">
+                            <Badge
+                              variant="outline"
+                              className="bg-gray-50 text-xs"
+                            >
                               Limpieza
                             </Badge>
                             <Badge className="bg-blue-100 text-blue-800 text-xs">
@@ -697,7 +603,7 @@ const DashboardComponent = () => {
                           <div className="flex items-center mt-2 text-xs text-gray-500">
                             <CalendarDays className="h-3 w-3 mr-1" />
                             {new Date(
-                              item.fecha_de_limpieza
+                              item.fecha_de_limpieza,
                             ).toLocaleDateString()}
                           </div>
                         </div>
@@ -715,7 +621,9 @@ const DashboardComponent = () => {
           <TabsContent value="activity">
             <Card>
               <CardHeader>
-                <CardTitle className="text-base md:text-lg">Actividad Reciente</CardTitle>
+                <CardTitle className="text-base md:text-lg">
+                  Actividad Reciente
+                </CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
@@ -725,16 +633,18 @@ const DashboardComponent = () => {
                       {/* Servicio completado */}
                       {activityRecent.latestCompletedService && (
                         <div className="flex items-start pb-3 sm:pb-4 border-b">
-                          <div className="w-8 h-8 sm:w-10 sm:h-10 rounded bg-gray-100 flex items-center justify-center flex-shrink-0">
+                          <div className="w-8 h-8 sm:w-10 sm:h-10 rounded bg-gray-100 flex items-center justify-center shrink-0">
                             <TruckIcon className="h-4 w-4 sm:h-5 sm:w-5" />
                           </div>
                           <div className="ml-3 sm:ml-4 flex-1 min-w-0">
                             <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
-                              <span className="font-medium text-sm sm:text-base">COMPLETADO</span>
+                              <span className="font-medium text-sm sm:text-base">
+                                COMPLETADO
+                              </span>
                               <span className="text-xs text-gray-500">
                                 {activityRecent?.timestamp
                                   ? new Date(
-                                      activityRecent.timestamp
+                                      activityRecent.timestamp,
                                     ).toLocaleString()
                                   : "-"}
                               </span>
@@ -761,16 +671,18 @@ const DashboardComponent = () => {
                       {activityRecent.latestScheduledService &&
                         activityRecent.timestamp && (
                           <div className="flex items-start pb-3 sm:pb-4 border-b">
-                            <div className="w-8 h-8 sm:w-10 sm:h-10 rounded bg-gray-100 flex items-center justify-center flex-shrink-0">
+                            <div className="w-8 h-8 sm:w-10 sm:h-10 rounded bg-gray-100 flex items-center justify-center shrink-0">
                               <TruckIcon className="h-4 w-4 sm:h-5 sm:w-5" />
                             </div>
                             <div className="ml-3 sm:ml-4 flex-1 min-w-0">
                               <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
-                                <span className="font-medium text-sm sm:text-base">PROGRAMADO</span>
+                                <span className="font-medium text-sm sm:text-base">
+                                  PROGRAMADO
+                                </span>
                                 <span className="text-xs text-gray-500">
                                   {activityRecent.timestamp
                                     ? new Date(
-                                        activityRecent.timestamp
+                                        activityRecent.timestamp,
                                       ).toLocaleString()
                                     : "-"}
                                 </span>
@@ -800,7 +712,7 @@ const DashboardComponent = () => {
                       {activityRecent.latestClient &&
                         activityRecent.timestamp && (
                           <div className="flex items-start pb-3 sm:pb-4 border-b">
-                            <div className="w-8 h-8 sm:w-10 sm:h-10 rounded bg-gray-100 flex items-center justify-center flex-shrink-0">
+                            <div className="w-8 h-8 sm:w-10 sm:h-10 rounded bg-gray-100 flex items-center justify-center shrink-0">
                               <User2Icon className="h-4 w-4 sm:h-5 sm:w-5" />
                             </div>
                             <div className="ml-3 sm:ml-4 flex-1 min-w-0">
@@ -810,7 +722,7 @@ const DashboardComponent = () => {
                                 </span>
                                 <span className="text-xs text-gray-500">
                                   {new Date(
-                                    activityRecent.timestamp
+                                    activityRecent.timestamp,
                                   ).toLocaleString()}
                                 </span>
                               </div>
@@ -829,7 +741,7 @@ const DashboardComponent = () => {
                       {activityRecent.latestToilet &&
                         activityRecent.timestamp && (
                           <div className="flex items-start pb-3 sm:pb-4 border-b">
-                            <div className="w-8 h-8 sm:w-10 sm:h-10 rounded bg-gray-100 flex items-center justify-center flex-shrink-0">
+                            <div className="w-8 h-8 sm:w-10 sm:h-10 rounded bg-gray-100 flex items-center justify-center shrink-0">
                               <Toilet className="h-4 w-4 sm:h-5 sm:w-5" />
                             </div>
                             <div className="ml-3 sm:ml-4 flex-1 min-w-0">
@@ -839,7 +751,7 @@ const DashboardComponent = () => {
                                 </span>
                                 <span className="text-xs text-gray-500">
                                   {new Date(
-                                    activityRecent.timestamp
+                                    activityRecent.timestamp,
                                   ).toLocaleString()}
                                 </span>
                               </div>
@@ -857,7 +769,7 @@ const DashboardComponent = () => {
                       {/* Mantenimiento */}
                       {activityRecent.latestMaintenance && (
                         <div className="flex items-start pb-3 sm:pb-4 border-b">
-                          <div className="w-8 h-8 sm:w-10 sm:h-10 rounded bg-gray-100 flex items-center justify-center flex-shrink-0">
+                          <div className="w-8 h-8 sm:w-10 sm:h-10 rounded bg-gray-100 flex items-center justify-center shrink-0">
                             <Clock className="h-4 w-4 sm:h-5 sm:w-5" />
                           </div>
                           <div className="ml-3 sm:ml-4 flex-1 min-w-0">
@@ -872,13 +784,14 @@ const DashboardComponent = () => {
                                 {activityRecent.latestMaintenance.completado &&
                                 activityRecent.latestMaintenance.fechaCompletado
                                   ? new Date(
-                                      activityRecent.latestMaintenance.fechaCompletado
+                                      activityRecent.latestMaintenance
+                                        .fechaCompletado,
                                     ).toLocaleString()
                                   : activityRecent.timestamp
-                                  ? new Date(
-                                      activityRecent.timestamp
-                                    ).toLocaleString()
-                                  : "-"}
+                                    ? new Date(
+                                        activityRecent.timestamp,
+                                      ).toLocaleString()
+                                    : "-"}
                               </span>
                             </div>
                             <p className="text-xs sm:text-sm">
@@ -903,7 +816,7 @@ const DashboardComponent = () => {
                       {activityRecent.latestVehicle &&
                         activityRecent.timestamp && (
                           <div className="flex items-start pb-3 sm:pb-4 border-b last:border-0">
-                            <div className="w-8 h-8 sm:w-10 sm:h-10 rounded bg-gray-100 flex items-center justify-center flex-shrink-0">
+                            <div className="w-8 h-8 sm:w-10 sm:h-10 rounded bg-gray-100 flex items-center justify-center shrink-0">
                               <TruckIcon className="h-4 w-4 sm:h-5 sm:w-5" />
                             </div>
                             <div className="ml-3 sm:ml-4 flex-1 min-w-0">
@@ -913,7 +826,7 @@ const DashboardComponent = () => {
                                 </span>
                                 <span className="text-xs text-gray-500">
                                   {new Date(
-                                    activityRecent.timestamp
+                                    activityRecent.timestamp,
                                   ).toLocaleString()}
                                 </span>
                               </div>
@@ -975,7 +888,7 @@ const DashboardComponent = () => {
                           Licencia categoría{" "}
                           <strong>{licencia.categoria}</strong> vence el{" "}
                           {new Date(
-                            licencia.fecha_vencimiento
+                            licencia.fecha_vencimiento,
                           ).toLocaleDateString()}
                         </p>
                       </div>
@@ -983,7 +896,7 @@ const DashboardComponent = () => {
                         {Math.ceil(
                           (new Date(licencia.fecha_vencimiento).getTime() -
                             new Date().getTime()) /
-                            (1000 * 60 * 60 * 24)
+                            (1000 * 60 * 60 * 24),
                         )}{" "}
                         días
                       </Badge>

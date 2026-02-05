@@ -1,39 +1,51 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import { useForm, Controller } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { 
-  Table, 
-  TableBody, 
-  TableCell, 
-  TableHead, 
-  TableHeader, 
-  TableRow 
-} from '@/components/ui/table';
-import { Badge } from '@/components/ui/badge';
-import { FormField } from '@/components/ui/local/FormField';
-import { FormDialog } from '@/components/ui/local/FormDialog';
-import { 
-  AlertCircle, 
-  DollarSign, 
-  UserPlus, 
-  Clock, 
-  CheckCircle, 
+import { useState, useEffect } from "react";
+import { useForm, Controller } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
+import { FormField } from "@/components/ui/local/FormField";
+import { FormDialog } from "@/components/ui/local/FormDialog";
+import {
+  AlertCircle,
+  DollarSign,
+  UserPlus,
+  Clock,
+  CheckCircle,
   XCircle,
-  ArrowLeft 
-} from 'lucide-react';
-import { createAdvanceAction, getMyAdvancesAction } from '@/app/actions/salaryAdvanceActions';
-import { SalaryAdvance } from '@/types/salaryAdvanceTypes';
-import { toast, Toaster } from 'sonner';
-import Link from 'next/link';
+  ArrowLeft,
+} from "lucide-react";
+import {
+  createAdvanceAction,
+  getMyAdvancesAction,
+} from "@/app/actions/salaryAdvanceActions";
+import { SalaryAdvance } from "@/types/salaryAdvanceTypes";
+import { toast, Toaster } from "sonner";
+import Link from "next/link";
 
 const advanceFormSchema = z.object({
-  amount: z.number().min(1, 'El monto debe ser mayor a 0'),
-  reason: z.string().min(10, 'El motivo debe tener al menos 10 caracteres').max(500, 'El motivo no puede tener más de 500 caracteres'),
+  amount: z.number().min(1, "El monto debe ser mayor a 0"),
+  reason: z
+    .string()
+    .min(10, "El motivo debe tener al menos 10 caracteres")
+    .max(500, "El motivo no puede tener más de 500 caracteres"),
 });
 
 type AdvanceFormData = z.infer<typeof advanceFormSchema>;
@@ -48,7 +60,7 @@ export default function CreateAdvanceForm() {
     resolver: zodResolver(advanceFormSchema),
     defaultValues: {
       amount: 0,
-      reason: '',
+      reason: "",
     },
   });
 
@@ -59,17 +71,20 @@ export default function CreateAdvanceForm() {
       try {
         setLoading(true);
         const response = await getMyAdvancesAction();
-        
+
         if (Array.isArray(response)) {
           setAdvances(response);
         } else {
-          console.error('Formato de respuesta no reconocido:', response);
+          console.error("Formato de respuesta no reconocido:", response);
           setAdvances([]);
         }
       } catch (error) {
-        console.error('Error al cargar adelantos:', error);
-        toast.error('Error', {
-          description: error instanceof Error ? error.message : 'No se pudieron cargar los adelantos',
+        console.error("Error al cargar adelantos:", error);
+        toast.error("Error", {
+          description:
+            error instanceof Error
+              ? error.message
+              : "No se pudieron cargar los adelantos",
         });
         setAdvances([]);
       } finally {
@@ -83,26 +98,26 @@ export default function CreateAdvanceForm() {
   const onSubmit = async (data: AdvanceFormData) => {
     try {
       setIsSubmitting(true);
-      
+
       const result = await createAdvanceAction({
         amount: data.amount,
         reason: data.reason,
-        status: 'pending',
+        status: "pending",
       });
 
       // Si llegamos aquí, la acción fue exitosa
-      toast.success('Solicitud de adelanto creada exitosamente');
+      toast.success("Solicitud de adelanto creada exitosamente");
       reset();
       setIsCreating(false);
-        // Recargar la lista de adelantos
+      // Recargar la lista de adelantos
       const updatedAdvances = await getMyAdvancesAction();
       if (Array.isArray(updatedAdvances)) {
         setAdvances(updatedAdvances);
       }
-      
     } catch (error) {
-      console.error('Error creating advance:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Error al crear la solicitud';
+      console.error("Error creating advance:", error);
+      const errorMessage =
+        error instanceof Error ? error.message : "Error al crear la solicitud";
       toast.error(errorMessage);
     } finally {
       setIsSubmitting(false);
@@ -112,18 +127,18 @@ export default function CreateAdvanceForm() {
   const handleCreateClick = () => {
     reset({
       amount: 0,
-      reason: '',
+      reason: "",
     });
     setIsCreating(true);
   };
 
   const getStatusIcon = (status: string) => {
     switch (status) {
-      case 'pending':
+      case "pending":
         return <Clock className="h-4 w-4 text-yellow-500" />;
-      case 'approved':
+      case "approved":
         return <CheckCircle className="h-4 w-4 text-green-500" />;
-      case 'rejected':
+      case "rejected":
         return <XCircle className="h-4 w-4 text-red-500" />;
       default:
         return <Clock className="h-4 w-4 text-gray-500" />;
@@ -132,20 +147,33 @@ export default function CreateAdvanceForm() {
 
   const getStatusBadge = (status: string) => {
     switch (status) {
-      case 'pending':
-        return <Badge variant="outline" className="text-yellow-600 border-yellow-300">Pendiente</Badge>;
-      case 'approved':
-        return <Badge variant="outline" className="text-green-600 border-green-300">Aprobado</Badge>;
-      case 'rejected':
-        return <Badge variant="outline" className="text-red-600 border-red-300">Rechazado</Badge>;
+      case "pending":
+        return (
+          <Badge
+            variant="outline"
+            className="text-yellow-600 border-yellow-300"
+          >
+            Pendiente
+          </Badge>
+        );
+      case "approved":
+        return (
+          <Badge variant="outline" className="text-green-600 border-green-300">
+            Aprobado
+          </Badge>
+        );
+      case "rejected":
+        return (
+          <Badge variant="outline" className="text-red-600 border-red-300">
+            Rechazado
+          </Badge>
+        );
       default:
         return <Badge variant="outline">Desconocido</Badge>;
     }
   };
   return (
-    <div className="container mx-auto py-6">
-      <Toaster position="top-right" richColors />
-
+    <div className="container px-4 sm:px-6 mx-auto py-6 space-y-6 md:space-y-8">
       <div className="flex justify-between items-center">
         <Button variant="outline" size="sm" asChild>
           <Link href="/empleado/dashboard" className="flex items-center">
@@ -154,9 +182,8 @@ export default function CreateAdvanceForm() {
           </Link>
         </Button>
       </div>
-      
       {/* Título principal */}
-      <div className="bg-gradient-to-r from-blue-600 to-indigo-700 rounded-xl p-5 shadow-md my-6">
+      <div className="bg-linear-to-r from-blue-600 to-indigo-700 rounded-xl p-5 shadow-md my-6">
         <div className="flex items-center gap-4">
           <div className="bg-white/20 p-3 rounded-full">
             <DollarSign className="h-8 w-8 text-white" />
@@ -170,7 +197,8 @@ export default function CreateAdvanceForm() {
             </p>
           </div>
         </div>
-      </div>      <Card>
+      </div>{" "}
+      <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
           <div>
             <CardTitle className="text-2xl font-bold">
@@ -240,7 +268,9 @@ export default function CreateAdvanceForm() {
                         </div>
                       </TableCell>
                       <TableCell>
-                        {new Date(advance.createdAt).toLocaleDateString('es-ES')}
+                        {new Date(advance.createdAt).toLocaleDateString(
+                          "es-ES",
+                        )}
                       </TableCell>
                     </TableRow>
                   ))}
@@ -249,7 +279,8 @@ export default function CreateAdvanceForm() {
             </div>
           )}
         </CardContent>
-      </Card>      <FormDialog
+      </Card>{" "}
+      <FormDialog
         open={isCreating}
         onOpenChange={(open) => {
           if (!open) {

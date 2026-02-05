@@ -76,6 +76,8 @@ import { useEmployeeData } from "@/hooks/useEmployeeData";
 import { useServices } from "@/hooks/useServices";
 import { useLeaveManagement } from "@/hooks/useLeaveManagement";
 import { useLogout } from "@/hooks/useLogout";
+import { EmployeeHeader } from "../layout/EmployeeHeader";
+import { ServicesSchedule } from "./ServicesSchedule";
 
 enum serviceStatus {
   EN_PROGRESO = "EN_PROGRESO",
@@ -138,7 +140,7 @@ const DashboardEmployeeComponent = () => {
           diasVacacionesRestantes: employeeData.diasVacacionesRestantes,
           diasVacacionesUsados: employeeData.diasVacacionesUsados,
         }
-      : undefined
+      : undefined,
   );
 
   const { handleLogoutClick } = useLogout();
@@ -180,97 +182,18 @@ const DashboardEmployeeComponent = () => {
 
   return (
     <div className="container px-4 sm:px-6 mx-auto py-6 space-y-6 md:space-y-8">
-      {/* Header with employee info - Updated with better colors */}{" "}
-      <div className="bg-gradient-to-r from-blue-600 to-indigo-700 rounded-xl p-5 shadow-md">
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-          <div className="text-white">
-            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">
-              ¡Bienvenido, {user?.nombre.toUpperCase()}!
-            </h1>
-            <p className="mt-1 text-blue-100">
-              {user?.roles} •{" "}
-              <Badge className="bg-white/20 text-white hover:bg-white/30 ml-1">
-                {user?.estado}
-              </Badge>
-            </p>{" "}
-            {/* Quick links section moved to header */}
-            <div className="mt-4 grid grid-cols-2 sm:grid-cols-4 gap-2">
-              <Button
-                variant="outline"
-                className="justify-start bg-white/10 hover:bg-white/20 text-white border-0 h-auto py-2"
-                asChild
-              >
-                <Link
-                  href="/empleado/contactos_emergencia"
-                  className="flex items-center"
-                >
-                  <Calendar className="mr-2 h-4 w-4 flex-shrink-0" />
-                  <span className="text-sm line-clamp-2">
-                    Contactos de emergencia
-                  </span>
-                </Link>
-              </Button>
-              <Button
-                variant="outline"
-                className="justify-start bg-white/10 hover:bg-white/20 text-white border-0 h-auto py-2"
-                asChild
-              >
-                <Link href="/empleado/vestimenta" className="flex items-center">
-                  <UserRound className="mr-2 h-4 w-4 flex-shrink-0" />
-                  <span className="text-sm">Mis talles de ropa</span>
-                </Link>
-              </Button>
-              <Button
-                variant="outline"
-                className="justify-start bg-white/10 hover:bg-white/20 text-white border-0 h-auto py-2"
-                asChild
-              >
-                <Link
-                  href="/empleado/licencia_conducir"
-                  className="flex items-center"
-                >
-                  <Truck className="mr-2 h-4 w-4 flex-shrink-0" />
-                  <span className="text-sm">Mi licencia de conducir</span>
-                </Link>
-              </Button>
-              <Button
-                variant="outline"
-                className="justify-start bg-white/10 hover:bg-white/20 text-white border-0 h-auto py-2"
-                asChild
-              >
-                <Link
-                  href="/empleado/adelantos-salario"
-                  className="flex items-center"
-                >
-                  <DollarSign className="mr-2 h-4 w-4 flex-shrink-0" />
-                  <span className="text-sm">Adelantos de salario</span>
-                </Link>
-              </Button>
-            </div>
-          </div>{" "}
-          <div className="flex gap-2">
-            <Button
-              variant="outline"
-              className="bg-white/10 hover:bg-white/20 text-white border-0"
-              onClick={handleChangePassword}
-            >
-              <Key className="h-4 w-4 mr-2" /> Cambiar contraseña
-            </Button>
-            <Button
-              variant="outline"
-              className="bg-red-500 text-white hover:bg-red-600 border-none"
-              onClick={handleLogoutClick}
-            >
-              <LogOut className="h-4 w-4 mr-2" /> Cerrar sesión
-            </Button>
-          </div>
-        </div>
-      </div>{" "}
+      {/* Header with employee info - Updated with better colors */}
+      <EmployeeHeader
+        user={user}
+        handleChangePassword={handleChangePassword}
+        handleLogoutClick={handleLogoutClick}
+      />
       {/* Main dashboard content */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 md:gap-6">
         {/* Upcoming services card - Now full width */}
+        <ServicesSchedule />
         <Card className="lg:col-span-3 shadow-md hover:shadow-lg transition-shadow">
-          <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950 dark:to-indigo-950 border-b">
+          <CardHeader className="pt-6 bg-linear-to-r from-blue-50 to-indigo-50 dark:from-blue-950 dark:to-indigo-950 border-b">
             <CardTitle className="text-blue-800 dark:text-blue-300">
               Mis servicios programados
             </CardTitle>
@@ -353,7 +276,7 @@ const DashboardEmployeeComponent = () => {
 
         {/* InProgress services card - Now spans the full width */}
         <Card className="lg:col-span-3 shadow-md hover:shadow-lg transition-shadow">
-          <CardHeader className="bg-gradient-to-r from-green-50 to-teal-50 dark:from-green-950 dark:to-teal-950 border-b">
+          <CardHeader className="pt-6 bg-linear-to-r from-green-50 to-teal-50 dark:from-green-950 dark:to-teal-950 border-b">
             <CardTitle className="text-green-800 dark:text-green-300">
               Mis servicios en progreso
             </CardTitle>
@@ -446,7 +369,7 @@ const DashboardEmployeeComponent = () => {
       </div>
       {/* Completed services section */}
       <Card className="shadow-md hover:shadow-lg transition-shadow">
-        <CardHeader className="bg-gradient-to-r from-green-50 to-teal-50 dark:from-green-950 dark:to-teal-950 border-b">
+        <CardHeader className="pt-6 bg-linear-to-r from-green-50 to-teal-50 dark:from-green-950 dark:to-teal-950 border-b">
           <CardTitle className="text-green-800 dark:text-green-300">
             Servicios completados recientemente
           </CardTitle>
@@ -542,8 +465,11 @@ const DashboardEmployeeComponent = () => {
       </Card>
       {/* Vacation and Leave Management Card - Fusionada */}
       {employeeData && (
-        <Card className="shadow-md hover:shadow-lg transition-shadow">
-          <CardHeader className="bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-950 dark:to-pink-950 border-b">
+        <Card
+          id="vacaciones-licencias"
+          className="shadow-md hover:shadow-lg transition-shadow"
+        >
+          <CardHeader className="pt-6 bg-linear-to-r from-purple-50 to-pink-50 dark:from-purple-950 dark:to-pink-950 border-b">
             <div className="flex justify-between items-center">
               <div>
                 <CardTitle className="text-purple-800 dark:text-purple-300 flex items-center gap-2">
@@ -603,20 +529,20 @@ const DashboardEmployeeComponent = () => {
                           {Math.round(
                             (employeeData.diasVacacionesUsados /
                               employeeData.diasVacacionesTotal) *
-                              100
+                              100,
                           )}
                           %
                         </span>
                       </div>
                       <div className="w-full bg-gray-200 rounded-full h-2">
                         <div
-                          className="bg-gradient-to-r from-blue-500 to-green-500 h-2 rounded-full transition-all duration-300"
+                          className="bg-linear-to-r from-blue-500 to-green-500 h-2 rounded-full transition-all duration-300"
                           style={{
                             width: `${Math.min(
                               (employeeData.diasVacacionesUsados /
                                 employeeData.diasVacacionesTotal) *
                                 100,
-                              100
+                              100,
                             )}%`,
                           }}
                         ></div>
@@ -877,7 +803,7 @@ const DashboardEmployeeComponent = () => {
               <div className="flex flex-wrap items-center gap-2">
                 <Badge
                   className={getServiceTypeBadge(
-                    selectedCompletedService.tipoServicio
+                    selectedCompletedService.tipoServicio,
                   )}
                 >
                   {selectedCompletedService.tipoServicio}
@@ -993,7 +919,7 @@ const DashboardEmployeeComponent = () => {
                                 </div>
                               )}
                             </div>
-                          )
+                          ),
                         )}
                       </div>
                     )}

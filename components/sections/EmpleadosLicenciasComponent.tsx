@@ -36,6 +36,7 @@ import { getCookie } from "cookies-next";
 import { getUserById } from "@/app/actions/users";
 import { User } from "./DashboardComponent";
 import { ByIDUserResponse } from "@/types/userTypes";
+import { EmployeeHeader } from "../layout/EmployeeHeader";
 // No se necesitan tipos desde licenciasTypes.ts, usamos la interfaz Licencia local
 
 // Tipo para manejar posibles formatos de respuesta de la API
@@ -47,9 +48,9 @@ interface Licencia {
   tipoLicencia?: string;
   notas?: string;
   aprobado?: boolean;
-  start_date?: string;  // Formato alternativo
-  end_date?: string;    // Formato alternativo
-  type?: string;        // Formato alternativo para tipoLicencia
+  start_date?: string; // Formato alternativo
+  end_date?: string; // Formato alternativo
+  type?: string; // Formato alternativo para tipoLicencia
   comentarioRechazo?: string | null;
   employee?: {
     id: number;
@@ -67,7 +68,9 @@ export default function EmpleadosLicenciasComponent() {
   const [licencias, setLicencias] = useState<Licencia[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [total, setTotal] = useState<number>(0);
-  const [selectedLicencia, setSelectedLicencia] = useState<Licencia | null>(null);
+  const [selectedLicencia, setSelectedLicencia] = useState<Licencia | null>(
+    null,
+  );
   const [isDetailsOpen, setIsDetailsOpen] = useState<boolean>(false);
   const [user, setUser] = useState<User | null>(null);
   const [empleadoId, setEmpleadoId] = useState(0);
@@ -113,7 +116,7 @@ export default function EmpleadosLicenciasComponent() {
         } else {
           console.error(
             "No se encontró el ID de empleado o no es válido:",
-            datosEmpleado
+            datosEmpleado,
           );
           toast.error("Error", {
             description: "No se pudo obtener la información del empleado",
@@ -133,7 +136,7 @@ export default function EmpleadosLicenciasComponent() {
     };
 
     obtenerEmpleado();
-  }, [user?.id]);  // Cargar licencias del empleado
+  }, [user?.id]); // Cargar licencias del empleado
   const fetchLicencias = useCallback(async () => {
     if (!empleadoId) return;
 
@@ -142,33 +145,50 @@ export default function EmpleadosLicenciasComponent() {
     try {
       // Obtener la respuesta de la API
       const response = await getLicenciasByUserId(empleadoId);
-        // Función helper para adaptar datos de diferentes formatos a nuestro modelo Licencia
+      // Función helper para adaptar datos de diferentes formatos a nuestro modelo Licencia
       const adaptarLicencia = (item: Record<string, unknown>): Licencia => ({
-        id: typeof item.id === 'number' ? item.id : 0,
-        employeeId: typeof item.employeeId === 'number' 
-          ? item.employeeId 
-          : (typeof item.employee_id === 'number' ? item.employee_id : 0),
-        fechaInicio: typeof item.fechaInicio === 'string' 
-          ? item.fechaInicio 
-          : (typeof item.start_date === 'string' ? item.start_date : ''),
-        fechaFin: typeof item.fechaFin === 'string' 
-          ? item.fechaFin 
-          : (typeof item.end_date === 'string' ? item.end_date : ''),
-        tipoLicencia: typeof item.tipoLicencia === 'string' 
-          ? item.tipoLicencia 
-          : (typeof item.type === 'string' ? item.type : ''),
-        notas: typeof item.notas === 'string' 
-          ? item.notas 
-          : (typeof item.observations === 'string' 
-            ? item.observations 
-            : (typeof item.reason === 'string' ? item.reason : '')),
-        aprobado: typeof item.aprobado === 'boolean' 
-          ? item.aprobado 
-          : (item.status === 'APROBADO'),
-        comentarioRechazo: typeof item.comentarioRechazo === 'string' 
-          ? item.comentarioRechazo 
-          : null,
-        employee: item.employee as Licencia['employee'],
+        id: typeof item.id === "number" ? item.id : 0,
+        employeeId:
+          typeof item.employeeId === "number"
+            ? item.employeeId
+            : typeof item.employee_id === "number"
+              ? item.employee_id
+              : 0,
+        fechaInicio:
+          typeof item.fechaInicio === "string"
+            ? item.fechaInicio
+            : typeof item.start_date === "string"
+              ? item.start_date
+              : "",
+        fechaFin:
+          typeof item.fechaFin === "string"
+            ? item.fechaFin
+            : typeof item.end_date === "string"
+              ? item.end_date
+              : "",
+        tipoLicencia:
+          typeof item.tipoLicencia === "string"
+            ? item.tipoLicencia
+            : typeof item.type === "string"
+              ? item.type
+              : "",
+        notas:
+          typeof item.notas === "string"
+            ? item.notas
+            : typeof item.observations === "string"
+              ? item.observations
+              : typeof item.reason === "string"
+                ? item.reason
+                : "",
+        aprobado:
+          typeof item.aprobado === "boolean"
+            ? item.aprobado
+            : item.status === "APROBADO",
+        comentarioRechazo:
+          typeof item.comentarioRechazo === "string"
+            ? item.comentarioRechazo
+            : null,
+        employee: item.employee as Licencia["employee"],
       });
 
       // Manejo de diferentes formatos de respuesta con verificación de tipos
@@ -177,28 +197,41 @@ export default function EmpleadosLicenciasComponent() {
         const licenciasAdaptadas = response.map(adaptarLicencia);
         setLicencias(licenciasAdaptadas);
         setTotal(licenciasAdaptadas.length);
-      } else if (response && typeof response === "object") {        // Verificar si la respuesta tiene la propiedad data
+      } else if (response && typeof response === "object") {
+        // Verificar si la respuesta tiene la propiedad data
         if ("data" in response && Array.isArray(response.data)) {
-          const licenciasAdaptadas = response.data.map((item: Record<string, unknown>) => adaptarLicencia(item));
+          const licenciasAdaptadas = response.data.map(
+            (item: Record<string, unknown>) => adaptarLicencia(item),
+          );
           setLicencias(licenciasAdaptadas);
           // Usar totalItems si está disponible, de lo contrario usar el tamaño del array
-          const respuesta = response as { data: Record<string, unknown>[], totalItems?: number };
+          const respuesta = response as {
+            data: Record<string, unknown>[];
+            totalItems?: number;
+          };
           setTotal(respuesta.totalItems || licenciasAdaptadas.length);
         }
         // Verificar si la respuesta tiene la propiedad items
         else if ("items" in response && Array.isArray(response.items)) {
-          const licenciasAdaptadas = response.items.map((item: Record<string, unknown>) => adaptarLicencia(item));
+          const licenciasAdaptadas = response.items.map(
+            (item: Record<string, unknown>) => adaptarLicencia(item),
+          );
           setLicencias(licenciasAdaptadas);
           // Usar totalItems o total si están disponibles
-          const respuesta = response as { items: Record<string, unknown>[], totalItems?: number, total?: number };
-          setTotal(respuesta.totalItems || respuesta.total || licenciasAdaptadas.length);
+          const respuesta = response as {
+            items: Record<string, unknown>[];
+            totalItems?: number;
+            total?: number;
+          };
+          setTotal(
+            respuesta.totalItems ||
+              respuesta.total ||
+              licenciasAdaptadas.length,
+          );
         }
         // Formato desconocido
         else {
-          console.error(
-            "Formato de respuesta no reconocido:",
-            response
-          );
+          console.error("Formato de respuesta no reconocido:", response);
           toast.error("Error de formato", {
             description: "El formato de los datos recibidos no es válido",
           });
@@ -250,7 +283,9 @@ export default function EmpleadosLicenciasComponent() {
     setSelectedLicencia(licencia);
     setIsDetailsOpen(true);
   };
-  const getApprovalStatus = (licencia: Licencia): "APPROVED" | "REJECTED" | "PENDING" => {
+  const getApprovalStatus = (
+    licencia: Licencia,
+  ): "APPROVED" | "REJECTED" | "PENDING" => {
     // Utilizar directamente el campo aprobado para determinar el estado
     if (licencia.aprobado === true) return "APPROVED";
     // Si hay un comentario de rechazo, consideramos que está rechazada
@@ -290,28 +325,7 @@ export default function EmpleadosLicenciasComponent() {
 
   return (
     <div className="space-y-6 m-4">
-      <div className="bg-gradient-to-r from-blue-600 to-indigo-700 rounded-xl p-5 shadow-md">
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-          <div className="text-white">
-            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">
-              ¡Bienvenido, {user?.nombre.toUpperCase()}!
-            </h1>
-            <p className="mt-1 text-blue-100">
-              {user?.roles} •{" "}
-              <Badge className="bg-white/20 text-white hover:bg-white/30 ml-1">
-                {user?.estado}
-              </Badge>
-            </p>
-          </div>
-          <Button
-            variant="outline"
-            className="bg-white hover:bg-white/90 text-blue-700"
-            onClick={() => (window.location.href = "/empleado/dashboard")}
-          >
-            Volver
-          </Button>
-        </div>
-      </div>
+      <EmployeeHeader user={user} />
       <Card className="w-full shadow-md">
         <CardHeader className="bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-950 dark:to-pink-950 border-b">
           <div className="flex items-center justify-between">
@@ -372,7 +386,7 @@ export default function EmpleadosLicenciasComponent() {
                         <span>
                           Desde:{" "}
                           {formatDate(
-                            licencia.fechaInicio || licencia.start_date
+                            licencia.fechaInicio || licencia.start_date,
                           )}
                         </span>
                       </div>
@@ -389,14 +403,14 @@ export default function EmpleadosLicenciasComponent() {
                   <TableCell>
                     <Badge
                       className={getStatusBadgeVariant(
-                        getApprovalStatus(licencia)
+                        getApprovalStatus(licencia),
                       )}
                     >
                       {getApprovalStatus(licencia) === "APPROVED"
                         ? "Aprobada"
                         : getApprovalStatus(licencia) === "REJECTED"
-                        ? "Rechazada"
-                        : "Pendiente"}
+                          ? "Rechazada"
+                          : "Pendiente"}
                     </Badge>
                   </TableCell>
 
@@ -445,14 +459,14 @@ export default function EmpleadosLicenciasComponent() {
                   </h4>
                   <Badge
                     className={getStatusBadgeVariant(
-                      getApprovalStatus(selectedLicencia)
+                      getApprovalStatus(selectedLicencia),
                     )}
                   >
                     {getApprovalStatus(selectedLicencia) === "APPROVED"
                       ? "Aprobada"
                       : getApprovalStatus(selectedLicencia) === "REJECTED"
-                      ? "Rechazada"
-                      : "Pendiente"}
+                        ? "Rechazada"
+                        : "Pendiente"}
                   </Badge>
                 </div>
               </div>
@@ -468,7 +482,7 @@ export default function EmpleadosLicenciasComponent() {
                       Desde:{" "}
                       {formatDate(
                         selectedLicencia.fechaInicio ||
-                          selectedLicencia.start_date
+                          selectedLicencia.start_date,
                       )}
                     </span>
                   </div>
@@ -477,7 +491,7 @@ export default function EmpleadosLicenciasComponent() {
                     <span>
                       Hasta:{" "}
                       {formatDate(
-                        selectedLicencia.fechaFin || selectedLicencia.end_date
+                        selectedLicencia.fechaFin || selectedLicencia.end_date,
                       )}
                     </span>
                   </div>
