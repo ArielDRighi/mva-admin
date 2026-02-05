@@ -244,17 +244,27 @@ function formatChofer(chofer: string[]) {
   return chofer.join(", ");
 }
 
-export const ServicesSchedule = () => {
+export const ServicesSchedule = ({
+  isAdmin = false,
+}: {
+  isAdmin?: boolean;
+}) => {
   const dates = Object.keys(MOCK_SERVICES_SCHEDULE).sort();
 
   return (
-    <div className="lg:col-span-3 overflow-x-auto rounded-xl bg-white py-6">
-      <CardHeader className="pt-6 bg-linear-to-r from-blue-50 to-indigo-50 dark:from-blue-950 dark:to-indigo-950 border-b mb-4">
-        <CardTitle className="text-blue-800 dark:text-blue-300 flex items-center gap-2">
-          <Clock className="w-5 h-5" /> Cronograma de servicios programados
-        </CardTitle>
-      </CardHeader>
-      <div className="grid grid-cols-7 gap-2 min-w-275 px-6">
+    <div
+      className={`lg:col-span-3 overflow-x-auto rounded-xl bg-white ${isAdmin ? "" : "py-6"}`}
+    >
+      {!isAdmin && (
+        <CardHeader className="pt-6 bg-linear-to-r from-blue-50 to-indigo-50 dark:from-blue-950 dark:to-indigo-950 border-b mb-4">
+          <CardTitle className="text-blue-800 dark:text-blue-300 flex items-center gap-2">
+            <Clock className="w-5 h-5" /> Cronograma de servicios programados
+          </CardTitle>
+        </CardHeader>
+      )}
+      <div
+        className={`grid grid-cols-7 gap-2 min-w-275 ${isAdmin ? "p-1" : "px-6"}`}
+      >
         {dates.map((date) => {
           const services = MOCK_SERVICES_SCHEDULE[date];
           return (
