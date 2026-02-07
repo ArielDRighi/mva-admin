@@ -113,7 +113,7 @@ import {
   Sanitario,
   Vehiculo,
 } from "@/types/types";
-import { ServicesSchedule } from "./ServicesSchedule";
+import { ServiceFromBackend, ServicesSchedule } from "./ServicesSchedule";
 
 // Alias para mantener compatibilidad con código existente
 export type LicenciasToExpireResponse = LicenciasConducirResponse;
@@ -138,11 +138,43 @@ const DashboardComponent = () => {
   );
   const [licenciasToExpire, setLicenciasToExpire] =
     useState<LicenciasToExpireResponse>();
+  const [services, setServices] = useState<ServiceFromBackend[] | undefined>(
+    [],
+  );
 
   const router = useRouter(); // Estado para tracking de errores de carga
   const [loadingErrors, setLoadingErrors] = useState<Record<string, string>>(
     {},
   );
+  useEffect(() => {
+    // Fetch servicios de la semana actual
+    const fetchServiciosSemana = async () => {
+      try {
+        const token = getCookie("token") as string | undefined;
+        if (!token) return;
+
+        const res = await fetch(
+          `${process.env.NEXT_PUBLIC_API_URL}/api/services/semana-actual`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+              "Content-Type": "application/json",
+            },
+          },
+        );
+
+        if (res.ok) {
+          const data = await res.json();
+          setServices(data);
+        }
+      } catch (error) {
+        console.error("Error al obtener servicios de la semana:", error);
+      }
+    };
+
+    fetchServiciosSemana();
+  }, []);
+
   useEffect(() => {
     const fetchData = async () => {
       // Definimos las promesas básicas que todos pueden ver
@@ -521,7 +553,7 @@ const DashboardComponent = () => {
               </div>
             </CardHeader>
             <CardContent>
-              <ServicesSchedule isAdmin={true} />
+              <ServicesSchedule isAdmin={true} services={services} />
             </CardContent>
           </Card>
         </div>
