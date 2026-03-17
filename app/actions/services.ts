@@ -495,32 +495,19 @@ export const createServicioGenerico = createServerAction(
       `${process.env.NEXT_PUBLIC_API_URL}/api/services/generico`
     );
 
-    try {
-      const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/services/generico`,
-        {
-          method: "POST",
-          headers,
-          body: JSON.stringify(data),
-          cache: "no-store",
-        }
-      );
-
-      console.log("[createServicioGenerico] Response status:", res.status);
-
-      if (!res.ok) {
-        const errorText = await res.text();
-        console.error("[createServicioGenerico] Error response:", errorText);
-        throw new Error(`Error al crear el servicio generico: ${errorText}`);
+    const res = await fetch(
+      `${process.env.NEXT_PUBLIC_API_URL}/api/services/generico`,
+      {
+        method: "POST",
+        headers,
+        body: JSON.stringify(data),
+        cache: "no-store",
       }
+    );
 
-      const responseData = await res.json();
-      console.log("[createServicioGenerico] Success response:", responseData);
-      return responseData;
-    } catch (error) {
-      console.error("[createServicioGenerico] Exception:", error);
-      throw error;
-    }
+    console.log("[createServicioGenerico] Response status:", res.status);
+
+    return handleApiResponse(res, "Error al crear el servicio genérico");
   },
   "Error al crear el servicio genérico"
 );
@@ -734,32 +721,19 @@ export const createServicioRetiro = createServerAction(
   async (data: CreateRetiroDto) => {
     const headers = await createAuthHeaders();
 
-    try {
-      const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/services/generico`,
-        {
-          method: "POST",
-          headers,
-          body: JSON.stringify(data),
-          cache: "no-store",
-        }
-      );
-
-      console.log("[createServicioRetiro] Response status:", res.status);
-
-      if (!res.ok) {
-        const errorText = await res.text();
-        console.error("[createServicioRetiro] Error response:", errorText);
-        throw new Error(`Error al crear el servicio de retiro: ${errorText}`);
+    const res = await fetch(
+      `${process.env.NEXT_PUBLIC_API_URL}/api/services/generico`,
+      {
+        method: "POST",
+        headers,
+        body: JSON.stringify(data),
+        cache: "no-store",
       }
+    );
 
-      const responseData = await res.json();
-      console.log("[createServicioRetiro] Success response:", responseData);
-      return responseData;
-    } catch (error) {
-      console.error("[createServicioRetiro] Exception:", error);
-      throw error;
-    }
+    console.log("[createServicioRetiro] Response status:", res.status);
+
+    return handleApiResponse(res, "Error al crear el servicio de retiro");
   },
   "Error al crear el servicio de retiro"
 );
