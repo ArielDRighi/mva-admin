@@ -11,18 +11,28 @@ import {
  * Obtiene una lista paginada de servicios con posibilidad de filtrado
  */
 export const getServices = createServerAction(
-  async (page: number = 1, limit: number = 10, search: string = "") => {
+  async (
+    page: number = 1, 
+    limit: number = 10, 
+    search: string = "",
+    estado?: string,
+    tipoServicio?: string
+  ) => {
     const headers = await createAuthHeaders();
 
     const queryParams = new URLSearchParams();
-    // Solo agregar el parámetro search si existe
+    // Agregar page y limit SIEMPRE
+    queryParams.append("page", page.toString());
+    queryParams.append("limit", limit.toString());
+    
+    // Solo agregar los parámetros opcionales si existen
     if (search) queryParams.append("search", search);
+    if (estado) queryParams.append("estado", estado);
+    if (tipoServicio) queryParams.append("tipoServicio", tipoServicio);
 
     console.log("api/services?" + queryParams.toString());
     const res = await fetch(
-      `${process.env.NEXT_PUBLIC_API_URL}/api/services${
-        queryParams.toString() ? `?${queryParams.toString()}` : ""
-      }`,
+      `${process.env.NEXT_PUBLIC_API_URL}/api/services?${queryParams.toString()}`,
       {
         headers,
         cache: "no-store",

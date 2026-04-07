@@ -130,7 +130,6 @@ export function ListadoServiciosComponent() {
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [loading, setLoading] = useState<boolean>(true);
   const [searchTerm, setSearchTerm] = useState<string>("");
-  const [activeTab, setActiveTab] = useState<string>("todos");
   const [tipoServicioFilter, setTipoServicioFilter] = useState<string>("todos");
   const [selectedServicio, setSelectedServicio] = useState<Servicio | null>(
     null,
@@ -138,6 +137,10 @@ export function ListadoServiciosComponent() {
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState<boolean>(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState<boolean>(false);
   const [banosCompletos, setBanosCompletos] = useState<any[]>([]);
+  
+  // Leer el estado activo del URL
+  const activeTab = searchParams.get("estado") || "todos";
+  
   console.log("Servicios:", servicios); // Load data
   useEffect(() => {
     const fetchServicios = async () => {
@@ -145,13 +148,13 @@ export function ListadoServiciosComponent() {
         setLoading(true);
         const search = searchParams.get("search") || "";
         const tipoServicio = searchParams.get("tipo") || "";
+        const page = Number(searchParams.get("page")) || 1;
 
-        // Determinar qué valor enviar como search basado en el filtro de tipo
-        let searchParam = search;
-        if (tipoServicio && tipoServicio !== "todos") {
-          searchParam = tipoServicio.toUpperCase();
-        }
-        const response: any = await getServices(1, 10, searchParam);
+        // Extraer el estado del URL si no es "todos"
+        const estadoParam = activeTab !== "todos" ? activeTab.toUpperCase() : undefined;
+        const tipoServicioParam = tipoServicio && tipoServicio !== "todos" ? tipoServicio.toUpperCase() : undefined;
+        
+        const response: any = await getServices(page, 10, search, estadoParam, tipoServicioParam);
 
         // Si la respuesta es un array directamente (sin paginación del backend)
         if (Array.isArray(response)) {
@@ -191,7 +194,7 @@ export function ListadoServiciosComponent() {
     };
 
     fetchServicios();
-  }, [searchParams]); // Handle search
+  }, [searchParams]); // Solo searchParams como dependencia
   const handleSearch = (value: string) => {
     setCurrentPage(1); // Reset to first page
     const params = new URLSearchParams(searchParams);
@@ -228,15 +231,20 @@ export function ListadoServiciosComponent() {
   };
   // Handle page change
   const handlePageChange = (page: number) => {
-    setCurrentPage(page);
     const params = new URLSearchParams(searchParams);
     params.set("page", page.toString());
     router.push(`?${params.toString()}`);
   };
   // Handle tab change
   const handleTabChange = (value: string) => {
-    setActiveTab(value);
-    setCurrentPage(1); // Reset to first page
+    const params = new URLSearchParams(searchParams);
+    if (value && value !== "todos") {
+      params.set("estado", value);
+    } else {
+      params.delete("estado");
+    }
+    params.set("page", "1"); // Reset to first page
+    router.push(`?${params.toString()}`);
   };
 
   // Format date
@@ -265,19 +273,11 @@ export function ListadoServiciosComponent() {
       default:
         return "bg-gray-100 text-gray-800 border-gray-300";
     }
-  }; // Filter services based on the active tab
-  const filteredServicios = servicios.filter(
-    (servicio) =>
-      activeTab === "todos" ||
-      servicio.estado.toUpperCase() === activeTab.toUpperCase(),
-  );
+  };
 
-  // Client-side pagination
-  const itemsPerPage = 10;
-  const totalPages = Math.ceil(filteredServicios.length / itemsPerPage);
-  const startIndex = (currentPage - 1) * itemsPerPage;
-  const endIndex = startIndex + itemsPerPage;
-  const paginatedServicios = filteredServicios.slice(startIndex, endIndex);
+  // Usar directamente servicios del backend (ya filtrados y paginados)
+  const displayedServicios = servicios;
+  const totalPages = Math.ceil(totalItems / 10);
 
   return (
     <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
@@ -396,7 +396,7 @@ export function ListadoServiciosComponent() {
               <div className="flex justify-center p-4">
                 Cargando servicios...
               </div>
-            ) : paginatedServicios.length === 0 ? (
+            ) : displayedServicios.length === 0 ? (
               <div className="flex justify-center p-4">
                 No hay servicios disponibles
               </div>
@@ -431,7 +431,7 @@ export function ListadoServiciosComponent() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {paginatedServicios.map((servicio: Servicio) => (
+                      {displayedServicios.map((servicio: Servicio) => (
                         <TableRow key={servicio.id}>
                           <TableCell className="font-medium">
                             {servicio.id}
@@ -676,7 +676,7 @@ export function ListadoServiciosComponent() {
                     </TableBody>
                   </Table>
                 </div>
-                {filteredServicios.length > itemsPerPage && (
+                {totalPages > 1 && (
                   <div className="flex items-center justify-end space-x-2 py-4">
                     <Button
                       variant="outline"
